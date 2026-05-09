@@ -218,6 +218,10 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
       Звіт
     </button>
+    <button class="nav-btn" onclick="switchTab('estimate',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+      Калькуляція
+    </button>
   </div>
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
@@ -351,6 +355,42 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
       <div class="card-label">По клієнтах</div>
       <div id="rep-clients"><div class="empty">Немає даних</div></div>
     </div>
+  <!-- ESTIMATE -->
+  <div id="page-estimate" class="page">
+    <div class="page-title">🧮 Калькуляція</div>
+    <div class="page-sub">Попередній розрахунок вартості проєкту для клієнта</div>
+
+    <div class="card">
+      <div class="card-label">Новий кошторис</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. Весілля Ковалів — травень"></div>
+        <div class="field"><label>Клієнт (необов'язково)</label><select id="est-client"><option value="">— без клієнта —</option></select></div>
+      </div>
+      <div class="form-row form-2">
+        <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="est-rate" value="50" min="1" step="1" oninput="recalcEstimate()"></div>
+        <div class="field"><label>Нотатка</label><input type="text" id="est-note" placeholder="необов'язково"></div>
+      </div>
+
+      <div class="card-label" style="margin-top:8px">Позиції</div>
+      <div id="est-lines"></div>
+      <button class="btn" style="margin-top:8px" onclick="addEstimateLine()">+ Додати позицію</button>
+
+      <div style="background:var(--brand-pale);border-radius:var(--r-sm);padding:12px 14px;margin-top:16px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:4px">
+          <span>⏱️ Годин разом</span><span id="est-total-hrs" style="font-family:var(--mono);font-weight:500">0h</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:500;color:var(--brand)">
+          <span>💰 Сума</span><span id="est-total-earn" style="font-family:var(--mono)">0 zł</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveEstimate()">✓ Зберегти кошторис</button>
+        <button class="btn" onclick="clearEstimateForm()">✕ Очистити</button>
+      </div>
+    </div>
+
+    <div class="card-label" style="margin:8px 0 12px">Збережені кошториси</div>
+    <div id="est-list"><div class="empty">Завантаження...</div></div>
   </div>
 
 </div>
@@ -418,7 +458,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 <div class="toast" id="toast"></div>
 
 <script>
-const GAS_URL='https://script.google.com/macros/s/AKfycbyR3H59I0Mr05EW68rRFp0PmTrp1qQmuXNhQ1kWqX58MmM-JGhxWI6WeiUxg0BATNY/exec';
+const GAS_URL='https://script.google.com/macros/s/AKfycbw1cdsqdqiY2tw6aQA6urTZKkveYSGQGentynkpLSt4yRtfX06g36TEWvRA-TaDnHK4/exec';
 const CATS={
   'Монтаж':          {dot:'#2563eb',bg:'#eff6ff',text:'#1e3a8a',border:'#bfdbfe'},
   'Зйомка':          {dot:'#059669',bg:'#ecfdf5',text:'#065f46',border:'#6ee7b7'},
@@ -449,14 +489,17 @@ async function gasPost(b){const r=await fetch(GAS_URL,{method:'POST',body:JSON.s
 async function loadAll(){
   setSyncStatus('loading','Синхронізація...');
   try{
-    const[eR,cR,oR]=await Promise.all([gas({action:'getAll'}),gas({action:'getClients'}),gas({action:'getOrder'})]);
+    const[eR,cR,oR,estR]=await Promise.all([
+      gas({action:'getAll'}),gas({action:'getClients'}),
+      gas({action:'getOrder'}),gas({action:'getEstimates'})
+    ]);
     if(eR.ok) entries=eR.data.slice(1).filter(r=>r[0]).map(r=>({
       id:String(r[0]),date:r[1],clientId:String(r[2]),subprojId:String(r[3]),
       cat:r[4],hours:parseFloat(r[5])||0,note:r[6]||'',earn:parseFloat(r[7])||0,
       fixed:r[8]==='1'||r[8]===true||r[8]===1
     }));
     if(cR.ok) clients=JSON.parse(cR.data||'[]');
-    // apply saved order
+    if(estR.ok) estimates=JSON.parse(estR.data||'[]');
     if(oR.ok&&oR.data){
       try{
         const order=JSON.parse(oR.data);
@@ -470,7 +513,8 @@ async function loadAll(){
       }catch(e){}
     }
     setSyncStatus('ok','Google Sheets');
-    refreshAllSelects(); renderLog(); renderClients(); renderReport();
+    refreshAllSelects(); refreshEstimateSelects();
+    renderLog(); renderClients(); renderReport(); renderEstimates();
   }catch(e){setSyncStatus('err','Помилка підключення');}
 }
 
@@ -512,6 +556,7 @@ function switchTab(t,btn){
   btn.classList.add('active'); document.getElementById('page-'+t).classList.add('active');
   if(t==='report')renderReport();
   if(t==='clients')renderClients();
+  if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
 }
 
 // Timer
@@ -950,6 +995,169 @@ function renderReport(){
     </div>`;
   }).filter(Boolean).join('')||'<div class="empty">Немає даних</div>';
 }
+
+// ── ESTIMATES ──────────────────────────────────────────────
+let estimates=[];
+let estLineId=0;
+
+function addEstimateLine(cat='',type='hours',hours=1,fixed=0,note=''){
+  const id='el'+estLineId++;
+  const el=document.getElementById('est-lines');
+  const div=document.createElement('div');
+  div.id=id;
+  div.style.cssText='display:grid;grid-template-columns:1fr 110px 90px 32px;gap:8px;align-items:center;margin-bottom:8px';
+  div.innerHTML=`
+    <div class="field" style="margin:0">
+      <input type="text" placeholder="Назва роботи (напр. Монтаж)" value="${note}" oninput="recalcEstimate()" style="width:100%">
+    </div>
+    <div class="field" style="margin:0">
+      <select onchange="toggleEstLineType('${id}',this.value);recalcEstimate()" style="width:100%">
+        <option value="hours" ${type==='hours'?'selected':''}>⏱️ Години</option>
+        <option value="fixed" ${type==='fixed'?'selected':''}>💰 Фікс. сума</option>
+      </select>
+    </div>
+    <div class="field" style="margin:0">
+      <input type="number" class="el-val" value="${type==='hours'?hours:fixed}" min="0" step="${type==='hours'?0.5:1}" placeholder="${type==='hours'?'год':'zł'}" oninput="recalcEstimate()" style="width:100%">
+    </div>
+    <button class="btn-icon" onclick="document.getElementById('${id}').remove();recalcEstimate()">✕</button>`;
+  el.appendChild(div);
+  recalcEstimate();
+}
+
+function toggleEstLineType(id, type){
+  const div=document.getElementById(id);
+  if(!div)return;
+  const inp=div.querySelector('.el-val');
+  inp.step=type==='hours'?'0.5':'1';
+  inp.placeholder=type==='hours'?'год':'zł';
+}
+
+function recalcEstimate(){
+  const rate=parseFloat(document.getElementById('est-rate').value)||0;
+  let totalHrs=0, totalEarn=0;
+  document.querySelectorAll('#est-lines > div').forEach(div=>{
+    const sel=div.querySelector('select');
+    const inp=div.querySelector('.el-val');
+    if(!sel||!inp)return;
+    const val=parseFloat(inp.value)||0;
+    if(sel.value==='hours'){totalHrs+=val;totalEarn+=val*rate;}
+    else{totalEarn+=val;}
+  });
+  document.getElementById('est-total-hrs').textContent=totalHrs%1===0?totalHrs+'h':totalHrs.toFixed(1)+'h';
+  document.getElementById('est-total-earn').textContent=totalEarn.toFixed(0)+' zł';
+}
+
+function getEstimateLines(){
+  const rate=parseFloat(document.getElementById('est-rate').value)||0;
+  const lines=[];
+  document.querySelectorAll('#est-lines > div').forEach(div=>{
+    const sel=div.querySelector('select');
+    const inp=div.querySelector('.el-val');
+    const noteEl=div.querySelector('input[type=text]');
+    if(!sel||!inp)return;
+    const val=parseFloat(inp.value)||0;
+    const type=sel.value;
+    const earn=type==='hours'?parseFloat((val*rate).toFixed(2)):val;
+    lines.push({note:noteEl?noteEl.value:'',type,val,earn});
+  });
+  return lines;
+}
+
+async function saveEstimate(){
+  const name=document.getElementById('est-name').value.trim();
+  if(!name){document.getElementById('est-name').focus();return;}
+  const rate=parseFloat(document.getElementById('est-rate').value)||0;
+  const lines=getEstimateLines();
+  if(!lines.length){showToast('Додай хоча б одну позицію');return;}
+  const totalHrs=lines.filter(l=>l.type==='hours').reduce((a,l)=>a+l.val,0);
+  const totalEarn=lines.reduce((a,l)=>a+l.earn,0);
+  const clientId=document.getElementById('est-client').value;
+  const note=document.getElementById('est-note').value;
+  const est={
+    id:uid(), date:today(), name, clientId, rate, note,
+    lines, totalHrs, totalEarn
+  };
+  estimates.unshift(est);
+  renderEstimates();
+  clearEstimateForm();
+  setSyncStatus('loading','Збереження...');
+  try{
+    await gasPost({action:'saveEstimate',estimate:JSON.stringify(est)});
+    setSyncStatus('ok','Google Sheets'); showToast('Кошторис збережено ✓');
+  }catch(e){setSyncStatus('err','Помилка збереження');}
+}
+
+function clearEstimateForm(){
+  document.getElementById('est-name').value='';
+  document.getElementById('est-note').value='';
+  document.getElementById('est-rate').value='50';
+  document.getElementById('est-lines').innerHTML='';
+  document.getElementById('est-total-hrs').textContent='0h';
+  document.getElementById('est-total-earn').textContent='0 zł';
+}
+
+async function deleteEstimate(id){
+  estimates=estimates.filter(e=>e.id!==id);
+  renderEstimates();
+  setSyncStatus('loading','Видалення...');
+  try{await gasPost({action:'deleteEstimate',id});setSyncStatus('ok','Google Sheets');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+function confirmDeleteEstimate(id,name){
+  document.getElementById('confirm-text').textContent=`Кошторис "${name}" буде видалено.`;
+  document.getElementById('confirm-modal').classList.add('open');
+  document.getElementById('confirm-delete-btn').onclick=()=>{
+    document.getElementById('confirm-modal').classList.remove('open');
+    deleteEstimate(id);
+  };
+}
+
+function loadEstimateToForm(est){
+  document.getElementById('est-name').value=est.name+' (копія)';
+  document.getElementById('est-rate').value=est.rate||50;
+  document.getElementById('est-note').value=est.note||'';
+  document.getElementById('est-client').value=est.clientId||'';
+  document.getElementById('est-lines').innerHTML='';
+  (est.lines||[]).forEach(l=>addEstimateLine(l.cat||'',l.type,l.val,l.earn,l.note||''));
+  // scroll to top of estimate page
+  document.querySelector('.content').scrollTop=0;
+}
+
+function renderEstimates(){
+  const el=document.getElementById('est-list');
+  if(!estimates.length){el.innerHTML='<div class="empty">Поки немає збережених кошторисів</div>';return;}
+  const projMap={};clients.forEach(c=>projMap[c.id]=c);
+  el.innerHTML=estimates.map(est=>{
+    const client=est.clientId&&projMap[est.clientId]?projMap[est.clientId].name:'';
+    const lines=(est.lines||[]).map(l=>`
+      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">${l.note||'—'} ${l.type==='hours'?`(${l.val}h × ${est.rate} zł)`:'(фікс.)'}</span>
+        <span style="font-family:var(--mono);font-weight:500">${l.earn} zł</span>
+      </div>`).join('');
+    return`<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div>
+          <div style="font-weight:500;font-size:15px;color:var(--brand)">${est.name}</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px">
+            📅 ${String(est.date).slice(0,10)}${client?' · '+client:''}${est.note?' · '+est.note:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn btn-sm" onclick="loadEstimateToForm(${JSON.stringify(est).replace(/"/g,'&quot;')})" title="Копіювати у форму">📋</button>
+          <button class="btn-icon" onclick="confirmDeleteEstimate('${est.id}','${est.name.replace(/'/g,"\\'")}')">✕</button>
+        </div>
+      </div>
+      <div style="margin-bottom:10px">${lines}</div>
+      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand);padding-top:6px">
+        <span>⏱️ ${est.totalHrs%1===0?est.totalHrs:est.totalHrs.toFixed(1)}h &nbsp; 💰 Разом</span>
+        <span style="font-family:var(--mono);font-size:16px">${est.totalEarn.toFixed(0)} zł</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── END ESTIMATES ───────────────────────────────────────────
 
 document.getElementById('m-date').value=today();
 
