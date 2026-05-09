@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PLAMA">
+<meta name="theme-color" content="#232262">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>PLAMA — Трекер годин</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Serif+Text:ital@0;1&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fffef1; --surface: #ffffff; --border: #e8e7d4; --border-strong: #c8c7a8;
+  --brand: #232262; --brand-light: #2e2d7a; --brand-pale: #eeeef8;
+  --text: #232262; --text-2: #5a5990; --text-3: #9998b8;
+  --serif: 'DM Serif Text', serif; --sans: 'Poppins', sans-serif; --mono: 'DM Mono', monospace;
+  --r: 10px; --r-sm: 6px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--sans); font-weight: 300; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+.topbar {
+  background: var(--brand); border-bottom: none;
+  display: flex; align-items: stretch; padding: 0 20px;
+  position: sticky; top: 0; z-index: 20;
+}
+.logo-area {
+  display: flex; align-items: center; padding-right: 20px; margin-right: 4px;
+  border-right: 1px solid rgba(255,255,255,0.2);
+  font-family: var(--serif); font-size: 16px; font-weight: 400;
+  color: var(--bg); white-space: nowrap; letter-spacing: 0.5px;
+}
+.nav-tabs { display: flex; align-items: stretch; flex: 1; overflow-x: auto; }
+.nav-btn {
+  display: flex; align-items: center; gap: 6px; padding: 14px 14px;
+  font-family: var(--sans); font-size: 13px; font-weight: 300;
+  color: rgba(255,254,241,0.65); background: none; border: none;
+  border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.nav-btn:hover { color: var(--bg); }
+.nav-btn.active { color: var(--bg); font-weight: 500; border-bottom-color: var(--bg); }
+.sync-area {
+  display: flex; align-items: center; gap: 7px;
+  margin-left: auto; padding-left: 12px; font-size: 12px; color: rgba(255,254,241,0.6); white-space: nowrap;
+}
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,0.3); flex-shrink: 0; }
+.sync-dot.ok { background: #4ade80; }
+.sync-dot.err { background: #f87171; }
+.sync-dot.loading { background: #fbbf24; animation: blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.2} }
+.btn-reload { padding: 4px 9px; font-size: 12px; border: 1px solid rgba(255,255,255,0.25); border-radius: var(--r-sm); background: none; cursor: pointer; font-family: var(--sans); color: rgba(255,254,241,0.7); }
+.btn-reload:hover { background: rgba(255,255,255,0.1); }
+
+.content { max-width: 640px; margin: 0 auto; padding: 28px 20px 60px; }
+.page { display: none; }
+.page.active { display: block; }
+.page-title { font-family: var(--serif); font-size: 26px; font-weight: 400; letter-spacing: 0.2px; margin-bottom: 4px; color: var(--brand); }
+.page-sub { font-size: 13px; font-weight: 300; color: var(--text-2); margin-bottom: 22px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 22px; margin-bottom: 14px; }
+.card-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-3); margin-bottom: 14px; }
+
+.metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
+.metric { background: var(--brand); border-radius: var(--r); padding: 14px 16px; }
+.metric-label { font-size: 11px; color: rgba(255,254,241,0.65); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; font-weight: 400; }
+.metric-val { font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: -1px; color: var(--bg); }
+
+.form-row { display: grid; gap: 12px; margin-bottom: 14px; }
+.form-2 { grid-template-columns: 1fr 1fr; }
+.form-3 { grid-template-columns: 1fr 1fr 86px; }
+.form-4 { grid-template-columns: 1fr 1fr 1fr 86px; }
+.field label { display: block; font-size: 11px; font-weight: 500; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+input, select {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--r-sm);
+  background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; font-weight: 300;
+  transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none; appearance: none;
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239998b8' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
+}
+input:focus, select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(35,34,98,0.1); background: var(--surface); }
+
+.timer-block { text-align: center; padding: 18px 0 14px; }
+.timer-display { font-family: var(--mono); font-size: 52px; font-weight: 400; letter-spacing: -2px; line-height: 1; color: var(--brand); transition: color 0.3s; }
+.timer-display.running { color: #166534; }
+.timer-controls { display: flex; gap: 8px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--r-sm); font-family: var(--sans); font-size: 13px; font-weight: 400; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--brand); transition: all 0.15s; white-space: nowrap; }
+.btn:hover { background: var(--brand-pale); border-color: var(--brand); }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--brand); color: var(--bg); border-color: var(--brand); }
+.btn-primary:hover { background: var(--brand-light); opacity: 1; }
+.btn-ghost { color: #991b1b; border-color: #fca5a5; }
+.btn-ghost:hover { background: #fef2f2; }
+.btn-icon { padding: 5px 8px; background: none; border: none; cursor: pointer; color: var(--text-3); border-radius: var(--r-sm); font-size: 14px; line-height: 1; transition: all 0.15s; }
+.btn-icon:hover { background: var(--brand-pale); color: var(--brand); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* Client tree */
+.client-block { margin-bottom: 10px; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.client-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; background: var(--surface); cursor: pointer;
+  border-bottom: 1px solid transparent; transition: background 0.15s;
+}
+.client-header:hover { background: var(--brand-pale); }
+.client-header.open { border-bottom-color: var(--border); }
+.client-chevron { font-size: 11px; color: var(--text-3); transition: transform 0.2s; flex-shrink: 0; }
+.client-header.open .client-chevron { transform: rotate(90deg); }
+.client-name { font-weight: 500; flex: 1; color: var(--brand); }
+.client-meta { font-size: 12px; color: var(--text-2); font-family: var(--mono); }
+.client-actions { display: flex; gap: 4px; }
+.subprojects { display: none; padding: 0 16px 12px; background: var(--surface); }
+.client-header.open + .subprojects { display: block; }
+.subproj-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.subproj-row:last-child { border-bottom: none; }
+.subproj-name { font-size: 13px; font-weight: 300; }
+.subproj-meta { font-size: 12px; color: var(--text-2); font-family: var(--mono); }
+.add-subproj { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.add-subproj input { flex: 1; }
+
+/* Log */
+.log-item { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-name { font-weight: 500; font-size: 14px; }
+.log-meta { font-size: 12px; color: var(--text-2); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.log-hrs { font-family: var(--mono); font-size: 15px; font-weight: 500; white-space: nowrap; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-row select { width: auto; min-width: 140px; flex: none; }
+
+/* Edit modal */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0; z-index: 50;
+  background: rgba(35,34,98,0.4); align-items: flex-end; justify-content: center;
+  padding: 0;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r) var(--r) 0 0;
+  padding: 20px 20px 32px;
+  width: 100%; max-width: 560px;
+  max-height: 92vh; overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.modal-title { font-size: 15px; font-weight: 500; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* Report */
+.bar-row { margin-bottom: 12px; }
+.bar-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; align-items: center; }
+.bar-val { font-family: var(--mono); font-weight: 500; }
+.bar-track { background: var(--bg); border-radius: 3px; height: 5px; }
+.bar-fill { height: 5px; border-radius: 3px; transition: width 0.4s; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+.rep-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.rep-row:last-child { border-bottom: none; }
+.rep-val { font-family: var(--mono); font-weight: 500; }
+.rep-sub { font-size: 12px; color: var(--text-2); padding: 6px 0 6px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
+.rep-sub:last-child { border-bottom: none; }
+
+.empty { text-align: center; color: var(--text-3); padding: 28px 0; font-size: 13px; font-weight: 300; }
+
+.toast { position: fixed; bottom: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 10px 18px; border-radius: var(--r-sm); font-size: 13px; font-weight: 400; opacity: 0; transform: translateY(6px); transition: all 0.2s; pointer-events: none; z-index: 100; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 560px) {
+  .topbar { padding: 0 12px; }
+  .logo-area { padding-right: 12px; margin-right: 0; }
+  .nav-btn { padding: 12px 10px; font-size: 12px; gap: 4px; }
+  .nav-btn svg { display: none; }
+  .sync-area span:not(.sync-dot) { display: none; }
+  .content { padding: 18px 14px 60px; }
+  .form-2, .form-3, .form-4 { grid-template-columns: 1fr; }
+  .timer-display { font-size: 40px; }
+  .metrics { gap: 8px; }
+  .metric-val { font-size: 18px; }
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo-area">PLAMA</div>
+  <div class="nav-tabs">
+    <button class="nav-btn active" onclick="switchTab('track',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      Записати
+    </button>
+    <button class="nav-btn" onclick="switchTab('log',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      Журнал
+    </button>
+    <button class="nav-btn" onclick="switchTab('clients',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
+      Клієнти
+    </button>
+    <button class="nav-btn" onclick="switchTab('report',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
+      Звіт
+    </button>
+  </div>
+  <div class="sync-area">
+    <span class="sync-dot loading" id="sync-dot"></span>
+    <span id="sync-text">Підключення...</span>
+    <button class="btn-reload" onclick="loadAll()">↺</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- TRACK -->
+  <div id="page-track" class="page active">
+    <div class="page-title">⏱️ Записати час</div>
+    <div class="page-sub">Запусти таймер або введи години вручну</div>
+    <div class="card">
+      <div class="card-label">Таймер</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Клієнт</label><select id="t-client" onchange="updateSubprojs('t-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
+        <div class="field"><label>Підпроєкт</label><select id="t-subproj"><option value="">— без підпроєкту —</option></select></div>
+      </div>
+      <div class="form-row form-2">
+        <div class="field"><label>Категорія</label>
+          <select id="t-cat">
+            <option>Монтаж</option><option>Зйомка</option><option>Графічний дизайн</option>
+            <option>Концепція</option><option>Редагування</option><option>Обробка фото</option><option>Транспорт</option><option>Інше</option>
+          </select>
+        </div>
+        <div class="field"><label>Нотатка (необов'язково)</label><input type="text" id="t-note" placeholder="напр. Монтаж інтро-сцени"></div>
+      </div>
+      <div class="timer-block">
+        <div class="timer-display" id="timer-display">00:00:00</div>
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="btn-start" onclick="timerStart_fn()">▶ Старт</button>
+          <button class="btn" id="btn-pause" onclick="timerPause()" style="display:none">⏸ Пауза</button>
+          <button class="btn btn-primary" id="btn-resume" onclick="timerResume()" style="display:none">▶ Продовжити</button>
+          <button class="btn" id="btn-save" onclick="timerStop()" style="display:none">✓ Зберегти</button>
+          <button class="btn btn-ghost" id="btn-cancel" onclick="timerCancel()" style="display:none">✕ Скасувати</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Ввести вручну</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Клієнт</label><select id="m-client" onchange="updateSubprojs('m-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
+        <div class="field"><label>Підпроєкт</label><select id="m-subproj"><option value="">— без підпроєкту —</option></select></div>
+      </div>
+      <div class="form-row form-2">
+        <div class="field"><label>Категорія</label>
+          <select id="m-cat">
+            <option>Монтаж</option><option>Зйомка</option><option>Графічний дизайн</option>
+            <option>Концепція</option><option>Редагування</option><option>Обробка фото</option><option>Транспорт</option><option>Інше</option>
+          </select>
+        </div>
+        <div class="field"><label>Тип оплати</label>
+          <select id="m-type" onchange="togglePayType()">
+            <option value="hours">⏱️ За годинами</option>
+            <option value="fixed">💰 Фіксована сума</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row form-3">
+        <div class="field"><label>Дата</label><input type="date" id="m-date"></div>
+        <div class="field"><label>Нотатка</label><input type="text" id="m-note" placeholder="необов'язково"></div>
+        <div class="field" id="m-hours-wrap"><label>⏱️ Годин</label><input type="number" id="m-hours" value="1" min="0.25" step="0.25"></div>
+        <div class="field" id="m-fixed-wrap" style="display:none"><label>💰 Сума (zł)</label><input type="number" id="m-fixed" value="0" min="0" step="1"></div>
+      </div>
+      <button class="btn btn-primary" onclick="manualAdd()">+ Додати запис</button>
+    </div>
+  </div>
+
+  <!-- LOG -->
+  <div id="page-log" class="page">
+    <div class="page-title">📋 Журнал</div>
+    <div class="page-sub">Всі записані сесії роботи</div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">Записів</div><div class="metric-val" id="lm-count">—</div></div>
+      <div class="metric"><div class="metric-label">⏱️ Годин</div><div class="metric-val" id="lm-hrs">—</div></div>
+      <div class="metric"><div class="metric-label">Днів</div><div class="metric-val" id="lm-days">—</div></div>
+    </div>
+    <div class="filter-row">
+      <select id="f-client" onchange="updateFilterSubprojs();renderLog()"><option value="">Всі клієнти</option></select>
+      <select id="f-subproj" onchange="renderLog()"><option value="">Всі підпроєкти</option></select>
+      <select id="f-cat" onchange="renderLog()"><option value="">Всі категорії</option></select>
+    </div>
+    <div class="card" style="padding:20px 22px"><div id="log-list"><div class="empty">Завантаження...</div></div></div>
+  </div>
+
+  <!-- CLIENTS -->
+  <div id="page-clients" class="page">
+    <div class="page-title">🗂️ Клієнти</div>
+    <div class="page-sub">Клієнти, підпроєкти і ставки</div>
+    <div class="card">
+      <div class="card-label">Новий клієнт</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Назва клієнта</label><input type="text" id="c-name" placeholder="напр. NARRO"></div>
+        <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="c-rate" value="50" min="1" step="1"></div>
+      </div>
+      <button class="btn btn-primary" onclick="addClient()">+ Додати клієнта</button>
+    </div>
+    <div id="client-list"><div class="empty">Завантаження...</div></div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="page-report" class="page">
+    <div class="page-title">📊 Звіт</div>
+    <div class="page-sub">Зведення по годинах і заробітку</div>
+    <div class="filter-row">
+      <select id="r-client" onchange="renderReport()"><option value="">Всі клієнти</option></select>
+      <select id="r-period" onchange="renderReport()">
+        <option value="all">Весь час</option>
+        <option value="week">Цей тиждень</option>
+        <option value="month">Цей місяць</option>
+      </select>
+    </div>
+    <div class="metrics">
+      <div class="metric"><div class="metric-label">⏱️ Годин</div><div class="metric-val" id="rm-hrs">—</div></div>
+      <div class="metric"><div class="metric-label">💰 Заробіток</div><div class="metric-val" id="rm-earn">—</div></div>
+      <div class="metric"><div class="metric-label">Записів</div><div class="metric-val" id="rm-count">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">По категоріях</div>
+      <div id="rep-cats"><div class="empty">Немає даних</div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">По клієнтах</div>
+      <div id="rep-clients"><div class="empty">Немає даних</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Edit modal -->
+<div class="modal-backdrop" id="edit-modal">
+  <div class="modal">
+    <div class="modal-title">
+      ✎ Редагувати запис
+      <button class="btn-icon" onclick="closeEditModal()">✕</button>
+    </div>
+    <!-- Info header -->
+    <div id="e-info" style="background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--brand);line-height:1.6"></div>
+    <input type="hidden" id="e-id">
+    <div class="form-row form-2">
+      <div class="field"><label>Клієнт</label><select id="e-client" onchange="updateSubprojs('e-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
+      <div class="field"><label>Підпроєкт</label><select id="e-subproj"><option value="">— без підпроєкту —</option></select></div>
+    </div>
+    <div class="form-row form-2">
+      <div class="field"><label>Категорія</label>
+        <select id="e-cat">
+          <option>Монтаж</option><option>Зйомка</option><option>Графічний дизайн</option>
+          <option>Концепція</option><option>Редагування</option><option>Обробка фото</option><option>Транспорт</option><option>Інше</option>
+        </select>
+      </div>
+      <div class="field"><label>Дата</label><input type="date" id="e-date"></div>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Нотатка</label><input type="text" id="e-note" placeholder="необов'язково"></div>
+    </div>
+    <div class="form-row form-2">
+      <div class="field"><label>Тип оплати</label>
+        <select id="e-type" onchange="toggleEditPayType()">
+          <option value="hours">⏱️ За годинами</option>
+          <option value="fixed">💰 Фіксована сума</option>
+        </select>
+      </div>
+      <div class="field" id="e-rate-wrap"><label>💰 Ставка (zł/год)</label><input type="number" id="e-rate" min="1" step="1" placeholder="напр. 160"></div>
+    </div>
+    <div class="form-row form-2">
+      <div class="field" id="e-hours-wrap"><label>⏱️ Годин</label><input type="number" id="e-hours" min="0.25" step="0.25" oninput="recalcEarn()"></div>
+      <div class="field" id="e-fixed-wrap" style="display:none"><label>💰 Сума (zł)</label><input type="number" id="e-fixed" min="0" step="1"></div>
+      <div class="field" id="e-earn-preview" style="display:none"><label>💰 Сума до оплати</label><input type="number" id="e-earn-out" min="0" step="1" style="font-weight:500;color:var(--brand)"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeEditModal()">Скасувати</button>
+      <button class="btn btn-primary" onclick="saveEdit()">✓ Зберегти зміни</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL='https://script.google.com/macros/s/AKfycbzwpkprXPiI6mkyPq_AM_aHDXZEEJpZbn92B-wthGUCbdOPsQotS79s7lKmqsr42pxI/exec';
+const CATS={
+  'Монтаж':          {dot:'#2563eb',bg:'#eff6ff',text:'#1e3a8a',border:'#bfdbfe'},
+  'Зйомка':          {dot:'#059669',bg:'#ecfdf5',text:'#065f46',border:'#6ee7b7'},
+  'Графічний дизайн':{dot:'#dc2626',bg:'#fef2f2',text:'#7f1d1d',border:'#fca5a5'},
+  'Концепція':       {dot:'#7c3aed',bg:'#f5f3ff',text:'#4c1d95',border:'#c4b5fd'},
+  'Редагування':     {dot:'#d97706',bg:'#fffbeb',text:'#78350f',border:'#fcd34d'},
+  'Обробка фото':    {dot:'#0891b2',bg:'#ecfeff',text:'#164e63',border:'#a5f3fc'},
+  'Транспорт':       {dot:'#65a30d',bg:'#f7fee7',text:'#3a5a0a',border:'#bef264'},
+  'Інше':            {dot:'#6b7280',bg:'#f9fafb',text:'#374151',border:'#d1d5db'},
+};
+
+// clients: [{id, name, rate, subprojects:[{id,name}]}]
+// entries: [{id, date, clientId, subprojId, cat, hours, note, earn}]
+let clients=[], entries=[];
+let timerInt=null, timerStart=null, timerRunning=false, timerAccum=0;
+
+const today=()=>new Date().toISOString().slice(0,10);
+const fmtHrs=h=>h%1===0?h+'h':parseFloat(h.toFixed(2))+'h';
+const uid=()=>Date.now()+Math.random().toString(36).slice(2,6);
+const fmtTime=s=>[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');
+function getElapsed(){return timerStart?timerAccum+Math.floor((Date.now()-timerStart)/1000):timerAccum;}
+
+function setSyncStatus(s,msg){document.getElementById('sync-dot').className='sync-dot '+s;document.getElementById('sync-text').textContent=msg;}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+async function gas(p){const r=await fetch(GAS_URL+'?'+new URLSearchParams(p),{redirect:'follow'});return r.json();}
+async function gasPost(b){const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(b),redirect:'follow'});return r.json();}
+
+async function loadAll(){
+  setSyncStatus('loading','Синхронізація...');
+  try{
+    const[eR,cR]=await Promise.all([gas({action:'getAll'}),gas({action:'getClients'})]);
+    if(eR.ok) entries=eR.data.slice(1).filter(r=>r[0]).map(r=>({
+      id:String(r[0]),date:r[1],clientId:String(r[2]),subprojId:String(r[3]),
+      cat:r[4],hours:parseFloat(r[5])||0,note:r[6]||'',earn:parseFloat(r[7])||0,
+      fixed:r[8]==='1'||r[8]===true||r[8]===1
+    }));
+    if(cR.ok) clients=JSON.parse(cR.data||'[]');
+    setSyncStatus('ok','Google Sheets');
+    refreshAllSelects(); renderLog(); renderClients(); renderReport();
+  }catch(e){setSyncStatus('err','Помилка підключення');}
+}
+
+function getClientById(id){return clients.find(c=>c.id===id);}
+function getSubprojById(clientId,subprojId){
+  const c=getClientById(clientId);
+  return c?c.subprojects.find(s=>s.id===subprojId):null;
+}
+
+function updateSubprojs(selectId, clientId){
+  const el=document.getElementById(selectId);
+  const c=clients.find(c=>c.id===clientId);
+  const subs=c&&c.subprojects?c.subprojects:[];
+  el.innerHTML='<option value="">— без підпроєкту —</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function updateFilterSubprojs(){
+  const clientId=document.getElementById('f-client').value;
+  const el=document.getElementById('f-subproj');
+  const c=clients.find(c=>c.id===clientId);
+  const subs=c&&c.subprojects?c.subprojects:[];
+  el.innerHTML='<option value="">Всі підпроєкти</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+function refreshAllSelects(){
+  const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  ['t-client','m-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
+  const fOpts='<option value="">Всі клієнти</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  ['f-client','r-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=fOpts;});
+  ['t-subproj','m-subproj'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— без підпроєкту —</option>';});
+  document.getElementById('f-subproj').innerHTML='<option value="">Всі підпроєкти</option>';
+  const cats=[...new Set(entries.map(e=>e.cat))];
+  document.getElementById('f-cat').innerHTML='<option value="">Всі категорії</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function switchTab(t,btn){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active'); document.getElementById('page-'+t).classList.add('active');
+  if(t==='report')renderReport();
+  if(t==='clients')renderClients();
+}
+
+// Timer
+function timerStart_fn(){
+  if(timerRunning)return;
+  timerRunning=true; timerStart=Date.now();
+  try{sessionStorage.setItem('plama_timer_start',String(timerStart));sessionStorage.setItem('plama_timer_accum',String(timerAccum));}catch(e){}
+  document.getElementById('btn-start').style.display='none';
+  document.getElementById('btn-resume').style.display='none';
+  document.getElementById('btn-pause').style.display='';
+  document.getElementById('btn-save').style.display='';
+  document.getElementById('btn-cancel').style.display='';
+  document.getElementById('timer-display').classList.add('running');
+  document.getElementById('timer-display').style.opacity='1';
+  timerInt=setInterval(()=>{document.getElementById('timer-display').textContent=fmtTime(getElapsed());},1000);
+}
+
+function timerPause(){
+  if(!timerRunning)return;
+  clearInterval(timerInt); timerAccum=getElapsed(); timerStart=null; timerRunning=false;
+  try{sessionStorage.removeItem('plama_timer_start');sessionStorage.setItem('plama_timer_accum',String(timerAccum));}catch(e){}
+  document.getElementById('btn-pause').style.display='none';
+  document.getElementById('btn-resume').style.display='';
+  document.getElementById('timer-display').classList.remove('running');
+  document.getElementById('timer-display').style.opacity='0.5';
+}
+
+function timerResume(){
+  document.getElementById('btn-resume').style.display='none';
+  document.getElementById('timer-display').style.opacity='1';
+  timerStart_fn();
+}
+
+async function timerStop(){
+  if(timerRunning){clearInterval(timerInt);timerRunning=false;}
+  const elapsed=getElapsed(); timerStart=null; timerAccum=0;
+  try{sessionStorage.removeItem('plama_timer_start');sessionStorage.removeItem('plama_timer_accum');}catch(e){}
+  const hrs=parseFloat((elapsed/3600).toFixed(2));
+  if(hrs<0.01){timerCancel();return;}
+  const clientId=document.getElementById('t-client').value;
+  const subprojId=document.getElementById('t-subproj').value;
+  const cat=document.getElementById('t-cat').value;
+  const note=document.getElementById('t-note').value;
+  const c=getClientById(clientId);
+  const earn=c?parseFloat((hrs*c.rate).toFixed(2)):0;
+  const entry={id:uid(),date:today(),clientId,subprojId,cat,hours:hrs,note,earn,fixed:false};
+  entries.unshift(entry); renderLog();
+  document.getElementById('timer-display').textContent='00:00:00';
+  document.getElementById('timer-display').classList.remove('running');
+  document.getElementById('timer-display').style.opacity='1';
+  document.getElementById('btn-start').style.display='';
+  document.getElementById('btn-pause').style.display='none';
+  document.getElementById('btn-resume').style.display='none';
+  document.getElementById('btn-save').style.display='none';
+  document.getElementById('btn-cancel').style.display='none';
+  document.getElementById('t-note').value='';
+  setSyncStatus('loading','Збереження...');
+  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:'0'});setSyncStatus('ok','Google Sheets');showToast('Запис збережено ✓');}
+  catch(e){setSyncStatus('err','Не вдалось зберегти');}
+}
+
+function timerCancel(){
+  clearInterval(timerInt); timerRunning=false; timerStart=null; timerAccum=0;
+  try{sessionStorage.removeItem('plama_timer_start');sessionStorage.removeItem('plama_timer_accum');}catch(e){}
+  document.getElementById('timer-display').textContent='00:00:00';
+  document.getElementById('timer-display').classList.remove('running');
+  document.getElementById('timer-display').style.opacity='1';
+  document.getElementById('btn-start').style.display='';
+  document.getElementById('btn-pause').style.display='none';
+  document.getElementById('btn-resume').style.display='none';
+  document.getElementById('btn-save').style.display='none';
+  document.getElementById('btn-cancel').style.display='none';
+}
+
+// Restore timer state after page refresh
+(function(){
+  try{
+    const savedStart=sessionStorage.getItem('plama_timer_start');
+    const savedAccum=sessionStorage.getItem('plama_timer_accum');
+    if(savedAccum) timerAccum=parseInt(savedAccum)||0;
+    if(savedStart){
+      timerStart=parseInt(savedStart); timerRunning=true;
+      document.getElementById('btn-start').style.display='none';
+      document.getElementById('btn-pause').style.display='';
+      document.getElementById('btn-save').style.display='';
+      document.getElementById('btn-cancel').style.display='';
+      document.getElementById('timer-display').classList.add('running');
+      document.getElementById('timer-display').textContent=fmtTime(getElapsed());
+      timerInt=setInterval(()=>{document.getElementById('timer-display').textContent=fmtTime(getElapsed());},1000);
+    } else if(timerAccum>0){
+      document.getElementById('btn-start').style.display='none';
+      document.getElementById('btn-resume').style.display='';
+      document.getElementById('btn-save').style.display='';
+      document.getElementById('btn-cancel').style.display='';
+      document.getElementById('timer-display').textContent=fmtTime(timerAccum);
+      document.getElementById('timer-display').style.opacity='0.5';
+    }
+  }catch(e){}
+})();
+
+function togglePayType(){
+  const isFixed=document.getElementById('m-type').value==='fixed';
+  document.getElementById('m-hours-wrap').style.display=isFixed?'none':'';
+  document.getElementById('m-fixed-wrap').style.display=isFixed?'':'none';
+}
+
+async function manualAdd(){
+  const isFixed=document.getElementById('m-type').value==='fixed';
+  const clientId=document.getElementById('m-client').value;
+  const subprojId=document.getElementById('m-subproj').value;
+  const cat=document.getElementById('m-cat').value;
+  const note=document.getElementById('m-note').value;
+  const date=document.getElementById('m-date').value||today();
+  const c=getClientById(clientId);
+
+  let hrs=0, earn=0;
+  if(isFixed){
+    earn=parseFloat(document.getElementById('m-fixed').value)||0;
+    hrs=0;
+  } else {
+    hrs=parseFloat(document.getElementById('m-hours').value)||0;
+    if(hrs<=0)return;
+    earn=c?parseFloat((hrs*c.rate).toFixed(2)):0;
+  }
+
+  const entry={id:uid(),date,clientId,subprojId,cat,hours:hrs,note,earn,fixed:isFixed};
+  entries.unshift(entry); renderLog();
+  document.getElementById('m-note').value=''; document.getElementById('m-hours').value='1'; document.getElementById('m-fixed').value='0';
+  setSyncStatus('loading','Збереження...');
+  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:isFixed?'1':'0'});setSyncStatus('ok','Google Sheets');showToast('Запис збережено ✓');}
+  catch(e){setSyncStatus('err','Не вдалось зберегти');}
+}
+
+async function deleteEntry(id){
+  entries=entries.filter(e=>e.id!==id); renderLog();
+  setSyncStatus('loading','Видалення...');
+  try{await gasPost({action:'deleteEntry',id:String(id)});setSyncStatus('ok','Google Sheets');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+// Clients
+async function addClient(){
+  const name=document.getElementById('c-name').value.trim(); if(!name)return;
+  const rate=parseFloat(document.getElementById('c-rate').value)||50;
+  const client={id:uid(),name,rate,subprojects:[]};
+  clients.push(client); renderClients(); refreshAllSelects();
+  document.getElementById('c-name').value='';
+  setSyncStatus('loading','Збереження...');
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Клієнта збережено ✓');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+async function deleteClient(id){
+  clients=clients.filter(c=>c.id!==id); renderClients(); refreshAllSelects();
+  setSyncStatus('loading','Оновлення...');
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+async function addSubproject(clientId, inputId){
+  const input=document.getElementById(inputId);
+  const name=input.value.trim(); if(!name)return;
+  const c=clients.find(cl=>cl.id===clientId); if(!c)return;
+  if(!c.subprojects)c.subprojects=[];
+  c.subprojects.push({id:uid(),name});
+  input.value='';
+  renderClients(); refreshAllSelects();
+  setSyncStatus('loading','Збереження...');
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Підпроєкт додано ✓');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+async function deleteSubproject(clientId, subprojId){
+  const c=clients.find(cl=>cl.id===clientId); if(!c)return;
+  c.subprojects=c.subprojects.filter(s=>s.id!==subprojId);
+  renderClients(); refreshAllSelects();
+  setSyncStatus('loading','Оновлення...');
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+function toggleClient(id){
+  const h=document.getElementById('ch-'+id);
+  h.classList.toggle('open');
+}
+
+function renderClients(){
+  const el=document.getElementById('client-list');
+  if(!clients.length){el.innerHTML='<div class="empty" style="padding:28px 0">Поки немає клієнтів</div>';return;}
+  el.innerHTML=clients.map(c=>{
+    const totalHrs=entries.filter(e=>e.clientId===c.id).reduce((a,e)=>a+e.hours,0);
+    const inputId='sp-input-'+c.id;
+    const subs=(c.subprojects||[]).map(s=>{
+      const sHrs=entries.filter(e=>e.subprojId===s.id).reduce((a,e)=>a+e.hours,0);
+      return`<div class="subproj-row">
+        <div><div class="subproj-name">${s.name}</div><div class="subproj-meta">⏱️ ${fmtHrs(sHrs)} · 💰 ${(sHrs*c.rate).toFixed(0)} zł</div></div>
+        <button class="btn-icon" onclick="deleteSubproject('${c.id}','${s.id}')">✕</button>
+      </div>`;
+    }).join('');
+    return`<div class="client-block">
+      <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
+        <span class="client-chevron">▶</span>
+        <span class="client-name">${c.name}</span>
+        <span class="client-meta">💰 ${c.rate} zł/год · ⏱️ ${fmtHrs(totalHrs)} · ${(totalHrs*c.rate).toFixed(0)} zł</span>
+        <div class="client-actions" onclick="event.stopPropagation()">
+          <button class="btn-icon" onclick="deleteClient('${c.id}')" title="Видалити клієнта">✕</button>
+        </div>
+      </div>
+      <div class="subprojects">
+        ${subs||'<div style="font-size:13px;color:var(--text-3);padding:8px 0">Поки немає підпроєктів</div>'}
+        <div class="add-subproj">
+          <input type="text" id="${inputId}" placeholder="Назва підпроєкту (напр. Травень 2026)" onkeydown="if(event.key==='Enter')addSubproject('${c.id}','${inputId}')">
+          <button class="btn btn-sm btn-primary" onclick="addSubproject('${c.id}','${inputId}')">+ Додати</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderLog(){
+  const cf=document.getElementById('f-client').value;
+  const sf=document.getElementById('f-subproj').value;
+  const catf=document.getElementById('f-cat').value;
+  let list=entries;
+  if(cf)list=list.filter(e=>e.clientId===cf);
+  if(sf)list=list.filter(e=>e.subprojId===sf);
+  if(catf)list=list.filter(e=>e.cat===catf);
+  const totalHrs=list.reduce((a,e)=>a+e.hours,0);
+  const days=[...new Set(list.map(e=>e.date))].length;
+  document.getElementById('lm-count').textContent=list.length;
+  document.getElementById('lm-hrs').textContent=totalHrs.toFixed(1);
+  document.getElementById('lm-days').textContent=days;
+  const el=document.getElementById('log-list');
+  if(!list.length){el.innerHTML='<div class="empty">Немає записів</div>';return;}
+  el.innerHTML=list.map(e=>{
+    const client=getClientById(e.clientId);
+    const subproj=getSubprojById(e.clientId,e.subprojId);
+    const loc=[client?client.name:'',subproj?subproj.name:''].filter(Boolean).join(' › ');
+    const hrsDisplay=e.fixed?`<span style="font-size:13px;font-weight:500;color:var(--brand)">💰 ${e.earn} zł</span>`:fmtHrs(e.hours);
+    const c=CATS[e.cat]||CATS['Інше'];
+    const rate=e.rate||(client?client.rate:0);
+    const expandDetails=`<div id="log-expand-${e.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text-2);display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
+        ${loc?`<div>📁 <strong>Проєкт:</strong> ${loc}</div>`:''}
+        <div>📅 <strong>Дата:</strong> ${e.date}</div>
+        <div>🏷️ <strong>Категорія:</strong> ${e.cat}</div>
+        ${e.fixed
+          ?`<div>💰 <strong>Фіксована сума:</strong> ${e.earn} zł</div>`
+          :`<div>⏱️ <strong>Годин:</strong> ${e.hours}h</div>
+            <div>💰 <strong>Ставка:</strong> ${rate} zł/год</div>
+            <div>💵 <strong>Сума:</strong> ${e.earn} zł</div>`
+        }
+        ${e.note?`<div style="grid-column:1/-1">📝 <strong>Нотатка:</strong> ${e.note}</div>`:''}
+      </div>
+    </div>`;
+    return`<div style="border-bottom:1px solid var(--border);padding:12px 0">
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;cursor:pointer" onclick="toggleLogItem('${e.id}')">
+        <div>
+          <div class="log-name">${e.note||e.cat}${loc?` <span style="color:#9998b8;font-weight:300;font-size:12px">· ${loc}</span>`:''}</div>
+          <div class="log-meta"><span>${e.date}</span><span class="badge" style="background:${c.bg};color:${c.text};border-color:${c.border}">${e.cat}</span>${e.fixed?'<span style="font-size:11px;color:var(--text-3)">фікс.</span>':''}</div>
+        </div>
+        <div class="log-hrs">${hrsDisplay}</div>
+        <button class="btn-icon" onclick="event.stopPropagation();openEditModal('${e.id}')" title="Редагувати">✎</button>
+        <button class="btn-icon" onclick="event.stopPropagation();deleteEntry('${e.id}')">✕</button>
+      </div>
+      ${expandDetails}
+    </div>`;
+  }).join('');
+}
+
+function renderReport(){
+  const cf=document.getElementById('r-client').value;
+  const period=document.getElementById('r-period').value;
+  let list=entries;
+  if(cf)list=list.filter(e=>e.clientId===cf);
+  if(period!=='all'){
+    const now=new Date();
+    list=list.filter(e=>{
+      const d=new Date(e.date);
+      if(period==='week'){const s=new Date(now);s.setDate(now.getDate()-((now.getDay()+6)%7));s.setHours(0,0,0,0);return d>=s;}
+      if(period==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+      return true;
+    });
+  }
+  const totalHrs=list.reduce((a,e)=>a+e.hours,0);
+  const earnings=list.reduce((a,e)=>{const c=getClientById(e.clientId);return a+(c?e.hours*c.rate:0);},0);
+  document.getElementById('rm-hrs').textContent=totalHrs.toFixed(1);
+  document.getElementById('rm-earn').textContent=earnings.toFixed(0)+' zł';
+  document.getElementById('rm-count').textContent=list.length;
+
+  const byCat={};
+  list.forEach(e=>{if(!byCat[e.cat])byCat[e.cat]=0;byCat[e.cat]+=e.hours;});
+  const maxC=Math.max(...Object.values(byCat),0.1);
+  document.getElementById('rep-cats').innerHTML=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([cat,hrs])=>{
+    const pct=Math.round(hrs/maxC*100); const c=CATS[cat]||CATS['Інше'];
+    return`<div class="bar-row"><div class="bar-top"><span><span class="dot" style="background:${c.dot}"></span>${cat}</span><span class="bar-val">${fmtHrs(hrs)}</span></div><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.dot}"></div></div></div>`;
+  }).join('')||'<div class="empty">Немає даних</div>';
+
+  // By clients with subprojects breakdown
+  const filteredClients=cf?clients.filter(c=>c.id===cf):clients;
+  document.getElementById('rep-clients').innerHTML=filteredClients.map(c=>{
+    const cEntries=list.filter(e=>e.clientId===c.id);
+    const cHrs=cEntries.reduce((a,e)=>a+e.hours,0);
+    const cEarn=(cHrs*c.rate).toFixed(0);
+    if(!cHrs)return'';
+    const subs=(c.subprojects||[]).map(s=>{
+      const sHrs=cEntries.filter(e=>e.subprojId===s.id).reduce((a,e)=>a+e.hours,0);
+      if(!sHrs)return'';
+      return`<div class="rep-sub"><span style="color:var(--text-2)">${s.name}</span><span style="font-family:var(--mono)">${fmtHrs(sHrs)} · ${(sHrs*c.rate).toFixed(0)} zł</span></div>`;
+    }).join('');
+    const noSubHrs=cEntries.filter(e=>!e.subprojId||e.subprojId==='undefined').reduce((a,e)=>a+e.hours,0);
+    const noSubRow=noSubHrs?`<div class="rep-sub"><span style="color:var(--text-2)">— без підпроєкту</span><span style="font-family:var(--mono)">${fmtHrs(noSubHrs)} · ${(noSubHrs*c.rate).toFixed(0)} zł</span></div>`:'';
+    return`<div class="rep-row" style="flex-direction:column;gap:0;padding-bottom:0">
+      <div style="display:flex;justify-content:space-between;padding:10px 0;width:100%">
+        <div><div style="font-weight:500;color:var(--brand)">${c.name}</div><div style="color:var(--text-2);font-size:12px">💰 ${c.rate} zł/год</div></div>
+        <div style="text-align:right"><div class="rep-val">⏱️ ${fmtHrs(cHrs)}</div><div style="color:var(--text-2)">${cEarn} zł</div></div>
+      </div>
+      ${subs}${noSubRow}
+    </div>`;
+  }).filter(Boolean).join('')||'<div class="empty">Немає даних</div>';
+}
+
+document.getElementById('m-date').value=today();
+
+// Register service worker for PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/plama/sw.js').catch(()=>{});
+}
+
+loadAll();
+
+// Edit modal
+function toggleEditPayType(){
+  const isFixed=document.getElementById('e-type').value==='fixed';
+  document.getElementById('e-hours-wrap').style.display=isFixed?'none':'';
+  document.getElementById('e-rate-wrap').style.display=isFixed?'none':'';
+  document.getElementById('e-earn-preview').style.display=isFixed?'none':'';
+  document.getElementById('e-fixed-wrap').style.display=isFixed?'':'none';
+}
+
+function recalcEarn(){
+  const hrs=parseFloat(document.getElementById('e-hours').value)||0;
+  const rate=parseFloat(document.getElementById('e-rate').value)||0;
+  document.getElementById('e-earn-out').value=(hrs*rate).toFixed(2);
+}
+
+function openEditModal(id){
+  const e=entries.find(x=>x.id===id); if(!e)return;
+  document.getElementById('e-id').value=e.id;
+  document.getElementById('e-date').value=e.date;
+  document.getElementById('e-note').value=e.note||'';
+  document.getElementById('e-hours').value=e.hours;
+  document.getElementById('e-fixed').value=e.earn||0;
+  document.getElementById('e-type').value=e.fixed?'fixed':'hours';
+  const clientObj=getClientById(e.clientId);
+  const rate=e.rate||(clientObj?clientObj.rate:50);
+  document.getElementById('e-rate').value=rate;
+  document.getElementById('e-earn-out').value=e.earn||0;
+  const subproj=getSubprojById(e.clientId,e.subprojId);
+  const loc=[clientObj?clientObj.name:'',subproj?subproj.name:''].filter(Boolean).join(' › ');
+  const dateDisplay=e.date?String(e.date).slice(0,10):today();
+  document.getElementById('e-info').innerHTML=
+    `<strong>${e.note||e.cat}</strong>${loc?' · '+loc:''}<br>
+     📅 ${dateDisplay} &nbsp;|&nbsp; ${e.fixed?`💰 Фіксована: ${e.earn} zł`:`⏱️ ${e.hours}h · 💰 ${e.earn} zł`}`;
+  toggleEditPayType();
+  const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}"${c.id===e.clientId?' selected':''}>${c.name}</option>`).join('');
+  document.getElementById('e-client').innerHTML=cOpts;
+  const subs=clientObj&&clientObj.subprojects?clientObj.subprojects:[];
+  document.getElementById('e-subproj').innerHTML='<option value="">— без підпроєкту —</option>'+subs.map(s=>`<option value="${s.id}"${s.id===e.subprojId?' selected':''}>${s.name}</option>`).join('');
+  document.getElementById('e-cat').value=e.cat;
+  document.getElementById('edit-modal').classList.add('open');
+}
+
+function closeEditModal(){
+  document.getElementById('edit-modal').classList.remove('open');
+}
+
+document.getElementById('e-client').addEventListener('change',function(){
+  updateSubprojs('e-subproj',this.value);
+});
+
+async function saveEdit(){
+  const id=document.getElementById('e-id').value;
+  const idx=entries.findIndex(x=>x.id===id); if(idx===-1)return;
+  const clientId=document.getElementById('e-client').value;
+  const subprojId=document.getElementById('e-subproj').value;
+  const cat=document.getElementById('e-cat').value;
+  const date=document.getElementById('e-date').value;
+  const note=document.getElementById('e-note').value;
+  const isFixed=document.getElementById('e-type').value==='fixed';
+  let hours=0, earn=0, rate=0;
+  if(isFixed){
+    earn=parseFloat(document.getElementById('e-fixed').value)||0;
+    hours=0; rate=0;
+  } else {
+    hours=parseFloat(document.getElementById('e-hours').value)||0;
+    rate=parseFloat(document.getElementById('e-rate').value)||0;
+    earn=parseFloat((hours*rate).toFixed(2));
+  }
+  entries[idx]={...entries[idx],clientId,subprojId,cat,date,note,hours,earn,rate,fixed:isFixed};
+  closeEditModal(); renderLog();
+  setSyncStatus('loading','Збереження...');
+  try{
+    await gasPost({action:'updateEntry',id,clientId,subprojId,cat,date,note,
+      hours:String(hours),earn:String(earn),rate:String(rate),fixed:isFixed?'1':'0'});
+    setSyncStatus('ok','Google Sheets'); showToast('Зміни збережено ✓');
+  }catch(e){setSyncStatus('err','Не вдалось зберегти');}
+}
+
+function toggleLogItem(id){
+  const el=document.getElementById('log-expand-'+id);
+  if(!el)return;
+  el.style.display=el.style.display==='block'?'none':'block';
+}
+
+loadAll();
+</script>
+</body>
+</html>
