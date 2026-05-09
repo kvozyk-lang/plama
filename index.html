@@ -239,8 +239,8 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="card">
       <div class="card-label">Таймер</div>
       <div class="form-row form-2">
-        <div class="field"><label>Клієнт</label><select id="t-client" onchange="updateSubprojs('t-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
-        <div class="field"><label>Підпроєкт</label><select id="t-subproj"><option value="">— без підпроєкту —</option></select></div>
+        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="t-client" onchange="updateSubprojs('t-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('t-client','t-subproj')" title="Новий клієнт">+</button></div></div>
+        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="t-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('t-client','t-subproj')" title="Новий підпроєкт">+</button></div></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Категорія</label>
@@ -265,8 +265,8 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="card">
       <div class="card-label">Ввести вручну</div>
       <div class="form-row form-2">
-        <div class="field"><label>Клієнт</label><select id="m-client" onchange="updateSubprojs('m-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
-        <div class="field"><label>Підпроєкт</label><select id="m-subproj"><option value="">— без підпроєкту —</option></select></div>
+        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="m-client" onchange="updateSubprojs('m-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('m-client','m-subproj')" title="Новий клієнт">+</button></div></div>
+        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="m-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('m-client','m-subproj')" title="Новий підпроєкт">+</button></div></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Категорія</label>
@@ -366,10 +366,13 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
       <div class="card-label">Новий кошторис</div>
       <div class="form-row form-2">
         <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. Весілля Ковалів — травень"></div>
-        <div class="field"><label>Клієнт (необов'язково)</label><select id="est-client"><option value="">— без клієнта —</option></select></div>
+        <div class="field"><label>Клієнт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-client" onchange="updateSubprojs('est-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('est-client','est-subproj')" title="Новий клієнт">+</button></div></div>
       </div>
       <div class="form-row form-2">
+        <div class="field"><label>Підпроєкт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('est-client','est-subproj')" title="Новий підпроєкт">+</button></div></div>
         <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="est-rate" value="50" min="1" step="1" oninput="recalcEstimate()"></div>
+      </div>
+      <div class="form-row">
         <div class="field"><label>Нотатка</label><input type="text" id="est-note" placeholder="необов'язково"></div>
       </div>
 
@@ -490,8 +493,46 @@ async function gasPost(b){const r=await fetch(GAS_URL,{method:'POST',body:JSON.s
 
 function refreshEstimateSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  const el=document.getElementById('est-client');
-  if(el)el.innerHTML=cOpts;
+  ['est-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
+  const estSubproj=document.getElementById('est-subproj');
+  if(estSubproj)estSubproj.innerHTML='<option value="">— без підпроєкту —</option>';
+}
+
+async function quickAddClient(clientSelectId, subprojSelectId){
+  const name=prompt('Назва нового клієнта:');
+  if(!name||!name.trim())return;
+  const rateStr=prompt('Ставка (zł/год):', '50');
+  const rate=parseFloat(rateStr)||50;
+  const client={id:uid(),name:name.trim(),rate,subprojects:[]};
+  clients.push(client);
+  refreshAllSelects(); refreshEstimateSelects();
+  // select the new client
+  const sel=document.getElementById(clientSelectId);
+  if(sel){sel.value=client.id;}
+  if(subprojSelectId) updateSubprojs(subprojSelectId,client.id);
+  setSyncStatus('loading','Збереження...');
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Клієнта додано ✓');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+async function quickAddSubproj(clientSelectId, subprojSelectId){
+  const clientId=document.getElementById(clientSelectId)?.value;
+  if(!clientId){showToast('Спочатку обери клієнта');return;}
+  const name=prompt('Назва нового підпроєкту (напр. Травень 2026):');
+  if(!name||!name.trim())return;
+  const c=clients.find(cl=>cl.id===clientId);
+  if(!c)return;
+  if(!c.subprojects)c.subprojects=[];
+  const subproj={id:uid(),name:name.trim()};
+  c.subprojects.push(subproj);
+  updateSubprojs(subprojSelectId,clientId);
+  refreshAllSelects();
+  // select the new subproject
+  const sel=document.getElementById(subprojSelectId);
+  if(sel){sel.value=subproj.id;}
+  setSyncStatus('loading','Збереження...');
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Підпроєкт додано ✓');}
+  catch(e){setSyncStatus('err','Помилка');}
 }
 
 async function loadAll(){
@@ -1080,9 +1121,10 @@ async function saveEstimate(){
   const totalHrs=lines.filter(l=>l.type==='hours').reduce((a,l)=>a+l.val,0);
   const totalEarn=lines.reduce((a,l)=>a+l.earn,0);
   const clientId=document.getElementById('est-client').value;
+  const subprojId=document.getElementById('est-subproj')?.value||'';
   const note=document.getElementById('est-note').value;
   const est={
-    id:uid(), date:today(), name, clientId, rate, note,
+    id:uid(), date:today(), name, clientId, subprojId, rate, note,
     lines, totalHrs, totalEarn
   };
   estimates.unshift(est);
