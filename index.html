@@ -698,26 +698,111 @@ function toggleClient(id){
   h.classList.toggle('open');
 }
 
+function goToSubproj(clientId, subprojId){
+  // set filters
+  const fc=document.getElementById('f-client');
+  const fs=document.getElementById('f-subproj');
+  if(fc){fc.value=clientId;updateFilterSubprojs();}
+  setTimeout(()=>{if(fs)fs.value=subprojId;renderLog();},50);
+  // switch to log tab
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelector('.nav-btn:nth-child(2)').classList.add('active');
+  document.getElementById('page-log').classList.add('active');
+}
+
+function confirmDeleteClient(id, name){
+  const count=entries.filter(e=>e.clientId===id).length;
+  document.getElementById('confirm-text').textContent=`Клієнт "${name}" і всі його дані (${count} записів) будуть видалені.`;
+  document.getElementById('confirm-modal').classList.add('open');
+  document.getElementById('confirm-delete-btn').onclick=()=>{
+    document.getElementById('confirm-modal').classList.remove('open');
+    deleteClient(id);
+  };
+}
+
+function confirmDeleteSubproject(clientId, subprojId, name){
+  const count=entries.filter(e=>e.subprojId===subprojId).length;
+  document.getElementById('confirm-text').textContent=`Підпроєкт "${name}" (${count} записів) буде видалено.`;
+  document.getElementById('confirm-modal').classList.add('open');
+  document.getElementById('confirm-delete-btn').onclick=()=>{
+    document.getElementById('confirm-modal').classList.remove('open');
+    deleteSubproject(clientId,subprojId);
+  };
+}
+
+function startRenameSubproj(clientId, subprojId, currentName){
+  const el=document.getElementById(`sp-name-${subprojId}`);
+  const display=document.getElementById(`sp-display-${subprojId}`);
+  if(!el||!display)return;
+  display.style.display='none';
+  el.style.display='';
+  el.focus();
+  el.onblur=()=>saveRenameSubproj(clientId,subprojId);
+  el.onkeydown=e=>{if(e.key==='Enter')saveRenameSubproj(clientId,subprojId);if(e.key==='Escape'){el.value=currentName;el.blur();}};
+}
+
+async function saveRenameSubproj(clientId, subprojId){
+  const el=document.getElementById(`sp-name-${subprojId}`);
+  const display=document.getElementById(`sp-display-${subprojId}`);
+  if(!el)return;
+  const newName=el.value.trim();
+  if(newName){
+    const c=clients.find(c=>c.id===clientId);
+    const s=c&&c.subprojects?c.subprojects.find(s=>s.id===subprojId):null;
+    if(s){s.name=newName;if(display)display.textContent=newName+' →';}
+    setSyncStatus('loading','Збереження...');
+    try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');refreshAllSelects();}
+    catch(e){setSyncStatus('err','Помилка');}
+  }
+  if(display){display.style.display='';el.style.display='none';}
+}
+
+function startRenameClient(clientId, currentName){
+  const newName=prompt('Нова назва клієнта:', currentName);
+  if(!newName||!newName.trim())return;
+  const c=clients.find(cl=>cl.id===clientId);
+  if(!c)return;
+  c.name=newName.trim();
+  renderClients(); refreshAllSelects();
+  setSyncStatus('loading','Збереження...');
+  gasPost({action:'saveClients',clients:JSON.stringify(clients)})
+    .then(()=>setSyncStatus('ok','Google Sheets'))
+    .catch(()=>setSyncStatus('err','Помилка'));
+}
+
 function renderClients(){
   const el=document.getElementById('client-list');
   if(!clients.length){el.innerHTML='<div class="empty" style="padding:28px 0">Поки немає клієнтів</div>';return;}
   el.innerHTML=clients.map(c=>{
-    const totalHrs=entries.filter(e=>e.clientId===c.id).reduce((a,e)=>a+e.hours,0);
+    const clientEntries=entries.filter(e=>e.clientId===c.id);
+    const totalHrs=clientEntries.reduce((a,e)=>a+e.hours,0);
+    const totalEarn=clientEntries.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
     const inputId='sp-input-'+c.id;
     const subs=(c.subprojects||[]).map(s=>{
-      const sHrs=entries.filter(e=>e.subprojId===s.id).reduce((a,e)=>a+e.hours,0);
-      return`<div class="subproj-row">
-        <div><div class="subproj-name">${s.name}</div><div class="subproj-meta">⏱️ ${fmtHrs(sHrs)} · 💰 ${(sHrs*c.rate).toFixed(0)} zł</div></div>
-        <button class="btn-icon" onclick="deleteSubproject('${c.id}','${s.id}')">✕</button>
+      const sEntries=entries.filter(e=>e.subprojId===s.id);
+      const sHrs=sEntries.reduce((a,e)=>a+e.hours,0);
+      const sEarn=sEntries.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+      return`<div class="subproj-row" style="cursor:pointer" onclick="goToSubproj('${c.id}','${s.id}')">
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="sp-display-${s.id}" class="subproj-name" title="Натисни щоб перейти до журналу">${s.name} →</span>
+            <input id="sp-name-${s.id}" type="text" value="${s.name}" style="display:none;font-size:13px;padding:2px 6px;width:140px" onclick="event.stopPropagation()">
+            <button class="btn-icon" style="font-size:12px" onclick="event.stopPropagation();startRenameSubproj('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✎</button>
+          </div>
+          <div class="subproj-meta">⏱️ ${fmtHrs(sHrs)} · 💰 ${sEarn.toFixed(0)} zł</div>
+        </div>
+        <button class="btn-icon" onclick="event.stopPropagation();confirmDeleteSubproject('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✕</button>
       </div>`;
     }).join('');
     return`<div class="client-block">
       <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
         <span class="client-chevron">▶</span>
         <span class="client-name">${c.name}</span>
-        <span class="client-meta">💰 ${c.rate} zł/год · ⏱️ ${fmtHrs(totalHrs)} · ${(totalHrs*c.rate).toFixed(0)} zł</span>
+        <span class="client-meta">💰 ${c.rate} zł/год · ⏱️ ${fmtHrs(totalHrs)} · ${totalEarn.toFixed(0)} zł</span>
         <div class="client-actions" onclick="event.stopPropagation()">
-          <button class="btn-icon" onclick="deleteClient('${c.id}')" title="Видалити клієнта">✕</button>
+          <button class="btn-icon" onclick="startRenameClient('${c.id}','${c.name.replace(/'/g,"\\'")}')">✎</button>
+          <button class="btn-icon" onclick="confirmDeleteClient('${c.id}','${c.name.replace(/'/g,"\\'")}')">✕</button>
         </div>
       </div>
       <div class="subprojects">
