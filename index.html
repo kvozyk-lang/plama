@@ -421,7 +421,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="card">
       <div class="card-label">Новий кошторис</div>
       <div class="form-row form-2">
-        <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. Весілля Ковалів — травень"></div>
+        <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. NARRO — травень 2026"></div>
         <div class="field"><label>Клієнт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-client" onchange="updateSubprojs('est-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('est-client','est-subproj')" title="Новий клієнт">+</button></div></div>
       </div>
       <div class="form-row form-2">
@@ -468,7 +468,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="card">
       <div class="card-label">Нова фактура</div>
       <div class="form-row form-2">
-        <div class="field"><label>Назва фактури</label><input type="text" id="inv-name" placeholder="напр. Весілля Ковалів — монтаж"></div>
+        <div class="field"><label>Номер фактури</label><input type="text" id="inv-name" placeholder="напр. A1/5/2026"></div>
         <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="inv-client" onchange="updateSubprojs('inv-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('inv-client','inv-subproj')">+</button></div></div>
       </div>
       <div class="form-row form-2">
@@ -493,6 +493,11 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
         <option value="paid">✅ Оплачено</option>
       </select>
     </div>
+    <div class="filter-row">
+      <div class="field" style="margin:0"><label>📅 Від</label><input type="date" id="if-date-from" onchange="renderInvoices()"></div>
+      <div class="field" style="margin:0"><label>📅 До</label><input type="date" id="if-date-to" onchange="renderInvoices()"></div>
+      <button class="btn btn-sm" onclick="clearInvDates()" style="align-self:flex-end">✕ Скинути дати</button>
+    </div>
 
     <div id="inv-list"><div class="empty">Завантаження...</div></div>
   </div>
@@ -514,7 +519,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="modal-title">✎ Редагувати фактуру <button class="btn-icon" onclick="closeInvModal()">✕</button></div>
     <input type="hidden" id="inv-edit-id">
     <div class="form-row form-2">
-      <div class="field"><label>Назва фактури</label><input type="text" id="inv-edit-name"></div>
+      <div class="field"><label>Номер фактури</label><input type="text" id="inv-edit-name"></div>
       <div class="field"><label>Клієнт</label><select id="inv-edit-client" onchange="updateSubprojs('inv-edit-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
     </div>
     <div class="form-row form-2">
@@ -636,6 +641,12 @@ function refreshInvSelects(){
   if(ifc)ifc.innerHTML=fOpts;
   const ifs=document.getElementById('if-subproj');
   if(ifs)ifs.innerHTML='<option value="">Всі підпроєкти</option>';
+}
+
+function clearInvDates(){
+  document.getElementById('if-date-from').value='';
+  document.getElementById('if-date-to').value='';
+  renderInvoices();
 }
 
 function updateInvFilterSubprojs(){
@@ -1565,12 +1576,15 @@ function renderInvoices(){
   const cf=document.getElementById('if-client')?.value||'';
   const sf=document.getElementById('if-subproj')?.value||'';
   const stf=document.getElementById('if-status')?.value||'';
+  const dateFrom=document.getElementById('if-date-from')?.value||'';
+  const dateTo=document.getElementById('if-date-to')?.value||'';
   const todayStr=today();
 
-  // apply filters
   let list=invoices;
   if(cf)list=list.filter(i=>i.clientId===cf);
   if(sf)list=list.filter(i=>i.subprojId===sf);
+  if(dateFrom)list=list.filter(i=>i.issueDate>=dateFrom);
+  if(dateTo)list=list.filter(i=>i.issueDate<=dateTo);
   if(stf){
     list=list.filter(i=>{
       const paid=(i.paidTotal||0)>=i.amount;
