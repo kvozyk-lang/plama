@@ -2051,6 +2051,32 @@ if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/plama/sw.js').catch(()=>{});
 }
 
+// ── SWIPE NAVIGATION ───────────────────────────
+(function(){
+  const TABS=['track','log','clients','report','estimate','invoices'];
+  let touchStartX=0, touchStartY=0, touchStartTime=0;
+  document.addEventListener('touchstart',e=>{
+    touchStartX=e.touches[0].clientX;
+    touchStartY=e.touches[0].clientY;
+    touchStartTime=Date.now();
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    const dx=e.changedTouches[0].clientX-touchStartX;
+    const dy=e.changedTouches[0].clientY-touchStartY;
+    const dt=Date.now()-touchStartTime;
+    if(dt>400||Math.abs(dx)<60||Math.abs(dy)>Math.abs(dx)*0.8)return;
+    const activePage=document.querySelector('.page.active');
+    if(!activePage)return;
+    const curId=activePage.id.replace('page-','');
+    const curIdx=TABS.indexOf(curId);
+    if(curIdx===-1)return;
+    const nextIdx=dx<0?Math.min(curIdx+1,TABS.length-1):Math.max(curIdx-1,0);
+    if(nextIdx===curIdx)return;
+    const btn=document.querySelector(`.nav-btn[onclick*="'${TABS[nextIdx]}'"]`);
+    if(btn){switchTab(TABS[nextIdx],btn);btn.scrollIntoView({inline:'center',behavior:'smooth'});}
+  },{passive:true});
+})();
+
 loadAll();
 
 // Edit modal
