@@ -839,6 +839,8 @@ function rebuildMsDrops(){
   });
 }
 // ── END MULTI-SELECT ────────────────────────────
+
+function refreshEstimateSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   ['est-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
   const estSubproj=document.getElementById('est-subproj');
@@ -1316,27 +1318,29 @@ function renderClients(){
         <button class="btn-icon" onclick="event.stopPropagation();confirmDeleteSubproject('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✕</button>
       </div>`;
     }).join('');
+    const todayStr=today();
     const cInvoices=invoices.filter(inv=>inv.clientId===c.id);
-    const invHtml=cInvoices.length?`
-      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">💵 Фактури</div>
-        ${cInvoices.map(inv=>{
-          const todayStr=today();
-          const brutto=inv.amount||0;
-          const paid=inv.paidTotal||0;
-          const remaining=brutto-paid;
-          const isPaid=remaining<=0;
-          const isOverdue=inv.dueDate&&inv.dueDate<todayStr&&!isPaid;
-          const dot=isPaid?'🟢':isOverdue?'🔴':'🟡';
-          return`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
-            <div><div style="font-weight:500;color:var(--brand)">${dot} ${inv.name}</div><div style="font-size:11px;color:var(--text-3)">${inv.issueDate}${inv.dueDate?' · до '+inv.dueDate:''}</div></div>
-            <div style="text-align:right;font-family:var(--mono);font-size:12px">
-              <div style="font-weight:500">${brutto.toFixed(0)} zł</div>
-              ${!isPaid?`<div style="color:${isOverdue?'#991b1b':'var(--text-2)'}">залишок: ${remaining.toFixed(0)}</div>`:'<div style="color:#166534">✓ оплачено</div>'}
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`:''  ;
+    let invHtml='';
+    if(cInvoices.length){
+      let rows='';
+      cInvoices.forEach(inv=>{
+        const brutto=inv.amount||0;
+        const paid=inv.paidTotal||0;
+        const remaining=brutto-paid;
+        const isPaid=remaining<=0;
+        const isOverdue=inv.dueDate&&inv.dueDate<todayStr&&!isPaid;
+        const dot=isPaid?'🟢':isOverdue?'🔴':'🟡';
+        const remainingHtml=!isPaid
+          ?'<div style="color:'+(isOverdue?'#991b1b':'var(--text-2)')+'">залишок: '+remaining.toFixed(0)+'</div>'
+          :'<div style="color:#166534">✓ оплачено</div>';
+        const dueHtml=inv.dueDate?' · до '+inv.dueDate:'';
+        rows+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+          <div><div style="font-weight:500;color:var(--brand)">${dot} ${inv.name}</div><div style="font-size:11px;color:var(--text-3)">${inv.issueDate}${dueHtml}</div></div>
+          <div style="text-align:right;font-family:var(--mono);font-size:12px"><div style="font-weight:500">${brutto.toFixed(0)} zł</div>${remainingHtml}</div>
+        </div>`;
+      });
+      invHtml=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">💵 Фактури</div>${rows}</div>`;
+    }
     return`<div class="client-block">
       <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
         <span class="client-chevron">▶</span>
@@ -1506,7 +1510,7 @@ function renderReport(){
   }).join('')||'<div class="empty">Немає даних</div>';
 
   // By clients with subproject breakdown — use earn directly
-  const filteredClients=cf?clients.filter(c=>c.id===cf):clients;
+  const filteredClients=cfArr?clients.filter(c=>cfArr.includes(c.id)):clients;
   document.getElementById('rep-clients').innerHTML=filteredClients.map(c=>{
     const cEntries=list.filter(e=>e.clientId===c.id);
     const cHrs=cEntries.reduce((a,e)=>a+e.hours,0);
