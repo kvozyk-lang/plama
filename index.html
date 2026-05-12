@@ -172,6 +172,36 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 
 .empty { text-align: center; color: var(--text-3); padding: 28px 0; font-size: 13px; font-weight: 300; }
 
+/* Multi-select dropdown */
+.ms-wrap { position: relative; }
+.ms-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; padding: 10px 14px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--border); background: var(--surface);
+  font-size: 14px; color: var(--text); cursor: pointer;
+  font-family: var(--body); white-space: nowrap; min-width: 130px;
+  transition: border-color 0.15s;
+}
+.ms-btn:hover { border-color: var(--brand); }
+.ms-btn.has-selection { border-color: var(--brand); background: var(--brand-pale); }
+.ms-btn svg { flex-shrink: 0; transition: transform 0.2s; }
+.ms-btn.open svg { transform: rotate(180deg); }
+.ms-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); box-shadow: 0 8px 24px rgba(35,34,98,0.12);
+  z-index: 50; min-width: 180px; max-height: 220px; overflow-y: auto;
+}
+.ms-dropdown.open { display: block; }
+.ms-option {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 14px; cursor: pointer; font-size: 14px;
+  transition: background 0.1s;
+}
+.ms-option:hover { background: var(--brand-pale); }
+.ms-option input[type=checkbox] { accent-color: var(--brand); width: 15px; height: 15px; flex-shrink: 0; }
+.ms-option.select-all { border-bottom: 1px solid var(--border); font-weight: 500; color: var(--text-2); font-size: 13px; }
+
 /* Invoice styles */
 .inv-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; margin-bottom: 12px; }
 .inv-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
@@ -356,7 +386,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
       <div class="metric"><div class="metric-label">Записів</div><div class="metric-val" id="lm-count">—</div></div>
     </div>
     <div class="filter-row">
-      <select id="f-client" onchange="updateFilterSubprojs();renderLog()"><option value="">Всі клієнти</option></select>
+      <div class="ms-wrap" id="ms-log-wrap"><button class="ms-btn" id="ms-log-btn" onclick="toggleMs('log')"><span id="ms-log-label">Всі клієнти</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ms-dropdown" id="ms-log-drop"></div></div>
       <select id="f-subproj" onchange="renderLog()"><option value="">Всі підпроєкти</option></select>
       <select id="f-cat" onchange="renderLog()"><option value="">Всі категорії</option></select>
       <select id="f-sort" onchange="renderLog()" style="width:auto;min-width:130px">
@@ -389,7 +419,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="page-title">📊 Звіт</div>
     <div class="page-sub">Зведення по годинах і заробітку</div>
     <div class="filter-row" style="flex-wrap:wrap;gap:8px">
-      <select id="r-client" onchange="updateReportSubprojs();renderReport()" style="min-width:140px"><option value="">Всі клієнти</option></select>
+      <div class="ms-wrap" id="ms-rep-wrap"><button class="ms-btn" id="ms-rep-btn" onclick="toggleMs('rep')"><span id="ms-rep-label">Всі клієнти</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ms-dropdown" id="ms-rep-drop"></div></div>
       <select id="r-subproj" onchange="renderReport()" style="min-width:140px"><option value="">Всі підпроєкти</option></select>
       <select id="r-period" onchange="toggleDateRange();renderReport()" style="min-width:140px">
         <option value="all">Весь час</option>
@@ -497,7 +527,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     </div>
 
     <div class="filter-row">
-      <select id="if-client" onchange="updateInvFilterSubprojs();renderInvoices()"><option value="">Всі клієнти</option></select>
+      <div class="ms-wrap" id="ms-inv-wrap"><button class="ms-btn" id="ms-inv-btn" onclick="toggleMs('inv')"><span id="ms-inv-label">Всі клієнти</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ms-dropdown" id="ms-inv-drop"></div></div>
       <select id="if-subproj" onchange="renderInvoices()"><option value="">Всі підпроєкти</option></select>
       <select id="if-status" onchange="renderInvoices()">
         <option value="">Всі статуси</option>
@@ -716,7 +746,99 @@ function updateInvFilterSubprojs(){
   el.innerHTML='<option value="">Всі підпроєкти</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
 
-function refreshEstimateSelects(){
+// ── MULTI-SELECT ───────────────────────────────
+const msState={log:new Set(),rep:new Set(),inv:new Set()};
+
+function buildMsDrop(key,renderFn){
+  const drop=document.getElementById('ms-'+key+'-drop');
+  if(!drop)return;
+  drop.innerHTML=`<div class="ms-option select-all" onclick="msToggleAll('${key}',event)"><input type="checkbox" id="ms-${key}-all" onchange="msToggleAll('${key}',event)"> Всі клієнти</div>`
+    +clients.map(c=>`<div class="ms-option" onclick="msToggle('${key}','${c.id}',event)"><input type="checkbox" id="ms-${key}-${c.id}" ${msState[key].has(c.id)?'checked':''}> ${c.name}</div>`).join('');
+  updateMsAllCheckbox(key);
+}
+
+function msToggle(key,id,e){
+  e.stopPropagation();
+  if(msState[key].has(id)) msState[key].delete(id);
+  else msState[key].add(id);
+  updateMsLabel(key);
+  const fn={log:()=>{updateFilterSubprojs();renderLog();},rep:()=>{updateReportSubprojs();renderReport();},inv:()=>{updateInvFilterSubprojs();renderInvoices();}};
+  fn[key]&&fn[key]();
+}
+
+function msToggleAll(key,e){
+  e.stopPropagation();
+  const allChecked=document.getElementById('ms-'+key+'-all')?.checked;
+  if(allChecked!==undefined){
+    if(allChecked){msState[key].clear();}
+    else{clients.forEach(c=>msState[key].add(c.id));}
+  } else {
+    if(msState[key].size===0) clients.forEach(c=>msState[key].add(c.id));
+    else msState[key].clear();
+  }
+  buildMsDrop(key);
+  updateMsLabel(key);
+  const fn={log:()=>{updateFilterSubprojs();renderLog();},rep:()=>{updateReportSubprojs();renderReport();},inv:()=>{updateInvFilterSubprojs();renderInvoices();}};
+  fn[key]&&fn[key]();
+}
+
+function updateMsAllCheckbox(key){
+  const allEl=document.getElementById('ms-'+key+'-all');
+  if(!allEl)return;
+  allEl.checked=msState[key].size===0;
+  allEl.indeterminate=msState[key].size>0&&msState[key].size<clients.length;
+}
+
+function updateMsLabel(key){
+  const label=document.getElementById('ms-'+key+'-label');
+  const btn=document.getElementById('ms-'+key+'-btn');
+  const drop=document.getElementById('ms-'+key+'-drop');
+  if(!label)return;
+  const sel=msState[key];
+  if(sel.size===0){label.textContent='Всі клієнти';btn.classList.remove('has-selection');}
+  else if(sel.size===1){const c=clients.find(cl=>cl.id===[...sel][0]);label.textContent=c?c.name:'1 клієнт';btn.classList.add('has-selection');}
+  else{label.textContent=sel.size+' клієнти';btn.classList.add('has-selection');}
+  // update checkboxes
+  clients.forEach(c=>{const el=document.getElementById('ms-'+key+'-'+c.id);if(el)el.checked=sel.has(c.id);});
+  updateMsAllCheckbox(key);
+}
+
+function toggleMs(key){
+  const drop=document.getElementById('ms-'+key+'-drop');
+  const btn=document.getElementById('ms-'+key+'-btn');
+  if(!drop)return;
+  const isOpen=drop.classList.contains('open');
+  // close all
+  ['log','rep','inv'].forEach(k=>{
+    document.getElementById('ms-'+k+'-drop')?.classList.remove('open');
+    document.getElementById('ms-'+k+'-btn')?.classList.remove('open');
+  });
+  if(!isOpen){
+    buildMsDrop(key);
+    drop.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+
+// Close multi-select on outside click
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.ms-wrap')){
+    ['log','rep','inv'].forEach(k=>{
+      document.getElementById('ms-'+k+'-drop')?.classList.remove('open');
+      document.getElementById('ms-'+k+'-btn')?.classList.remove('open');
+    });
+  }
+});
+
+function getMsClients(key){return msState[key].size===0?null:[...msState[key]];}
+
+function rebuildMsDrops(){
+  ['log','rep','inv'].forEach(k=>{
+    msState[k]=new Set();
+    updateMsLabel(k);
+  });
+}
+// ── END MULTI-SELECT ────────────────────────────
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   ['est-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
   const estSubproj=document.getElementById('est-subproj');
@@ -752,7 +874,7 @@ async function loadAll(){
       }catch(e){}
     }
     setSyncStatus('ok','Google Sheets');
-    refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects();
+    refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); rebuildMsDrops();
     renderLog(); renderClients(); renderReport(); renderEstimates(); renderInvoices();
     try{
       const cur=localStorage.getItem('plama_tab')||'track';
@@ -815,11 +937,16 @@ function updateSubprojs(selectId, clientId){
 }
 
 function updateFilterSubprojs(){
-  const clientId=document.getElementById('f-client').value;
+  const cfArr=getMsClients('log');
   const el=document.getElementById('f-subproj');
-  const c=clients.find(c=>c.id===clientId);
-  const subs=c&&c.subprojects?c.subprojects:[];
-  el.innerHTML='<option value="">Всі підпроєкти</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  if(!el)return;
+  // show subprojects from all selected clients
+  const allSubs=[];
+  (cfArr||clients.map(c=>c.id)).forEach(id=>{
+    const c=clients.find(cl=>cl.id===id);
+    if(c&&c.subprojects)c.subprojects.forEach(s=>allSubs.push({...s,cName:c.name}));
+  });
+  el.innerHTML='<option value="">Всі підпроєкти</option>'+allSubs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
 
 function refreshAllSelects(){
@@ -1233,11 +1360,11 @@ function renderClients(){
 }
 
 function renderLog(){
-  const cf=document.getElementById('f-client').value;
+  const cfArr=getMsClients('log');
   const sf=document.getElementById('f-subproj').value;
   const catf=document.getElementById('f-cat').value;
   let list=entries;
-  if(cf)list=list.filter(e=>e.clientId===cf);
+  if(cfArr)list=list.filter(e=>cfArr.includes(e.clientId));
   if(sf)list=list.filter(e=>e.subprojId===sf);
   if(catf)list=list.filter(e=>e.cat===catf);
   const sort=document.getElementById('f-sort').value;
@@ -1322,21 +1449,25 @@ function toggleDateRange(){
 }
 
 function updateReportSubprojs(){
-  const clientId=document.getElementById('r-client').value;
+  const cfArr=getMsClients('rep');
   const el=document.getElementById('r-subproj');
-  const c=clients.find(cl=>cl.id===clientId);
-  const subs=c&&c.subprojects?c.subprojects:[];
-  el.innerHTML='<option value="">Всі підпроєкти</option>'+subs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  if(!el)return;
+  const allSubs=[];
+  (cfArr||clients.map(c=>c.id)).forEach(id=>{
+    const c=clients.find(cl=>cl.id===id);
+    if(c&&c.subprojects)c.subprojects.forEach(s=>allSubs.push(s));
+  });
+  el.innerHTML='<option value="">Всі підпроєкти</option>'+allSubs.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
 }
 
 function renderReport(){
-  const cf=document.getElementById('r-client').value;
+  const cfArr=getMsClients('rep');
   const sf=document.getElementById('r-subproj')?.value||'';
   const period=document.getElementById('r-period').value;
   const dateFrom=document.getElementById('r-date-from')?.value||'';
   const dateTo=document.getElementById('r-date-to')?.value||'';
   let list=entries;
-  if(cf)list=list.filter(e=>e.clientId===cf);
+  if(cfArr)list=list.filter(e=>cfArr.includes(e.clientId));
   if(sf)list=list.filter(e=>e.subprojId===sf);
   if(period==='custom'){
     if(dateFrom)list=list.filter(e=>String(e.date).slice(0,10)>=dateFrom);
@@ -1752,7 +1883,7 @@ function deleteInvoice(id){
 
 function renderInvoices(){
   const pm={};clients.forEach(c=>pm[c.id]=c);
-  const cf=document.getElementById('if-client')?.value||'';
+  const cfArr=getMsClients('inv');
   const sf=document.getElementById('if-subproj')?.value||'';
   const stf=document.getElementById('if-status')?.value||'';
   const dateFrom=document.getElementById('if-date-from')?.value||'';
@@ -1760,7 +1891,7 @@ function renderInvoices(){
   const todayStr=today();
 
   let list=invoices;
-  if(cf)list=list.filter(i=>i.clientId===cf);
+  if(cfArr)list=list.filter(i=>cfArr.includes(i.clientId));
   if(sf)list=list.filter(i=>i.subprojId===sf);
   if(dateFrom)list=list.filter(i=>i.issueDate>=dateFrom);
   if(dateTo)list=list.filter(i=>i.issueDate<=dateTo);
