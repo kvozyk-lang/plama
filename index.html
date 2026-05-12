@@ -199,6 +199,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   transition: background 0.1s;
 }
 .ms-option:hover { background: var(--brand-pale); }
+.ms-option:has(input:checked) { background: var(--brand-pale); color: var(--brand); font-weight: 500; }
 .ms-option input[type=checkbox] { accent-color: var(--brand); width: 15px; height: 15px; flex-shrink: 0; }
 .ms-option.select-all { border-bottom: 1px solid var(--border); font-weight: 500; color: var(--text-2); font-size: 13px; }
 
@@ -270,10 +271,16 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   .timer-display { font-size: 40px; }
   .metrics { gap: 8px; }
   .metric-val { font-size: 18px; }
-  /* Invoice amounts 2x2 on mobile */
+  /* Invoice metrics - 3+2 on mobile */
+  #inv-metrics { grid-template-columns: repeat(3,1fr) !important; }
+  /* Invoice amounts - 2x2 on mobile */
   .inv-amounts { grid-template-columns: 1fr 1fr !important; }
   .inv-actions { flex-wrap: wrap; }
   .inv-actions .btn { flex: 1; text-align: center; justify-content: center; min-width: 100px; }
+  /* Filter row wrap */
+  .filter-row { flex-wrap: wrap; }
+  .ms-wrap { flex: 1; min-width: 140px; }
+  .ms-btn { width: 100%; }
 }
 </style>
 </head>
@@ -493,7 +500,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div class="page-title">💵 Облік оплат</div>
     <div class="page-sub">Виставлені фактури і статус оплат</div>
 
-    <div class="metrics" style="grid-template-columns:repeat(5,1fr)">
+    <div class="metrics" id="inv-metrics" style="grid-template-columns:repeat(5,1fr)">
       <div class="metric"><div class="metric-label">📄 Нетто</div><div class="metric-val" id="inv-m-netto">—</div></div>
       <div class="metric"><div class="metric-label">📊 ПДВ 23%</div><div class="metric-val" id="inv-m-vat">—</div></div>
       <div class="metric"><div class="metric-label">💰 Брутто</div><div class="metric-val" id="inv-m-total">—</div></div>
@@ -759,8 +766,10 @@ function buildMsDrop(key,renderFn){
 
 function msToggle(key,id,e){
   e.stopPropagation();
-  if(msState[key].has(id)) msState[key].delete(id);
-  else msState[key].add(id);
+  const cb=document.getElementById('ms-'+key+'-'+id);
+  if(msState[key].has(id)){msState[key].delete(id);if(cb)cb.checked=false;}
+  else{msState[key].add(id);if(cb)cb.checked=true;}
+  updateMsAllCheckbox(key);
   updateMsLabel(key);
   const fn={log:()=>{updateFilterSubprojs();renderLog();},rep:()=>{updateReportSubprojs();renderReport();},inv:()=>{updateInvFilterSubprojs();renderInvoices();}};
   fn[key]&&fn[key]();
