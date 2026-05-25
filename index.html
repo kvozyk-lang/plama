@@ -1508,7 +1508,6 @@ function renderLog(){
 
   // Init drag-and-drop
   const logEl=document.getElementById('log-list');
-  renderReport();
   if(logEl&&typeof Sortable!=='undefined'){
     if(window._sortable)window._sortable.destroy();
     window._sortable=new Sortable(logEl,{
