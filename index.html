@@ -415,13 +415,19 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
         <option value="hours">По годинах</option>
       </select>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-label">По категоріях</div>
-      <div id="log-cats"><div class="empty">Завантаження...</div></div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('log-cats','log-cats-chevron')">
+        <div class="card-label" style="margin:0">По категоріях</div>
+        <span id="log-cats-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s">▼</span>
+      </div>
+      <div id="log-cats" style="margin-top:12px"><div class="empty">Завантаження...</div></div>
     </div>
-    <div class="card" style="margin-bottom:16px">
-      <div class="card-label">По клієнтах і підпроєктах</div>
-      <div id="log-clients"><div class="empty">Завантаження...</div></div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('log-clients','log-clients-chevron')">
+        <div class="card-label" style="margin:0">По клієнтах і підпроєктах</div>
+        <span id="log-clients-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s">▼</span>
+      </div>
+      <div id="log-clients" style="margin-top:12px"><div class="empty">Завантаження...</div></div>
     </div>
 
     <div class="card" style="padding:20px 22px"><div id="log-list"><div class="empty">Завантаження...</div></div></div>
@@ -2319,6 +2325,32 @@ function showUndoToast(entryId, msg){
   };
   undoTimer=setTimeout(()=>{toast.style.display='none';},5000);
 }
+
+function toggleStats(contentId, chevronId){
+  const el=document.getElementById(contentId);
+  const ch=document.getElementById(chevronId);
+  if(!el)return;
+  const isHidden=el.style.display==='none';
+  el.style.display=isHidden?'block':'none';
+  if(ch)ch.style.transform=isHidden?'':'rotate(-90deg)';
+  // зберігаємо стан
+  try{localStorage.setItem('stats_'+contentId,isHidden?'open':'closed');}catch(e){}
+}
+
+// відновлюємо стан згортання при завантаженні
+(function(){
+  ['log-cats','log-clients'].forEach(id=>{
+    try{
+      const state=localStorage.getItem('stats_'+id);
+      if(state==='closed'){
+        const el=document.getElementById(id);
+        const ch=document.getElementById(id+'-chevron');
+        if(el)el.style.display='none';
+        if(ch)ch.style.transform='rotate(-90deg)';
+      }
+    }catch(e){}
+  });
+})();
 
 function toggleLogItem(id){
   const el=document.getElementById('log-expand-'+id);
