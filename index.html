@@ -419,11 +419,11 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 
     <div class="card" style="margin-top:16px">
       <div class="card-label">По категоріях</div>
-      <div id="rep-cats"><div class="empty">Немає даних</div></div>
+      <div id="log-cats"><div class="empty">Немає даних</div></div>
     </div>
     <div class="card" style="margin-top:16px">
       <div class="card-label">По клієнтах і підпроєктах</div>
-      <div id="rep-clients"><div class="empty">Немає даних</div></div>
+      <div id="log-clients"><div class="empty">Немає даних</div></div>
     </div>
   </div>
 
@@ -1539,7 +1539,7 @@ function renderLogStats(list){
     byCat[e.cat].earn+=parseFloat(e.earn)||0;
   });
   const maxC=Math.max(...Object.values(byCat).map(v=>v.hrs),0.1);
-  const catEl=document.getElementById('rep-cats');
+  const catEl=document.getElementById('log-cats');
   if(catEl){
     catEl.innerHTML=Object.entries(byCat).sort((a,b)=>b[1].earn-a[1].earn).map(([cat,v])=>{
       const pct=Math.round(v.hrs/maxC*100)||2;
@@ -1552,7 +1552,7 @@ function renderLogStats(list){
     }).join('')||'<div class="empty">Немає даних</div>';
   }
   // по клієнтах
-  const clientEl=document.getElementById('rep-clients');
+  const clientEl=document.getElementById('log-clients');
   if(clientEl){
     const rows=clients.map(c=>{
       const ce=filteredList.filter(e=>e.clientId===c.id);
