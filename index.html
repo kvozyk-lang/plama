@@ -258,6 +258,22 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 .sortable-chosen { background: var(--surface); box-shadow: 0 4px 16px rgba(35,34,98,0.12); border-radius: var(--r-sm); }
 
 .toast { position: fixed; bottom: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 10px 18px; border-radius: var(--r-sm); font-size: 13px; font-weight: 400; opacity: 0; transform: translateY(6px); transition: all 0.2s; pointer-events: none; z-index: 100; }
+.toast.show { opacity: 1; transform: none; }
+.undo-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--brand); color: var(--bg); border-radius: var(--r);
+  opacity: 0; transition: all 0.3s; pointer-events: none; z-index: 101;
+  display: flex; align-items: stretch; overflow: hidden;
+  box-shadow: 0 8px 28px rgba(35,34,98,0.3); min-width: 300px; max-width: 90vw;
+}
+.undo-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.undo-toast-text { padding: 14px 16px; font-size: 13px; flex: 1; line-height: 1.4; }
+.undo-toast-bar { position: absolute; bottom: 0; left: 0; height: 3px; background: rgba(255,255,255,0.3); }
+.undo-btn { padding: 14px 14px; font-size: 13px; font-family: var(--sans); font-weight: 600;
+  background: none; border: none; border-left: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,254,241,0.75); cursor: pointer; white-space: nowrap; }
+.undo-btn:hover { background: rgba(255,255,255,0.1); }
+.undo-btn.accent { color: #fde68a; }
 .toast.show { opacity: 1; transform: translateY(0); }
 
 @media (max-width: 560px) {
@@ -300,10 +316,6 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <button class="nav-btn" onclick="switchTab('clients',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"/></svg>
       Клієнти
-    </button>
-    <button class="nav-btn" onclick="switchTab('report',this)">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>
-      Звіт
     </button>
     <button class="nav-btn" onclick="switchTab('estimate',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 7h6M9 11h6M9 15h4"/><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
@@ -404,6 +416,15 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
       </select>
     </div>
     <div class="card" style="padding:20px 22px"><div id="log-list"><div class="empty">Завантаження...</div></div></div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">По категоріях</div>
+      <div id="rep-cats"><div class="empty">Немає даних</div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">По клієнтах і підпроєктах</div>
+      <div id="rep-clients"><div class="empty">Немає даних</div></div>
+    </div>
   </div>
 
   <!-- CLIENTS -->
@@ -633,6 +654,15 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   </div>
 </div>
 
+<!-- Undo toast -->
+<div id="undo-toast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;background:var(--brand);color:var(--bg);border-radius:var(--r);padding:14px 18px;box-shadow:0 8px 32px rgba(35,34,98,0.3);min-width:280px;max-width:340px">
+  <div style="font-size:13px;margin-bottom:10px;opacity:0.8" id="undo-msg">Запис збережено</div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-sm" style="flex:1;background:rgba(255,255,255,0.15);color:var(--bg);border:none" id="undo-edit-btn">✎ Редагувати</button>
+    <button class="btn btn-sm" style="flex:1;background:rgba(255,80,80,0.25);color:#ffb3b3;border:none" id="undo-cancel-btn">✕ Скасувати</button>
+  </div>
+</div>
+
 <!-- Confirm delete modal -->
 <div class="modal-backdrop" id="confirm-modal">
   <div class="modal" style="max-height:auto">
@@ -848,6 +878,46 @@ function rebuildMsDrops(){
   });
 }
 // ── END MULTI-SELECT ────────────────────────────
+
+// ── UNDO TOAST ─────────────────────────────────
+let _undoTimer=null, _lastEntryId=null;
+
+function showUndoToast(entryId, label){
+  _lastEntryId=entryId;
+  if(_undoTimer)clearTimeout(_undoTimer);
+  const toast=document.getElementById('undo-toast');
+  const bar=document.getElementById('undo-bar');
+  document.getElementById('undo-toast-text').textContent='✓ '+label;
+  toast.classList.add('show');
+  // animate bar shrinking in 5s
+  bar.style.transition='none'; bar.style.width='100%';
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    bar.style.transition='width 5s linear'; bar.style.width='0%';
+  }));
+  _undoTimer=setTimeout(()=>toast.classList.remove('show'), 5000);
+}
+
+function hideUndoToast(){
+  if(_undoTimer)clearTimeout(_undoTimer);
+  document.getElementById('undo-toast').classList.remove('show');
+  _lastEntryId=null;
+}
+
+function undoEdit(){
+  const id=_lastEntryId; hideUndoToast();
+  if(!id)return;
+  openEditModal(id);
+}
+
+async function undoCancel(){
+  const id=_lastEntryId; hideUndoToast();
+  if(!id)return;
+  entries=entries.filter(e=>e.id!==id); renderLog();
+  setSyncStatus('loading','Скасування...');
+  try{await gasPost({action:'deleteEntry',id});setSyncStatus('ok','Google Sheets');showToast('Запис скасовано');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+// ── END UNDO TOAST ──────────────────────────────
 
 function refreshEstimateSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -1101,7 +1171,7 @@ async function timerStop(){
   document.getElementById('btn-cancel').style.display='none';
   document.getElementById('t-note').value='';
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:'0'});setSyncStatus('ok','Google Sheets');showToast('Запис збережено ✓');}
+  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:'0'});setSyncStatus('ok','Google Sheets');showUndoToast(entry.id,'Запис збережено');}
   catch(e){setSyncStatus('err','Не вдалось зберегти');}
 }
 
@@ -1173,7 +1243,7 @@ async function manualAdd(){
   entries.unshift(entry); renderLog();
   document.getElementById('m-note').value=''; document.getElementById('m-hours').value='1'; document.getElementById('m-fixed').value='0';
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:isFixed?'1':'0'});setSyncStatus('ok','Google Sheets');showToast('Запис збережено ✓');}
+  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:isFixed?'1':'0'});setSyncStatus('ok','Google Sheets');showUndoToast(entry.id,'Запис збережено');}
   catch(e){setSyncStatus('err','Не вдалось зберегти');}
 }
 
@@ -1438,6 +1508,7 @@ function renderLog(){
 
   // Init drag-and-drop
   const logEl=document.getElementById('log-list');
+  renderReport();
   if(logEl&&typeof Sortable!=='undefined'){
     if(window._sortable)window._sortable.destroy();
     window._sortable=new Sortable(logEl,{
@@ -1453,6 +1524,59 @@ function renderLog(){
         catch(e){setSyncStatus('err','Помилка збереження');}
       }
     });
+  }
+  // оновлюємо статистику в журналі
+  renderLogStats(list);
+}
+
+function renderLogStats(list){
+  const filteredList=list||entries;
+  // по категоріях
+  const byCat={};
+  filteredList.forEach(e=>{
+    if(!byCat[e.cat])byCat[e.cat]={hrs:0,earn:0};
+    byCat[e.cat].hrs+=e.hours;
+    byCat[e.cat].earn+=parseFloat(e.earn)||0;
+  });
+  const maxC=Math.max(...Object.values(byCat).map(v=>v.hrs),0.1);
+  const catEl=document.getElementById('rep-cats');
+  if(catEl){
+    catEl.innerHTML=Object.entries(byCat).sort((a,b)=>b[1].earn-a[1].earn).map(([cat,v])=>{
+      const pct=Math.round(v.hrs/maxC*100)||2;
+      const c=CATS[cat]||CATS['Інше'];
+      return`<div class="bar-row">
+        <div class="bar-top"><span><span class="dot" style="background:${c.dot}"></span>${cat}</span>
+        <span class="bar-val">${fmtHrs(v.hrs)} · ${v.earn.toFixed(0)} zł</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${c.dot}"></div></div>
+      </div>`;
+    }).join('')||'<div class="empty">Немає даних</div>';
+  }
+  // по клієнтах
+  const clientEl=document.getElementById('rep-clients');
+  if(clientEl){
+    const rows=clients.map(c=>{
+      const ce=filteredList.filter(e=>e.clientId===c.id);
+      if(!ce.length)return'';
+      const cHrs=ce.reduce((a,e)=>a+e.hours,0);
+      const cEarn=ce.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+      const subs=(c.subprojects||[]).map(s=>{
+        const se=ce.filter(e=>e.subprojId===s.id);
+        if(!se.length)return'';
+        const sH=se.reduce((a,e)=>a+e.hours,0);
+        const sE=se.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+        return`<div class="rep-sub" style="cursor:pointer" onclick="goToSubproj('${c.id}','${s.id}')">
+          <span style="color:var(--text-2)">${s.name} →</span>
+          <span style="font-family:var(--mono)">${fmtHrs(sH)} · ${sE.toFixed(0)} zł</span>
+        </div>`;
+      }).join('');
+      return`<div class="rep-row" style="flex-direction:column;gap:0;padding-bottom:0">
+        <div style="display:flex;justify-content:space-between;padding:10px 0;width:100%">
+          <div><div style="font-weight:500;color:var(--brand)">${c.name}</div><div style="color:var(--text-2);font-size:12px">💰 ${c.rate} zł/год</div></div>
+          <div style="text-align:right"><div class="rep-val">⏱️ ${fmtHrs(cHrs)}</div><div style="color:var(--text-2);font-family:var(--mono)">${cEarn.toFixed(0)} zł</div></div>
+        </div>${subs}
+      </div>`;
+    }).filter(Boolean).join('');
+    clientEl.innerHTML=rows||'<div class="empty">Немає даних</div>';
   }
 }
 
@@ -2053,7 +2177,7 @@ if('serviceWorker' in navigator){
 
 // ── SWIPE NAVIGATION ───────────────────────────
 (function(){
-  const TABS=['track','log','clients','report','estimate','invoices'];
+  const TABS=['track','log','clients','estimate','invoices'];
   let touchStartX=0, touchStartY=0, touchStartTime=0;
   document.addEventListener('touchstart',e=>{
     touchStartX=e.touches[0].clientX;
@@ -2164,6 +2288,34 @@ function confirmDelete(id, name){
     document.getElementById('confirm-modal').classList.remove('open');
     deleteEntry(id);
   };
+}
+
+let undoTimer=null;
+
+function showUndoToast(entryId, msg){
+  if(undoTimer)clearTimeout(undoTimer);
+  const toast=document.getElementById('undo-toast');
+  document.getElementById('undo-msg').textContent=msg||'Запис збережено';
+  toast.style.display='block';
+  // Edit button
+  document.getElementById('undo-edit-btn').onclick=()=>{
+    clearTimeout(undoTimer);
+    toast.style.display='none';
+    openEditModal(entryId);
+  };
+  // Cancel button
+  document.getElementById('undo-cancel-btn').onclick=async()=>{
+    clearTimeout(undoTimer);
+    toast.style.display='none';
+    const idx=entries.findIndex(e=>e.id===entryId);
+    if(idx!==-1){
+      entries.splice(idx,1);
+      renderLog();
+      try{await gasPost({action:'deleteEntry',id:entryId});showToast('Запис скасовано');}
+      catch(e){setSyncStatus('err','Помилка');}
+    }
+  };
+  undoTimer=setTimeout(()=>{toast.style.display='none';},5000);
 }
 
 function toggleLogItem(id){
