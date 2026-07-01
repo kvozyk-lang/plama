@@ -623,8 +623,8 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div id="e-info" style="background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--brand);line-height:1.6"></div>
     <input type="hidden" id="e-id">
     <div class="form-row form-2">
-      <div class="field"><label>Клієнт</label><select id="e-client" onchange="updateSubprojs('e-subproj',this.value)"><option value="">— без клієнта —</option></select></div>
-      <div class="field"><label>Підпроєкт</label><select id="e-subproj"><option value="">— без підпроєкту —</option></select></div>
+      <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="e-client" onchange="updateSubprojs('e-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('e-client','e-subproj')" title="Новий клієнт">+</button></div></div>
+      <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="e-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('e-client','e-subproj')" title="Новий підпроєкт">+</button></div></div>
     </div>
     <div class="form-row form-2">
       <div class="field"><label>Категорія</label>
@@ -868,9 +868,13 @@ async function quickAddClient(clientSelectId, subprojSelectId){
   const client={id:uid(),name:name.trim(),rate,subprojects:[]};
   clients.push(client);
   refreshAllSelects(); refreshEstimateSelects();
-  // select the new client
+  // перебудовуємо цільовий селект (модальний e-client не покривається refreshAllSelects) і обираємо нового клієнта
   const sel=document.getElementById(clientSelectId);
-  if(sel){sel.value=client.id;}
+  if(sel){
+    sel.innerHTML='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+    sel.value=client.id;
+    sel.dispatchEvent(new Event('change')); // підтягує ставку в модалці та оновлює підпроєкти
+  }
   if(subprojSelectId) updateSubprojs(subprojSelectId,client.id);
   setSyncStatus('loading','Збереження...');
   try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Клієнта додано ✓');}
