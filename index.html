@@ -85,6 +85,8 @@ select {
   background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px;
 }
 input:focus, select:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px rgba(35,34,98,0.1); background: var(--surface); }
+/* iOS Safari авто-зумить сторінку при фокусі на полі зі шрифтом < 16px */
+@media (max-width: 640px) { input, select { font-size: 16px; } }
 
 .timer-block { text-align: center; padding: 18px 0 14px; }
 .timer-display { font-family: var(--mono); font-size: 52px; font-weight: 400; letter-spacing: -2px; line-height: 1; color: var(--brand); transition: color 0.3s; }
@@ -1831,10 +1833,6 @@ function clearSelection(){
 // ── INVOICES ───────────────────────────────────
 let invoices=[];
 
-async function loadInvoices(){
-  try{const d=await sbLoad();invoices=d.invoices||[];renderInvoices();}catch(e){}
-}
-
 function updateInvVatPreview(){
   const netto=parseFloat(document.getElementById('inv-amount').value)||0;
   const preview=document.getElementById('inv-vat-preview');
@@ -2173,6 +2171,22 @@ if('serviceWorker' in navigator){
 })();
 
 loadAll();
+
+// ── АВТООНОВЛЕННЯ ПРИ ПОВЕРНЕННІ ────────────────
+// Стан зберігається цілим блобом, тож застарілі дані в памʼяті (напр. PWA
+// висіла відкритою) при першій же дії перезаписали б новіші зміни з іншого
+// пристрою. Тому при поверненні в застосунок перечитуємо дані (не частіше
+// ніж раз на 60 с).
+let _lastLoadTs=Date.now();
+function _reloadIfStale(){
+  if(Date.now()-_lastLoadTs<60000)return;
+  _lastLoadTs=Date.now();
+  loadAll();
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')_reloadIfStale();
+});
+window.addEventListener('focus',_reloadIfStale);
 
 // Edit modal
 function toggleEditPayType(){
