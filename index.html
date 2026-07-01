@@ -801,7 +801,7 @@ const msState={log:new Set(),rep:new Set(),inv:new Set()};
 function buildMsDrop(key,renderFn){
   const drop=document.getElementById('ms-'+key+'-drop');
   if(!drop)return;
-  drop.innerHTML=`<div class="ms-option select-all" onclick="msToggleAll('${key}',event)"><input type="checkbox" id="ms-${key}-all" onchange="msToggleAll('${key}',event)"> Всі клієнти</div>`
+  drop.innerHTML=`<div class="ms-option select-all" onclick="msToggleAll('${key}',event)"><input type="checkbox" id="ms-${key}-all" onclick="event.stopPropagation();msToggleAll('${key}',event)"> Всі клієнти</div>`
     +clients.map(c=>`<div class="ms-option" onclick="msToggle('${key}','${c.id}',event)"><input type="checkbox" id="ms-${key}-${c.id}" ${msState[key].has(c.id)?'checked':''}> ${c.name}</div>`).join('');
   updateMsAllCheckbox(key);
 }
@@ -891,45 +891,7 @@ function rebuildMsDrops(){
 }
 // ── END MULTI-SELECT ────────────────────────────
 
-// ── UNDO TOAST ─────────────────────────────────
-let _undoTimer=null, _lastEntryId=null;
-
-function showUndoToast(entryId, label){
-  _lastEntryId=entryId;
-  if(_undoTimer)clearTimeout(_undoTimer);
-  const toast=document.getElementById('undo-toast');
-  const bar=document.getElementById('undo-bar');
-  document.getElementById('undo-toast-text').textContent='✓ '+label;
-  toast.classList.add('show');
-  // animate bar shrinking in 5s
-  bar.style.transition='none'; bar.style.width='100%';
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    bar.style.transition='width 5s linear'; bar.style.width='0%';
-  }));
-  _undoTimer=setTimeout(()=>toast.classList.remove('show'), 5000);
-}
-
-function hideUndoToast(){
-  if(_undoTimer)clearTimeout(_undoTimer);
-  document.getElementById('undo-toast').classList.remove('show');
-  _lastEntryId=null;
-}
-
-function undoEdit(){
-  const id=_lastEntryId; hideUndoToast();
-  if(!id)return;
-  openEditModal(id);
-}
-
-async function undoCancel(){
-  const id=_lastEntryId; hideUndoToast();
-  if(!id)return;
-  entries=entries.filter(e=>e.id!==id); renderLog();
-  setSyncStatus('loading','Скасування...');
-  try{await gasPost({action:'deleteEntry',id});setSyncStatus('ok','Google Sheets');showToast('Запис скасовано');}
-  catch(e){setSyncStatus('err','Помилка');}
-}
-// ── END UNDO TOAST ──────────────────────────────
+// ── UNDO TOAST → активну реалізацію showUndoToast див. нижче (біля saveEdit) ──
 
 function refreshEstimateSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -1020,7 +982,7 @@ async function quickAddSubproj(clientSelectId, subprojSelectId){
 function getClientById(id){return clients.find(c=>c.id===id);}
 function getSubprojById(clientId,subprojId){
   const c=getClientById(clientId);
-  return c?c.subprojects.find(s=>s.id===subprojId):null;
+  return c&&c.subprojects?c.subprojects.find(s=>s.id===subprojId):null;
 }
 
 function updateSubprojs(selectId, clientId){
@@ -2363,8 +2325,6 @@ function toggleLogItem(id){
   if(!el)return;
   el.style.display=el.style.display==='block'?'none':'block';
 }
-
-loadAll();
 </script>
 </body>
 </html>
