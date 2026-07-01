@@ -659,6 +659,27 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   </div>
 </div>
 
+<!-- Quick-add модалка: новий клієнт / підпроєкт (замість prompt(), який iOS PWA блокує).
+     Стоїть ПІСЛЯ edit-modal у DOM, щоб малюватись поверх неї. -->
+<div class="modal-backdrop" id="qa-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">
+      <span id="qa-title">＋ Новий клієнт</span>
+      <button class="btn-icon" onclick="closeQaModal()">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="field"><label>Назва</label><input type="text" id="qa-name" placeholder="" onkeydown="if(event.key==='Enter')confirmQuickAdd()"></div>
+    </div>
+    <div class="form-row" id="qa-rate-row">
+      <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="qa-rate" value="160" min="1" step="1"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeQaModal()">Скасувати</button>
+      <button class="btn btn-primary" onclick="confirmQuickAdd()">✓ Створити</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -860,44 +881,77 @@ async function loadAll(){
   }catch(e){setSyncStatus('err','Помилка підключення');}
 }
 
-async function quickAddClient(clientSelectId, subprojSelectId){
-  const name=prompt('Назва нового клієнта:');
-  if(!name||!name.trim())return;
-  const rateStr=prompt('Ставка (zł/год):', '50');
-  const rate=parseFloat(rateStr)||50;
-  const client={id:uid(),name:name.trim(),rate,subprojects:[]};
-  clients.push(client);
-  refreshAllSelects(); refreshEstimateSelects();
-  // перебудовуємо цільовий селект (модальний e-client не покривається refreshAllSelects) і обираємо нового клієнта
-  const sel=document.getElementById(clientSelectId);
-  if(sel){
-    sel.innerHTML='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-    sel.value=client.id;
-    sel.dispatchEvent(new Event('change')); // підтягує ставку в модалці та оновлює підпроєкти
-  }
-  if(subprojSelectId) updateSubprojs(subprojSelectId,client.id);
-  setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Клієнта додано ✓');}
-  catch(e){setSyncStatus('err','Помилка');}
+// ── QUICK ADD клієнта/підпроєкту через власну модалку ──
+// prompt() заблокований в iOS PWA (standalone), тому системні діалоги не використовуємо.
+let _qa={kind:'client',clientSel:'',subprojSel:''};
+
+function quickAddClient(clientSelectId, subprojSelectId){
+  _qa={kind:'client',clientSel:clientSelectId,subprojSel:subprojSelectId};
+  document.getElementById('qa-title').textContent='＋ Новий клієнт';
+  document.getElementById('qa-name').value='';
+  document.getElementById('qa-name').placeholder='напр. LAGOS';
+  document.getElementById('qa-rate-row').style.display='';
+  document.getElementById('qa-rate').value='160';
+  document.getElementById('qa-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('qa-name').focus(),80);
 }
 
-async function quickAddSubproj(clientSelectId, subprojSelectId){
+function quickAddSubproj(clientSelectId, subprojSelectId){
   const clientId=document.getElementById(clientSelectId)?.value;
   if(!clientId){showToast('Спочатку обери клієнта');return;}
-  const name=prompt('Назва нового підпроєкту (напр. Травень 2026):');
-  if(!name||!name.trim())return;
-  const c=clients.find(cl=>cl.id===clientId);
-  if(!c)return;
-  if(!c.subprojects)c.subprojects=[];
-  const subproj={id:uid(),name:name.trim()};
-  c.subprojects.push(subproj);
-  updateSubprojs(subprojSelectId,clientId);
-  refreshAllSelects();
-  // select the new subproject
-  const sel=document.getElementById(subprojSelectId);
-  if(sel){sel.value=subproj.id;}
+  _qa={kind:'subproj',clientSel:clientSelectId,subprojSel:subprojSelectId};
+  document.getElementById('qa-title').textContent='＋ Новий підпроєкт';
+  document.getElementById('qa-name').value='';
+  document.getElementById('qa-name').placeholder='напр. Травень 2026';
+  document.getElementById('qa-rate-row').style.display='none';
+  document.getElementById('qa-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('qa-name').focus(),80);
+}
+
+function closeQaModal(){document.getElementById('qa-modal').classList.remove('open');}
+
+async function confirmQuickAdd(){
+  const name=document.getElementById('qa-name').value.trim();
+  if(!name){document.getElementById('qa-name').focus();return;}
+  const kind=_qa.kind;
+  if(kind==='rename-client'){
+    const c=clients.find(cl=>cl.id===_qa.renameId);
+    if(c){c.name=name;renderClients();refreshAllSelects();}
+    closeQaModal();
+    setSyncStatus('loading','Збереження...');
+    try{await saveState();setSyncStatus('ok','Supabase');showToast('Назву змінено ✓');}
+    catch(e){setSyncStatus('err','Помилка');}
+    return;
+  }
+  if(kind==='client'){
+    const rate=parseFloat(document.getElementById('qa-rate').value)||50;
+    const client={id:uid(),name,rate,subprojects:[]};
+    clients.push(client);
+    refreshAllSelects(); refreshEstimateSelects();
+    // перебудовуємо цільовий селект (модальний e-client не покривається refreshAllSelects) і обираємо нового клієнта
+    const sel=document.getElementById(_qa.clientSel);
+    if(sel){
+      sel.innerHTML='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+      sel.value=client.id;
+      sel.dispatchEvent(new Event('change')); // підтягує ставку в модалці та оновлює підпроєкти
+    }
+    if(_qa.subprojSel) updateSubprojs(_qa.subprojSel,client.id);
+  } else {
+    const clientId=document.getElementById(_qa.clientSel)?.value;
+    const c=clients.find(cl=>cl.id===clientId);
+    if(!c){closeQaModal();return;}
+    if(!c.subprojects)c.subprojects=[];
+    const subproj={id:uid(),name};
+    c.subprojects.push(subproj);
+    refreshAllSelects();
+    updateSubprojs(_qa.subprojSel,clientId);
+    const sel=document.getElementById(_qa.subprojSel);
+    if(sel){sel.value=subproj.id;}
+  }
+  closeQaModal();
+  renderClients();
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Підпроєкт додано ✓');}
+  try{await saveState();setSyncStatus('ok','Supabase');showToast(kind==='client'?'Клієнта додано ✓':'Підпроєкт додано ✓');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1264,16 +1318,14 @@ async function saveRenameSubproj(clientId, subprojId){
 }
 
 function startRenameClient(clientId, currentName){
-  const newName=prompt('Нова назва клієнта:', currentName);
-  if(!newName||!newName.trim())return;
-  const c=clients.find(cl=>cl.id===clientId);
-  if(!c)return;
-  c.name=newName.trim();
-  renderClients(); refreshAllSelects();
-  setSyncStatus('loading','Збереження...');
-  gasPost({action:'saveClients',clients:JSON.stringify(clients)})
-    .then(()=>setSyncStatus('ok','Supabase'))
-    .catch(()=>setSyncStatus('err','Помилка'));
+  // через qa-модалку — prompt() не працює в iOS PWA
+  _qa={kind:'rename-client',clientSel:'',subprojSel:'',renameId:clientId};
+  document.getElementById('qa-title').textContent='✎ Перейменувати клієнта';
+  document.getElementById('qa-name').value=currentName||'';
+  document.getElementById('qa-name').placeholder='';
+  document.getElementById('qa-rate-row').style.display='none';
+  document.getElementById('qa-modal').classList.add('open');
+  setTimeout(()=>document.getElementById('qa-name').focus(),80);
 }
 
 function renderClients(){
