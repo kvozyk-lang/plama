@@ -738,7 +738,6 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 <div class="toast" id="toast"></div>
 
 <script>
-const GAS_URL='https://script.google.com/macros/s/AKfycby3NiP7CqwF1CXzOcJKA4iQVTvFc7F6xk5Wr_rccGY3HxCoz3bAVvSzlmq8ds_ukT8y/exec';
 const CATS={
   'Монтаж':          {dot:'#2563eb',bg:'#eff6ff',text:'#1e3a8a',border:'#bfdbfe'},
   'Зйомка':          {dot:'#059669',bg:'#ecfdf5',text:'#065f46',border:'#6ee7b7'},
@@ -763,8 +762,25 @@ function getElapsed(){return timerStart?timerAccum+Math.floor((Date.now()-timerS
 
 function setSyncStatus(s,msg){document.getElementById('sync-dot').className='sync-dot '+s;document.getElementById('sync-text').textContent=msg;}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-async function gas(p){const r=await fetch(GAS_URL+'?'+new URLSearchParams(p),{redirect:'follow'});return r.json();}
-async function gasPost(b){const r=await fetch(GAS_URL,{method:'POST',body:JSON.stringify(b),redirect:'follow'});return r.json();}
+// ── Supabase backend (весь стан у JSON-блобі, таблиця tracker_state) ──
+const SB_URL='https://eodgutlkeippcfnmfxeb.supabase.co';
+const SB_KEY='sb_publishable_SZUcxmECMcUawikXk0nxlw_A2rboMqD';
+async function sbLoad(){
+  const r=await fetch(`${SB_URL}/rest/v1/tracker_state?id=eq.main&select=data`,
+    {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
+  if(!r.ok) throw new Error('Supabase load '+r.status);
+  const rows=await r.json();
+  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[]};
+}
+async function saveState(){
+  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices}});
+  const r=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
+    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
+             'Prefer':'resolution=merge-duplicates,return=minimal'},body});
+  if(!r.ok) throw new Error('Supabase save '+r.status);
+}
+// Усі мутації вже оновлюють стан у памʼяті → просто зберігаємо весь блоб.
+async function gasPost(b){return saveState();}
 
 function refreshInvSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -903,32 +919,11 @@ function refreshEstimateSelects(){
 async function loadAll(){
   setSyncStatus('loading','Синхронізація...');
   try{
-    const[eR,cR,oR,estR,invR]=await Promise.all([
-      gas({action:'getAll'}),gas({action:'getClients'}),
-      gas({action:'getOrder'}),gas({action:'getEstimates'}),
-      gas({action:'getInvoices'})
-    ]);
-    if(eR.ok) entries=eR.data.slice(1).filter(r=>r[0]).map(r=>({
-      id:String(r[0]),date:r[1],clientId:String(r[2]),subprojId:String(r[3]),
-      cat:r[4],hours:parseFloat(r[5])||0,note:r[6]||'',earn:parseFloat(r[7])||0,
-      fixed:r[8]==='1'||r[8]===true||r[8]===1
-    }));
-    if(cR.ok) clients=JSON.parse(cR.data||'[]');
-    if(estR.ok) estimates=JSON.parse(estR.data||'[]');
-    if(invR.ok) invoices=JSON.parse(invR.data||'[]');
-    if(oR.ok&&oR.data){
-      try{
-        const order=JSON.parse(oR.data);
-        entries.sort((a,b)=>{
-          const ai=order.indexOf(a.id), bi=order.indexOf(b.id);
-          if(ai===-1&&bi===-1)return 0;
-          if(ai===-1)return 1;
-          if(bi===-1)return -1;
-          return ai-bi;
-        });
-      }catch(e){}
-    }
-    setSyncStatus('ok','Google Sheets');
+    const d=await sbLoad();
+    // entries вже зберігаються у потрібному порядку (порядок = порядок масиву)
+    clients=d.clients||[]; entries=d.entries||[];
+    estimates=d.estimates||[]; invoices=d.invoices||[];
+    setSyncStatus('ok','Supabase');
     refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); rebuildMsDrops();
     renderLog(); renderClients(); renderEstimates(); renderInvoices();
     renderLogStats(entries);
@@ -955,7 +950,7 @@ async function quickAddClient(clientSelectId, subprojSelectId){
   if(sel){sel.value=client.id;}
   if(subprojSelectId) updateSubprojs(subprojSelectId,client.id);
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Клієнта додано ✓');}
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Клієнта додано ✓');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -975,7 +970,7 @@ async function quickAddSubproj(clientSelectId, subprojSelectId){
   const sel=document.getElementById(subprojSelectId);
   if(sel){sel.value=subproj.id;}
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Підпроєкт додано ✓');}
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Підпроєкт додано ✓');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1146,7 +1141,7 @@ async function timerStop(){
   document.getElementById('btn-cancel').style.display='none';
   document.getElementById('t-note').value='';
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:'0'});setSyncStatus('ok','Google Sheets');showUndoToast(entry.id,'Запис збережено');}
+  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:'0'});setSyncStatus('ok','Supabase');showUndoToast(entry.id,'Запис збережено');}
   catch(e){setSyncStatus('err','Не вдалось зберегти');}
 }
 
@@ -1218,14 +1213,14 @@ async function manualAdd(){
   entries.unshift(entry); renderLog();
   document.getElementById('m-note').value=''; document.getElementById('m-hours').value='1'; document.getElementById('m-fixed').value='0';
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:isFixed?'1':'0'});setSyncStatus('ok','Google Sheets');showUndoToast(entry.id,'Запис збережено');}
+  try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:isFixed?'1':'0'});setSyncStatus('ok','Supabase');showUndoToast(entry.id,'Запис збережено');}
   catch(e){setSyncStatus('err','Не вдалось зберегти');}
 }
 
 async function deleteEntry(id){
   entries=entries.filter(e=>e.id!==id); renderLog();
   setSyncStatus('loading','Видалення...');
-  try{await gasPost({action:'deleteEntry',id:String(id)});setSyncStatus('ok','Google Sheets');}
+  try{await gasPost({action:'deleteEntry',id:String(id)});setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1237,14 +1232,14 @@ async function addClient(){
   clients.push(client); renderClients(); refreshAllSelects();
   document.getElementById('c-name').value='';
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Клієнта збережено ✓');}
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Клієнта збережено ✓');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
 async function deleteClient(id){
   clients=clients.filter(c=>c.id!==id); renderClients(); refreshAllSelects();
   setSyncStatus('loading','Оновлення...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');}
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1257,7 +1252,7 @@ async function addSubproject(clientId, inputId){
   input.value='';
   renderClients(); refreshAllSelects();
   setSyncStatus('loading','Збереження...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');showToast('Підпроєкт додано ✓');}
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Підпроєкт додано ✓');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1266,7 +1261,7 @@ async function deleteSubproject(clientId, subprojId){
   c.subprojects=c.subprojects.filter(s=>s.id!==subprojId);
   renderClients(); refreshAllSelects();
   setSyncStatus('loading','Оновлення...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');}
+  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1329,7 +1324,7 @@ async function saveRenameSubproj(clientId, subprojId){
     const s=c&&c.subprojects?c.subprojects.find(s=>s.id===subprojId):null;
     if(s){s.name=newName;if(display)display.textContent=newName+' →';}
     setSyncStatus('loading','Збереження...');
-    try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Google Sheets');refreshAllSelects();}
+    try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');refreshAllSelects();}
     catch(e){setSyncStatus('err','Помилка');}
   }
   if(display){display.style.display='';el.style.display='none';}
@@ -1344,7 +1339,7 @@ function startRenameClient(clientId, currentName){
   renderClients(); refreshAllSelects();
   setSyncStatus('loading','Збереження...');
   gasPost({action:'saveClients',clients:JSON.stringify(clients)})
-    .then(()=>setSyncStatus('ok','Google Sheets'))
+    .then(()=>setSyncStatus('ok','Supabase'))
     .catch(()=>setSyncStatus('err','Помилка'));
 }
 
@@ -1494,7 +1489,7 @@ function renderLog(){
         const newOrder=[...logEl.querySelectorAll('[data-id]')].map(el=>el.dataset.id);
         entries.sort((a,b)=>newOrder.indexOf(a.id)-newOrder.indexOf(b.id));
         setSyncStatus('loading','Збереження порядку...');
-        try{await gasPost({action:'saveOrder',order:JSON.stringify(newOrder)});setSyncStatus('ok','Google Sheets');}
+        try{await gasPost({action:'saveOrder',order:JSON.stringify(newOrder)});setSyncStatus('ok','Supabase');}
         catch(e){setSyncStatus('err','Помилка збереження');}
       }
     });
@@ -1735,7 +1730,7 @@ async function saveEstimate(){
   setSyncStatus('loading','Збереження...');
   try{
     await gasPost({action:'saveEstimate',estimate:JSON.stringify(est)});
-    setSyncStatus('ok','Google Sheets'); showToast('Кошторис збережено ✓');
+    setSyncStatus('ok','Supabase'); showToast('Кошторис збережено ✓');
   }catch(e){setSyncStatus('err','Помилка збереження');}
 }
 
@@ -1752,7 +1747,7 @@ async function deleteEstimate(id){
   estimates=estimates.filter(e=>e.id!==id);
   renderEstimates();
   setSyncStatus('loading','Видалення...');
-  try{await gasPost({action:'deleteEstimate',id});setSyncStatus('ok','Google Sheets');}
+  try{await gasPost({action:'deleteEstimate',id});setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1837,7 +1832,7 @@ function clearSelection(){
 let invoices=[];
 
 async function loadInvoices(){
-  try{const r=await gas({action:'getInvoices'});if(r.ok)invoices=JSON.parse(r.data||'[]');renderInvoices();}catch(e){}
+  try{const d=await sbLoad();invoices=d.invoices||[];renderInvoices();}catch(e){}
 }
 
 function updateInvVatPreview(){
@@ -1884,7 +1879,7 @@ function saveInvoice(){
   document.getElementById('inv-vat-preview').style.display='none';
   setSyncStatus('loading','Збереження...');
   gasPost({action:'saveInvoice',invoice:JSON.stringify(inv)})
-    .then(()=>{setSyncStatus('ok','Google Sheets');showToast('Фактуру збережено ✓');})
+    .then(()=>{setSyncStatus('ok','Supabase');showToast('Фактуру збережено ✓');})
     .catch(()=>setSyncStatus('err','Помилка'));
 }
 
@@ -1917,7 +1912,7 @@ async function savePayEdit(){
   setSyncStatus('loading','Збереження...');
   try{
     await gasPost({action:'updateInvoice',id:invId,invoice:JSON.stringify(inv)});
-    setSyncStatus('ok','Google Sheets'); showToast('Платіж оновлено ✓');
+    setSyncStatus('ok','Supabase'); showToast('Платіж оновлено ✓');
   }catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1969,7 +1964,7 @@ async function confirmPayment(){
   setSyncStatus('loading','Збереження...');
   try{
     await gasPost({action:'updateInvoice',id:invId,invoice:JSON.stringify(inv)});
-    setSyncStatus('ok','Google Sheets'); showToast('Оплату записано ✓');
+    setSyncStatus('ok','Supabase'); showToast('Оплату записано ✓');
   }catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -1980,7 +1975,7 @@ function deletePayment(invId,payId){
   renderInvoices();
   setSyncStatus('loading','Збереження...');
   gasPost({action:'updateInvoice',id:invId,invoice:JSON.stringify(inv)})
-    .then(()=>setSyncStatus('ok','Google Sheets')).catch(()=>setSyncStatus('err','Помилка'));
+    .then(()=>setSyncStatus('ok','Supabase')).catch(()=>setSyncStatus('err','Помилка'));
 }
 
 function deleteInvoice(id){
@@ -1990,7 +1985,7 @@ function deleteInvoice(id){
     document.getElementById('confirm-modal').classList.remove('open');
     invoices=invoices.filter(i=>i.id!==id);renderInvoices();
     setSyncStatus('loading','Видалення...');
-    gasPost({action:'deleteInvoice',id}).then(()=>setSyncStatus('ok','Google Sheets')).catch(()=>setSyncStatus('err','Помилка'));
+    gasPost({action:'deleteInvoice',id}).then(()=>setSyncStatus('ok','Supabase')).catch(()=>setSyncStatus('err','Помилка'));
   };
 }
 
@@ -2135,7 +2130,7 @@ async function saveInvEdit(){
   setSyncStatus('loading','Збереження...');
   try{
     await gasPost({action:'updateInvoice',id,invoice:JSON.stringify(invoices[idx])});
-    setSyncStatus('ok','Google Sheets'); showToast('Зміни збережено ✓');
+    setSyncStatus('ok','Supabase'); showToast('Зміни збережено ✓');
   }catch(e){setSyncStatus('err','Помилка');}
 }
 
@@ -2253,7 +2248,7 @@ async function saveEdit(){
   try{
     await gasPost({action:'updateEntry',id,clientId,subprojId,cat,date,note,
       hours:String(hours),earn:String(earn),rate:String(rate),fixed:isFixed?'1':'0'});
-    setSyncStatus('ok','Google Sheets'); showToast('Зміни збережено ✓');
+    setSyncStatus('ok','Supabase'); showToast('Зміни збережено ✓');
   }catch(e){setSyncStatus('err','Не вдалось зберегти');}
 }
 

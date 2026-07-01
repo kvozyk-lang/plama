@@ -1,4 +1,4 @@
-const CACHE = 'plama-v2';
+const CACHE = 'plama-v3';
 const ASSETS = ['/plama/', '/plama/index.html', '/plama/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -14,8 +14,8 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
-  // Always network-first for Google Sheets API
-  if (e.request.url.includes('script.google.com')) {
+  // Завжди мережа для Supabase API (не кешуємо дані)
+  if (e.request.url.includes('supabase.co')) {
     e.respondWith(fetch(e.request));
     return;
   }
