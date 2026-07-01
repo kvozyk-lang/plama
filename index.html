@@ -9,7 +9,6 @@
 <meta name="theme-color" content="#232262">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <title>PLAMA — Трекер годин</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Serif+Text:ital@0;1&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
@@ -225,39 +224,6 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 .inv-payment-row { display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 6px 0; border-bottom: 1px solid var(--border); }
 .inv-payment-row:last-child { border-bottom: none; }
 .inv-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-
-/* Selection bar */
-.selection-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
-  background: var(--brand); color: var(--bg);
-  padding: 14px 20px; display: none;
-  align-items: center; justify-content: space-between;
-  box-shadow: 0 -4px 20px rgba(35,34,98,0.2);
-  flex-wrap: wrap; gap: 10px;
-}
-.selection-bar.show { display: flex; }
-.sel-info { display: flex; flex-direction: column; }
-.sel-count { font-size: 12px; color: rgba(255,254,241,0.6); font-family: var(--sans); }
-.sel-total { font-family: var(--mono); font-size: 22px; font-weight: 500; }
-.sel-clear { background: rgba(255,255,255,0.15); border: none; color: var(--bg); padding: 8px 16px; border-radius: var(--r-sm); cursor: pointer; font-family: var(--sans); font-size: 13px; }
-.sel-clear:hover { background: rgba(255,255,255,0.25); }
-
-/* Select button on log items */
-.btn-select {
-  width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border);
-  background: none; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: all 0.15s; color: transparent; font-size: 12px;
-}
-.btn-select:hover { border-color: #166534; background: #dcfce7; }
-.btn-select.selected { border-color: #166534; background: #166534; color: white; }
-
-.drag-handle {
-  cursor: grab; color: var(--text-3); font-size: 16px; padding: 4px 6px;
-  touch-action: none; flex-shrink: 0; user-select: none;
-}
-.drag-handle:active { cursor: grabbing; }
-.sortable-ghost { opacity: 0.35; background: var(--brand-pale); border-radius: var(--r-sm); }
-.sortable-chosen { background: var(--surface); box-shadow: 0 4px 16px rgba(35,34,98,0.12); border-radius: var(--r-sm); }
 
 .toast { position: fixed; bottom: 20px; right: 20px; background: var(--brand); color: var(--bg); padding: 10px 18px; border-radius: var(--r-sm); font-size: 13px; font-weight: 400; opacity: 0; transform: translateY(6px); transition: all 0.2s; pointer-events: none; z-index: 100; }
 .toast.show { opacity: 1; transform: none; }
@@ -556,15 +522,6 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
     <div id="inv-list"><div class="empty">Завантаження...</div></div>
   </div>
 
-</div>
-
-<!-- Selection bar -->
-<div class="selection-bar" id="selection-bar">
-  <div class="sel-info">
-    <span class="sel-count" id="sel-count">0 записів обрано</span>
-    <span class="sel-total" id="sel-total">0 zł</span>
-  </div>
-  <button class="sel-clear" onclick="clearSelection()">✕ Скасувати вибір</button>
 </div>
 
 <!-- Payment edit modal -->
@@ -988,7 +945,6 @@ function switchTab(t,btn){
   if(t==='clients')renderClients();
   if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
   if(t==='invoices'){renderInvoices();refreshInvSelects();}
-  clearSelection();
   try{localStorage.setItem('plama_tab',t);}catch(e){}
 }
 
@@ -1429,9 +1385,7 @@ function renderLog(){
       </div>
     </div>`;
     return`<div data-id="${e.id}" style="border-bottom:1px solid var(--border);padding:12px 0">
-      <div style="display:grid;grid-template-columns:auto auto 1fr auto auto auto;gap:8px;align-items:center">
-        <button class="btn-select" id="sel-${e.id}" onclick="toggleSelect('${e.id}','${e.earn||0}')" title="Обрати для підрахунку">✓</button>
-        <span class="drag-handle" title="Перетягнути">⠿</span>
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center">
         <div onclick="toggleLogItem('${e.id}')" style="cursor:pointer">
           <div class="log-name">${e.note||e.cat}${loc?` <span style="color:#9998b8;font-weight:300;font-size:12px">· ${loc}</span>`:''}</div>
           <div class="log-meta"><span>${dateClean}</span><span class="badge" style="background:${c.bg};color:${c.text};border-color:${c.border}">${e.cat}</span>${e.fixed?'<span style="font-size:11px;color:var(--text-3)">фікс.</span>':''}</div>
@@ -1446,24 +1400,6 @@ function renderLog(){
     </div>`;
   }).join('');
 
-  // Init drag-and-drop
-  const logEl=document.getElementById('log-list');
-  if(logEl&&typeof Sortable!=='undefined'){
-    if(window._sortable)window._sortable.destroy();
-    window._sortable=new Sortable(logEl,{
-      handle:'.drag-handle',
-      animation:150,
-      ghostClass:'sortable-ghost',
-      chosenClass:'sortable-chosen',
-      onEnd:async()=>{
-        const newOrder=[...logEl.querySelectorAll('[data-id]')].map(el=>el.dataset.id);
-        entries.sort((a,b)=>newOrder.indexOf(a.id)-newOrder.indexOf(b.id));
-        setSyncStatus('loading','Збереження порядку...');
-        try{await gasPost({action:'saveOrder',order:JSON.stringify(newOrder)});setSyncStatus('ok','Supabase');}
-        catch(e){setSyncStatus('err','Помилка збереження');}
-      }
-    });
-  }
   // оновлюємо статистику в журналі
   renderLogStats(list);
 }
@@ -1684,28 +1620,6 @@ function renderEstimates(){
 }
 
 // ── END ESTIMATES ───────────────────────────────────────────
-
-// ── SELECTION ─────────────────────────────────
-let selectedEntries={};
-function toggleSelect(id,earn){
-  const btn=document.getElementById('sel-'+id);if(!btn)return;
-  if(selectedEntries[id]){delete selectedEntries[id];btn.classList.remove('selected');}
-  else{selectedEntries[id]=parseFloat(earn)||0;btn.classList.add('selected');}
-  updateSelectionBar();
-}
-function updateSelectionBar(){
-  const bar=document.getElementById('selection-bar');
-  const keys=Object.keys(selectedEntries);
-  if(!keys.length){bar.classList.remove('show');return;}
-  bar.classList.add('show');
-  const total=keys.reduce((a,k)=>a+selectedEntries[k],0);
-  document.getElementById('sel-count').textContent=keys.length+(keys.length===1?' запис обрано':' записів обрано');
-  document.getElementById('sel-total').textContent=total.toFixed(0)+' zł';
-}
-function clearSelection(){
-  Object.keys(selectedEntries).forEach(id=>{const btn=document.getElementById('sel-'+id);if(btn)btn.classList.remove('selected');});
-  selectedEntries={};updateSelectionBar();
-}
 
 // ── INVOICES ───────────────────────────────────
 let invoices=[];
