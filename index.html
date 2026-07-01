@@ -306,9 +306,11 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   <!-- TRACK -->
   <div id="page-track" class="page active">
     <div class="page-title">⏱️ Записати час</div>
-    <div class="page-sub">Запусти таймер або введи години вручну</div>
+    <div class="page-sub">Обери проєкт один раз — далі таймер або ручний запис</div>
+
+    <!-- Спільний контекст: клієнт/підпроєкт/категорія/нотатка -->
     <div class="card">
-      <div class="card-label">Таймер</div>
+      <div class="card-label">Проєкт</div>
       <div class="form-row form-2">
         <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="t-client" onchange="updateSubprojs('t-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('t-client','t-subproj')" title="Новий клієнт">+</button></div></div>
         <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="t-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('t-client','t-subproj')" title="Новий підпроєкт">+</button></div></div>
@@ -322,6 +324,11 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
         </div>
         <div class="field"><label>Нотатка (необов'язково)</label><input type="text" id="t-note" placeholder="напр. Монтаж інтро-сцени"></div>
       </div>
+    </div>
+
+    <!-- Спосіб 1: таймер -->
+    <div class="card">
+      <div class="card-label">⏱ Таймер</div>
       <div class="timer-block">
         <div class="timer-display" id="timer-display">00:00:00</div>
         <div class="timer-controls">
@@ -333,29 +340,18 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
         </div>
       </div>
     </div>
+
+    <!-- Спосіб 2: вручну (той самий проєкт зверху) -->
     <div class="card">
-      <div class="card-label">Ввести вручну</div>
-      <div class="form-row form-2">
-        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="m-client" onchange="updateSubprojs('m-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('m-client','m-subproj')" title="Новий клієнт">+</button></div></div>
-        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="m-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('m-client','m-subproj')" title="Новий підпроєкт">+</button></div></div>
-      </div>
-      <div class="form-row form-2">
-        <div class="field"><label>Категорія</label>
-          <select id="m-cat">
-            <option>Монтаж</option><option>Зйомка</option><option>Графічний дизайн</option>
-            <option>Концепція</option><option>Редагування</option><option>Обробка фото</option><option>Транспорт</option><option>Інше</option>
-          </select>
-        </div>
+      <div class="card-label">📅 Або ввести вручну</div>
+      <div class="form-row form-3">
+        <div class="field"><label>Дата</label><input type="date" id="m-date"></div>
         <div class="field"><label>Тип оплати</label>
           <select id="m-type" onchange="togglePayType()">
             <option value="hours">⏱️ За годинами</option>
             <option value="fixed">💰 Фіксована сума</option>
           </select>
         </div>
-      </div>
-      <div class="form-row form-3">
-        <div class="field"><label>Дата</label><input type="date" id="m-date"></div>
-        <div class="field"><label>Нотатка</label><input type="text" id="m-note" placeholder="необов'язково"></div>
         <div class="field" id="m-hours-wrap"><label>⏱️ Годин</label><input type="number" id="m-hours" value="1" min="0.25" step="0.25"></div>
         <div class="field" id="m-fixed-wrap" style="display:none"><label>💰 Сума (zł)</label><input type="number" id="m-fixed" value="0" min="0" step="1"></div>
       </div>
@@ -929,10 +925,10 @@ function updateFilterSubprojs(){
 
 function refreshAllSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  ['t-client','m-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
+  ['t-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
   const fOpts='<option value="">Всі клієнти</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   ['f-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=fOpts;});
-  ['t-subproj','m-subproj'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— без підпроєкту —</option>';});
+  ['t-subproj'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— без підпроєкту —</option>';});
   document.getElementById('f-subproj').innerHTML='<option value="">Всі підпроєкти</option>';
   const cats=[...new Set(entries.map(e=>e.cat))];
   document.getElementById('f-cat').innerHTML='<option value="">Всі категорії</option>'+cats.map(c=>`<option value="${c}">${c}</option>`).join('');
@@ -1115,10 +1111,11 @@ function togglePayType(){
 
 async function manualAdd(){
   const isFixed=document.getElementById('m-type').value==='fixed';
-  const clientId=document.getElementById('m-client').value;
-  const subprojId=document.getElementById('m-subproj').value;
-  const cat=document.getElementById('m-cat').value;
-  const note=document.getElementById('m-note').value;
+  // спільний контекст форми «Проєкт» (той самий, що для таймера)
+  const clientId=document.getElementById('t-client').value;
+  const subprojId=document.getElementById('t-subproj').value;
+  const cat=document.getElementById('t-cat').value;
+  const note=document.getElementById('t-note').value;
   const date=document.getElementById('m-date').value||today();
   const c=getClientById(clientId);
 
@@ -1134,7 +1131,7 @@ async function manualAdd(){
 
   const entry={id:uid(),date,clientId,subprojId,cat,hours:hrs,note,earn,fixed:isFixed};
   entries.unshift(entry); renderLog();
-  document.getElementById('m-note').value=''; document.getElementById('m-hours').value='1'; document.getElementById('m-fixed').value='0';
+  document.getElementById('t-note').value=''; document.getElementById('m-hours').value='1'; document.getElementById('m-fixed').value='0';
   setSyncStatus('loading','Збереження...');
   try{await gasPost({action:'addEntry',...entry,hours:String(hrs),earn:String(earn),fixed:isFixed?'1':'0'});setSyncStatus('ok','Supabase');showUndoToast(entry.id,'Запис збережено');}
   catch(e){setSyncStatus('err','Не вдалось зберегти');}
