@@ -265,6 +265,17 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   .filter-row { flex-wrap: wrap; }
   .ms-wrap { flex: 1; min-width: 140px; }
   .ms-btn { width: 100%; }
+  /* Шапка клієнта: метрики переносяться на другий рядок, не тиснуть назву */
+  .client-header { flex-wrap: wrap; }
+  .client-name { flex: 1 1 auto; min-width: 0; }
+  .client-meta { width: 100%; order: 4; padding-left: 24px; }
+  /* Шапка фактури: назва і статус можуть переноситись */
+  .inv-header { flex-wrap: wrap; gap: 6px; }
+  /* Кнопки модалок — на всю ширину, зручно тапати */
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .btn { flex: 1; justify-content: center; }
+  /* Низ модалки не ховається за home-індикатор iPhone */
+  .modal { padding-bottom: max(32px, env(safe-area-inset-bottom)); }
 }
 </style>
 </head>
@@ -297,7 +308,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span style="font-size:10px;opacity:0.45" title="Версія застосунку">v7</span>
+    <span style="font-size:10px;opacity:0.45" title="Версія застосунку">v8</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -577,7 +588,6 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
         <div><div style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">ПДВ 23%</div><div style="font-family:var(--mono);font-weight:500;color:#ff6535" id="inv-ep-vat">0 zł</div></div>
         <div><div style="color:var(--text-3);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px">Брутто</div><div style="font-family:var(--mono);font-weight:600;color:var(--brand)" id="inv-ep-brutto">0 zł</div></div>
       </div>
-    </div>
     </div>
     <div class="form-row form-2">
       <div class="field"><label>📅 Дата виставлення</label><input type="date" id="inv-edit-issue"></div>
