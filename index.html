@@ -204,6 +204,7 @@ input[type=range]:focus { box-shadow: none; }
 .pkg-table tr.total td { font-weight: 700; }
 .pkg-table tr:last-child td { border-bottom: none; }
 .metric.take { border-color: rgba(74,222,128,0.45); }
+.metric-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; line-height: 1.4; }
 
 /* Multi-select dropdown */
 .ms-wrap { position: relative; }
@@ -344,7 +345,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v13</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v14</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -607,12 +608,7 @@ input[type=range]:focus { box-shadow: none; }
       <div class="card-label">Графіка (поточна підтримка)</div>
       <div class="form-row form-2">
         <div class="field"><label>Годин/міс (м'який ліміт): <b id="pkg-v-graphicHours">6</b></label><input type="range" id="pkg-graphicHours" min="0" max="15" step="1" value="6" oninput="renderPakiet()"></div>
-        <div class="field"><label>Хто робить?</label>
-          <div style="display:flex;gap:6px;margin-top:4px">
-            <button type="button" class="btn btn-sm" id="pkg-btn-graphic-self" onclick="pkgSetGraphicSelf(true)" style="flex:1">Ти (200 zł/г)</button>
-            <button type="button" class="btn btn-sm" id="pkg-btn-graphic-out" onclick="pkgSetGraphicSelf(false)" style="flex:1">Фрилансер (100 zł/г)</button>
-          </div>
-        </div>
+        <div class="field"><label>Ставка (zł/год)</label><div style="padding:6px 0;font-size:18px;font-weight:700">150 zł/год</div></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Ставка за понадлімітну годину (zł): <b id="pkg-v-overageRate">180</b></label><input type="range" id="pkg-overageRate" min="100" max="300" step="10" value="180" oninput="renderPakiet()"></div>
@@ -653,8 +649,8 @@ input[type=range]:focus { box-shadow: none; }
         <div class="metric"><div class="metric-label">Маржа від ціни</div><div class="metric-val" id="pkg-margin">—</div></div>
       </div>
       <div class="metrics" style="grid-template-columns:1fr 1fr;margin-bottom:18px">
-        <div class="metric take"><div class="metric-label">До тебе разом</div><div class="metric-val" id="pkg-take">—</div></div>
-        <div class="metric"><div class="metric-label">Назовні (Аня + зовнішні)</div><div class="metric-val" id="pkg-out">—</div></div>
+        <div class="metric take"><div class="metric-label">Лишається тобі / міс</div><div class="metric-val" id="pkg-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
+        <div class="metric"><div class="metric-label">Віддаєш іншим / міс</div><div class="metric-val" id="pkg-out">—</div><div class="metric-sub" id="pkg-out-sub">Аня + витрати</div></div>
       </div>
 
       <div style="display:flex;height:36px;border-radius:var(--r-sm);overflow:hidden;background:var(--border)" id="pkg-bar"></div>
@@ -2389,7 +2385,9 @@ function toggleLogItem(id){
 // TODO(claude-code): наразі зберігається лише у тому ж Supabase-блобі (tracker_state),
 // так само як estimates/invoices — окремого API-екшена не треба, saveState() серіалізує все.
 let packages=[];
-let pkgSessionSelf=true, pkgGraphicSelf=true;
+let pkgSessionSelf=true;
+const pkgGraphicSelf=true; // grafika zawsze po stronie Kyryla, stała stawka
+const PKG_GRAPHIC_RATE=150;
 
 const PKG_COLORS={ania:'#4f8ef7',sesja:'#f0693e',grafika:'#12b586',koord:'#e3a008',transport:'#a78bfa',zysk:'#22a94f'};
 
@@ -2400,7 +2398,6 @@ function refreshPkgSelects(){
 }
 
 function pkgSetSessionSelf(v){pkgSessionSelf=v;renderPakiet();}
-function pkgSetGraphicSelf(v){pkgGraphicSelf=v;renderPakiet();}
 
 function pkgVal(id){const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;}
 function pkgFmt(n){return Math.round(n).toLocaleString('uk-UA')+' zł';}
@@ -2410,7 +2407,7 @@ function pkgCompute(){
   const sessionCost=pkgVal('pkg-sessionCost'), sessionCount=pkgVal('pkg-sessionCount');
   const sessionTotal=sessionCost*sessionCount;
   const graphicHours=pkgVal('pkg-graphicHours');
-  const graphicRate=pkgGraphicSelf?pkgVal('pkg-kyryloRate'):100;
+  const graphicRate=PKG_GRAPHIC_RATE;
   const kyryloRate=pkgVal('pkg-kyryloRate'), coordHours=pkgVal('pkg-coordHours');
   const markup=pkgVal('pkg-markup'), currentPrice=pkgVal('pkg-currentPrice');
   const overageRate=pkgVal('pkg-overageRate');
@@ -2445,8 +2442,6 @@ function renderPakiet(){
 
   document.getElementById('pkg-btn-session-self').classList.toggle('btn-primary',pkgSessionSelf);
   document.getElementById('pkg-btn-session-out').classList.toggle('btn-primary',!pkgSessionSelf);
-  document.getElementById('pkg-btn-graphic-self').classList.toggle('btn-primary',pkgGraphicSelf);
-  document.getElementById('pkg-btn-graphic-out').classList.toggle('btn-primary',!pkgGraphicSelf);
 
   const c=pkgCompute();
   document.getElementById('pkg-price').textContent=pkgFmt(c.price);
@@ -2484,7 +2479,7 @@ function renderPakiet(){
   const FULL_LABELS={
     ania:'Аня — виконання SMM (зовнішнє)',
     sesja:`Фото/відео сесії ${c.sessionCount} × ${c.sessionCost} zł (${pkgSessionSelf?'до тебе':'фотограф'})`,
-    grafika:`Графіка ${pkgVal('pkg-graphicHours')} г × ${c.graphicRate} zł (${pkgGraphicSelf?'до тебе':'фрилансер'})`,
+    grafika:`Графіка ${pkgVal('pkg-graphicHours')} г × ${c.graphicRate} zł (до тебе)`,
     koord:'Твоя координація + монтаж (до тебе)',
     transport:'Транспорт — виїзди до клієнта (зовнішнє)',
   };
@@ -2504,13 +2499,14 @@ function renderPakiet(){
 
   const ownWork=c.yourTake-c.profit;
   const outLabel='Аня'+(pkgSessionSelf?'':' + фотограф')+(pkgGraphicSelf?'':' + фрилансер')+(c.transportCost>0?' + транспорт':'');
+  document.getElementById('pkg-out-sub').textContent=outLabel;
   document.getElementById('pkg-flow').innerHTML=
     `<div class="card-label" style="margin:20px 0 0">Куди йдуть гроші щомісяця</div>
     <table class="pkg-table">
       <tbody>
         <tr><td>Клієнт платить (ціна пакету)</td><td class="num">${pkgFmt(c.price)}</td></tr>
-        <tr><td style="color:var(--text-2)">Назовні — ${outLabel}</td><td class="num" style="color:var(--red)">− ${pkgFmt(c.externalOut)}</td></tr>
-        <tr class="total"><td>До тебе разом</td><td class="num">${pkgFmt(c.yourTake)}</td></tr>
+        <tr><td style="color:var(--text-2)">Віддаєш іншим — ${outLabel}</td><td class="num" style="color:var(--red)">− ${pkgFmt(c.externalOut)}</td></tr>
+        <tr class="total"><td>Лишається тобі</td><td class="num">${pkgFmt(c.yourTake)}</td></tr>
         <tr><td style="color:var(--text-2);padding-left:16px">у т.ч. оплата твоєї роботи</td><td class="num" style="font-weight:400;color:var(--text-2)">${pkgFmt(ownWork)}</td></tr>
         <tr><td style="color:var(--text-2);padding-left:16px">у т.ч. чистий прибуток (націнка ${pkgVal('pkg-markup')}%)</td><td class="num" style="color:var(--green)">${pkgFmt(c.profit)}</td></tr>
       </tbody>
