@@ -345,7 +345,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v15</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v16</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -608,11 +608,9 @@ input[type=range]:focus { box-shadow: none; }
       <div class="card-label">Графіка (поточна підтримка)</div>
       <div class="form-row form-2">
         <div class="field"><label>Годин/міс (м'який ліміт): <b id="pkg-v-graphicHours">6</b></label><input type="range" id="pkg-graphicHours" min="0" max="15" step="1" value="6" oninput="renderPakiet()"></div>
-        <div class="field"><label>Ставка (zł/год)</label><div style="padding:6px 0;font-size:18px;font-weight:700">150 zł/год</div></div>
+        <div class="field"><label>Ставка (zł/год): <b id="pkg-v-graphicRate">150</b></label><input type="range" id="pkg-graphicRate" min="80" max="300" step="10" value="150" oninput="renderPakiet()"></div>
       </div>
-      <div class="form-row form-2">
-        <div class="field"><label>Ставка за понадлімітну годину (zł): <b id="pkg-v-overageRate">180</b></label><input type="range" id="pkg-overageRate" min="100" max="300" step="10" value="180" oninput="renderPakiet()"></div>
-      </div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Та сама ставка діє для годин понад ліміт — вони рахуються окремою фактурою.</div>
     </div>
 
     <div class="card">
@@ -2387,8 +2385,7 @@ function toggleLogItem(id){
 // так само як estimates/invoices — окремого API-екшена не треба, saveState() серіалізує все.
 let packages=[];
 let pkgSessionSelf=true;
-const pkgGraphicSelf=true; // grafika zawsze po stronie Kyryla, stała stawka
-const PKG_GRAPHIC_RATE=150;
+const pkgGraphicSelf=true; // grafika zawsze po stronie Kyryla
 
 const PKG_COLORS={ania:'#4f8ef7',sesja:'#f0693e',grafika:'#12b586',koord:'#e3a008',transport:'#a78bfa',zysk:'#22a94f'};
 
@@ -2408,10 +2405,10 @@ function pkgCompute(){
   const sessionCost=pkgVal('pkg-sessionCost'), sessionCount=pkgVal('pkg-sessionCount');
   const sessionTotal=sessionCost*sessionCount;
   const graphicHours=pkgVal('pkg-graphicHours');
-  const graphicRate=PKG_GRAPHIC_RATE;
+  const graphicRate=pkgVal('pkg-graphicRate');
+  const overageRate=graphicRate; // ta sama stawka w pakiecie i ponad limit
   const kyryloRate=pkgVal('pkg-kyryloRate'), coordHours=pkgVal('pkg-coordHours');
   const markup=pkgVal('pkg-markup'), currentPrice=pkgVal('pkg-currentPrice');
-  const overageRate=pkgVal('pkg-overageRate');
   const transportCost=pkgVal('pkg-transport');
 
   const aniaCost=aniaRate*aniaHours;
@@ -2434,7 +2431,7 @@ function renderPakiet(){
   document.getElementById('pkg-v-sessionCost').textContent=pkgVal('pkg-sessionCost');
   document.getElementById('pkg-v-sessionCount').textContent=pkgVal('pkg-sessionCount');
   document.getElementById('pkg-v-graphicHours').textContent=pkgVal('pkg-graphicHours');
-  document.getElementById('pkg-v-overageRate').textContent=pkgVal('pkg-overageRate');
+  document.getElementById('pkg-v-graphicRate').textContent=pkgVal('pkg-graphicRate');
   document.getElementById('pkg-v-kyryloRate').textContent=pkgVal('pkg-kyryloRate');
   document.getElementById('pkg-v-coordHours').textContent=pkgVal('pkg-coordHours');
   document.getElementById('pkg-v-transport').textContent=pkgVal('pkg-transport');
@@ -2517,9 +2514,9 @@ function renderPakiet(){
     </table>`;
 
   document.getElementById('pkg-take-box').innerHTML=
-    `Понадлімітна графіка (${pkgVal('pkg-graphicHours')}г ліміт): клієнт платить <b>${pkgVal('pkg-overageRate')} zł/г</b>, `+
-    `твій маржинал на цих годинах — <b>${pkgFmt(pkgVal('pkg-overageRate')-c.graphicRate)}/г</b>`+
-    `${pkgSessionSelf&&pkgGraphicSelf?'':' · назовні йде також оплата фрилансерам'}.`;
+    `У пакет входить <b>${pkgVal('pkg-graphicHours')} г</b> графіки на місяць. Усе понад ліміт — окремою фактурою `+
+    `по тій самій ставці <b>${c.graphicRate} zł/год</b>`+
+    `${pkgSessionSelf?'':' · назовні йде також оплата фотографу'}.`;
 }
 
 async function savePakiet(){
