@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v27</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v28</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -605,7 +605,20 @@ input[type=range]:focus { box-shadow: none; }
   <!-- PAKIET SMM -->
   <div id="page-pakiet" class="page">
     <div class="page-title">Пакет</div>
-    <div class="page-sub">Калькулятор вартості повного пакету (сесія + графіка + Аня + координація)</div>
+    <div class="page-sub">Підтверджені пакети клієнтів + калькулятор нового пакету</div>
+
+    <div class="card-label" style="margin:8px 0 12px">Підтверджені пакети</div>
+    <div id="pkg-list"><div class="empty">Немає підтверджених пакетів</div></div>
+
+    <div class="card" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-history-list','pkg-history-chevron')">
+        <div class="card-label" style="margin:0">Історія змін (відновлення видалених/перезаписаних пакетів)</div>
+        <span id="pkg-history-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
+      </div>
+      <div id="pkg-history-list" style="margin-top:12px;display:none"><div class="empty">Історія порожня</div></div>
+    </div>
+
+    <div class="card-label" id="pkg-calc-anchor" style="margin:28px 0 12px">Калькулятор нового пакету</div>
 
     <div id="pkg-edit-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.4);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
       <span>Редагування збереженого пакета — зміни оновлять цей самий запис.</span>
@@ -707,17 +720,6 @@ input[type=range]:focus { box-shadow: none; }
         <button class="btn" onclick="openPkgExport('claude')">Експорт: для Claude</button>
         <button class="btn" onclick="openPkgExport('smm')">Експорт: техзавдання SMM</button>
       </div>
-    </div>
-
-    <div class="card-label" style="margin:8px 0 12px">Підтверджені пакети</div>
-    <div id="pkg-list"><div class="empty">Немає підтверджених пакетів</div></div>
-
-    <div class="card" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-history-list','pkg-history-chevron')">
-        <div class="card-label" style="margin:0">Історія змін (відновлення видалених/перезаписаних пакетів)</div>
-        <span id="pkg-history-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
-      </div>
-      <div id="pkg-history-list" style="margin-top:12px;display:none"><div class="empty">Історія порожня</div></div>
     </div>
   </div>
 
@@ -1484,9 +1486,20 @@ function goToSubproj(clientId, subprojId){
 function goToPakiet(clientId){
   const btn=document.querySelector(`.nav-btn[onclick*="'pakiet'"]`);
   if(btn)switchTab('pakiet',btn);
-  const sel=document.getElementById('pkg-client');
-  if(sel&&clientId)sel.value=clientId;
-  renderPakiet();
+  const ap=clientId?activePackages().find(p=>p.clientId===clientId):null;
+  if(ap){
+    // є підтверджений пакет — розгортаємо його подивитись, без редагування
+    pkgExpandedId=ap.id;
+    renderPackagesList();
+    const card=document.getElementById('pkg-card-'+ap.id);
+    if(card)card.scrollIntoView({block:'start',behavior:'smooth'});
+  } else {
+    const sel=document.getElementById('pkg-client');
+    if(sel&&clientId)sel.value=clientId;
+    renderPakiet();
+    const anchor=document.getElementById('pkg-calc-anchor');
+    if(anchor)anchor.scrollIntoView({block:'start',behavior:'smooth'});
+  }
 }
 
 function goToInvoices(clientId){
@@ -2605,12 +2618,39 @@ function renderPakiet(){
 // ── EXPORT OFERTY ───────────────────────────────
 let _exportFile='oferta.txt';
 
+// повний розрахунок із збережених inputs пакета (та сама математика, що pkgCompute, але без форми)
+function pkgCalcFromInputs(p){
+  const i=p.inputs||{};
+  const sessionSelf=p.sessionSelf!==false;
+  const aniaRate=i.aniaRate||0, aniaHours=i.aniaHours||0;
+  const sessionCost=i.sessionCost||0, sessionCount=i.sessionCount??1;
+  const sessionTotal=sessionCost*sessionCount;
+  const graphicHours=i.graphicHours||0, graphicRate=i.graphicRate||150;
+  const kyryloRate=i.kyryloRate||0, coordHours=i.coordHours||0;
+  const markup=i.markup||0, currentPrice=i.currentPrice||0, transportCost=i.transportCost||0;
+  const aniaCost=aniaRate*aniaHours;
+  const graphicCost=graphicHours*graphicRate;
+  const coordCost=coordHours*kyryloRate;
+  const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
+  const price=totalCost*(1+markup/100);
+  const profit=price-totalCost;
+  const marginPct=price>0?(profit/price)*100:0;
+  const yourTake=coordCost+(sessionSelf?sessionTotal:0)+graphicCost+profit;
+  const externalOut=aniaCost+(sessionSelf?0:sessionTotal)+transportCost;
+  return {aniaRate,aniaHours,sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,
+    markup,currentPrice,transportCost,aniaCost,graphicCost,coordCost,totalCost,price,profit,marginPct,yourTake,externalOut,sessionSelf};
+}
+
 function pkgExportText(kind){
   const c=pkgCompute();
   const clientSel=document.getElementById('pkg-client');
   const cname=clientSel.value?clientSel.options[clientSel.selectedIndex].text:'(клієнт не обраний)';
+  return pkgExportTextFrom(kind,c,cname,pkgSessionSelf);
+}
+
+function pkgExportTextFrom(kind,c,cname,sessionSelf){
   const date=new Date().toLocaleDateString('uk-UA');
-  const sessionWho=pkgSessionSelf?'Кирило':'зовнішній фотограф';
+  const sessionWho=sessionSelf?'Кирило':'зовнішній фотограф';
   if(kind==='claude'){
     return `# Оферта PLAMA — повний SMM-пакет
 Клієнт: ${cname}
@@ -2672,6 +2712,17 @@ function openPkgExport(kind){
   document.getElementById('export-text').value=pkgExportText(kind);
   document.getElementById('export-modal').classList.add('open');
 }
+function openPkgExportSaved(pkgId,kind){
+  const p=packages.find(x=>x.id===pkgId);
+  if(!p)return;
+  const cname=(clients.find(c=>c.id===p.clientId)||{}).name||'(клієнт видалений)';
+  const c=pkgCalcFromInputs(p);
+  _exportFile=`oferta-${cname.replace(/[^\p{L}\p{N}]+/gu,'-')}-${today()}-${kind==='claude'?'claude':'smm-brief'}.txt`;
+  document.getElementById('export-title').textContent=kind==='claude'?'Експорт для Claude (повна оферта)':'Експорт: техзавдання SMM (без цін)';
+  document.getElementById('export-text').value=pkgExportTextFrom(kind,c,cname,p.sessionSelf!==false);
+  document.getElementById('export-modal').classList.add('open');
+}
+
 function closeExportModal(){document.getElementById('export-modal').classList.remove('open');}
 function copyPkgExport(){
   const ta=document.getElementById('export-text');
@@ -2760,7 +2811,8 @@ function editPakiet(id){
   pkgSessionSelf=p.sessionSelf!==false;
   setPkgFormMode(true);
   renderPakiet();
-  document.getElementById('page-pakiet').scrollIntoView({block:'start'});
+  const anchor=document.getElementById('pkg-calc-anchor');
+  if(anchor)anchor.scrollIntoView({block:'start',behavior:'smooth'});
 }
 
 function cancelPkgEdit(){
@@ -2773,8 +2825,10 @@ function setPkgFormMode(editing){
   const banner=document.getElementById('pkg-edit-banner');
   const saveBtn=document.getElementById('pkg-save-btn');
   const clientSel=document.getElementById('pkg-client');
+  const anchor=document.getElementById('pkg-calc-anchor');
   if(banner)banner.style.display=editing?'flex':'none';
   if(saveBtn)saveBtn.textContent=editing?'✓ Зберегти зміни':'✓ Зберегти сценарій';
+  if(anchor)anchor.textContent=editing?'Редагування пакета':'Калькулятор нового пакету';
   // Клієнт пакету не можна змінити під час редагування — інакше зміна клієнта
   // при збереженні перепише existing запис на дані іншого клієнта (втрата даних!)
   if(clientSel){
@@ -2837,6 +2891,50 @@ function activePackages(){
   return act;
 }
 
+let pkgExpandedId=null;
+
+function togglePkgDetail(id){
+  pkgExpandedId=pkgExpandedId===id?null:id;
+  renderPackagesList();
+  if(pkgExpandedId){
+    const card=document.getElementById('pkg-card-'+id);
+    if(card)card.scrollIntoView({block:'nearest',behavior:'smooth'});
+  }
+}
+
+function pkgDetailHtml(p){
+  const c=pkgCalcFromInputs(p);
+  const sessionWho=c.sessionSelf?'ти':'фотограф';
+  const rows=[
+    ['Аня — виконання SMM',`${c.aniaHours} год × ${c.aniaRate} zł`,c.aniaCost],
+    ['Фото/відео сесії',`${c.sessionCount} × ${c.sessionCost} zł (${sessionWho})`,c.sessionTotal],
+    ['Графіка',`${c.graphicHours} год × ${c.graphicRate} zł`,c.graphicCost],
+    ['Координація + монтаж',`${c.coordHours} год × ${c.kyryloRate} zł`,c.coordCost],
+    ['Транспорт','',c.transportCost],
+  ];
+  return `<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+    <table class="pkg-table" style="margin-top:0">
+      <thead><tr><th>Позиція</th><th></th><th class="num">Вартість</th></tr></thead>
+      <tbody>
+        ${rows.map(([l,d,v])=>`<tr><td>${l}</td><td style="color:var(--text-3);font-size:12px">${d}</td><td class="num">${pkgFmt(v)}</td></tr>`).join('')}
+        <tr class="total"><td>Витрати разом</td><td></td><td class="num">${pkgFmt(c.totalCost)}</td></tr>
+        <tr class="total"><td>Ціна для клієнта (націнка ${c.markup}%)</td><td></td><td class="num">${pkgFmt(c.price)}</td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:13px">
+      <span style="color:var(--green)">Лишається тобі: <b>${pkgFmt(c.yourTake)}</b></span>
+      <span style="color:var(--text-2)">Віддаєш іншим: <b>${pkgFmt(c.externalOut)}</b></span>
+      <span style="color:var(--text-2)">Чистий прибуток: <b style="color:${c.profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(c.profit)}</b> (маржа ${Math.round(c.marginPct)}%)</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px" onclick="event.stopPropagation()">
+      <button class="btn btn-sm btn-primary" onclick="editPakiet('${p.id}')">✎ Редагувати</button>
+      <button class="btn btn-sm" onclick="openPkgExportSaved('${p.id}','claude')">Експорт: Claude</button>
+      <button class="btn btn-sm" onclick="openPkgExportSaved('${p.id}','smm')">Експорт: SMM</button>
+      <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="deletePakiet('${p.id}')">✕ Видалити</button>
+    </div>
+  </div>`;
+}
+
 function renderPackagesList(){
   const el=document.getElementById('pkg-list');
   if(!el)return;
@@ -2846,15 +2944,19 @@ function renderPackagesList(){
   el.innerHTML=packages.map(p=>{
     const client=p.clientId&&projMap[p.clientId]?projMap[p.clientId].name:'';
     const isActive=activeIds.has(p.id);
-    return `<div class="card" style="margin-bottom:12px${isActive?';border-color:rgba(74,222,128,0.45)':''}">
+    const isOpen=pkgExpandedId===p.id;
+    return `<div class="card" id="pkg-card-${p.id}" style="margin-bottom:12px;cursor:pointer${isActive?';border-color:rgba(74,222,128,0.45)':''}" onclick="togglePkgDetail('${p.id}')" title="${isOpen?'Згорнути':'Натисни, щоб переглянути деталі'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-        <div>
-          <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name} ${isActive?'<span style="font-size:11px;font-weight:600;color:var(--green);background:rgba(74,222,128,0.12);border-radius:100px;padding:2px 8px;vertical-align:middle">активний</span>':''}</div>
-          <div style="font-size:12px;color:var(--text-2);margin-top:2px">${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="font-size:11px;color:var(--text-3);transition:transform 0.2s;transform:rotate(${isOpen?'90deg':'0deg'});margin-top:4px">▶</span>
+          <div>
+            <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name} ${isActive?'<span style="font-size:11px;font-weight:600;color:var(--green);background:rgba(74,222,128,0.12);border-radius:100px;padding:2px 8px;vertical-align:middle">активний</span>':''}</div>
+            <div style="font-size:12px;color:var(--text-2);margin-top:2px">${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
+          </div>
         </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
+        <div style="display:flex;gap:4px;flex-shrink:0" onclick="event.stopPropagation()">
           <button class="btn-icon" title="Редагувати" onclick="editPakiet('${p.id}')">✎</button>
-          <button class="btn-icon" onclick="deletePakiet('${p.id}')">✕</button>
+          <button class="btn-icon" title="Видалити" onclick="deletePakiet('${p.id}')">✕</button>
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
@@ -2863,6 +2965,7 @@ function renderPackagesList(){
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-top:4px">
         <span>Прибуток</span><span>${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
       </div>
+      ${isOpen?pkgDetailHtml(p):''}
     </div>`;
   }).join('');
 }
