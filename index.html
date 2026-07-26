@@ -343,13 +343,13 @@ input[type=range]:focus { box-shadow: none; }
     </button>
     <button class="nav-btn" onclick="switchTab('pakiet',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22.08V12"/></svg>
-      SMM-пакет
+      Пакет
     </button>
   </div>
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v23</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v24</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -599,7 +599,7 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- PAKIET SMM -->
   <div id="page-pakiet" class="page">
-    <div class="page-title">SMM-пакет</div>
+    <div class="page-title">Пакет</div>
     <div class="page-sub">Калькулятор вартості повного пакету (сесія + графіка + Аня + координація)</div>
 
     <div id="pkg-edit-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.4);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
@@ -1592,9 +1592,9 @@ function renderClients(){
       </div>`;
     }
     const actPkg=activePackages().find(p=>p.clientId===c.id);
-    const pkgHtml=actPkg?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToPakiet('${c.id}')" title="Відкрити в SMM-пакеті">
+    const pkgHtml=actPkg?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToPakiet('${c.id}')" title="Відкрити в Пакеті">
         <span>Пакет: <strong>${pkgFmt(actPkg.results.price)}/міс</strong> · прибуток <span style="color:${actPkg.results.profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(actPkg.results.profit)}</span> (${Math.round(actPkg.results.marginPct)}%)</span>
-        <span style="color:var(--text-3);white-space:nowrap">→ SMM-пакет</span>
+        <span style="color:var(--text-3);white-space:nowrap">→ Пакет</span>
       </div>`:'';
     return`<div class="client-block">
       <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
@@ -2879,7 +2879,7 @@ function renderDash(){
   document.getElementById('dash-out').textContent=pkgFmt(out);
 
   if(!act.length){
-    el.innerHTML='<div class="empty">Немає підтверджених пакетів. Збережи сценарій з обраним клієнтом у вкладці SMM-пакет.</div>';
+    el.innerHTML='<div class="empty">Немає підтверджених пакетів. Збережи сценарій з обраним клієнтом у вкладці Пакет.</div>';
   } else {
     el.innerHTML=`<table class="pkg-table">
       <thead><tr><th>Клієнт</th><th class="num">Ціна/міс</th><th class="num">Витрати</th><th class="num">Прибуток</th><th class="num">Маржа</th></tr></thead>
