@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v24</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v25</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -374,6 +374,11 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Підтверджені пакети по клієнтах</div>
       <div id="dash-packages"><div class="empty">Немає підтверджених пакетів</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">На що йдуть витрати (по всіх пакетах разом)</div>
+      <div id="dash-cost-breakdown"><div class="empty">Немає підтверджених пакетів</div></div>
     </div>
 
     <div class="card">
@@ -2878,8 +2883,10 @@ function renderDash(){
   document.getElementById('dash-take').textContent=pkgFmt(take);
   document.getElementById('dash-out').textContent=pkgFmt(out);
 
+  const cbEl=document.getElementById('dash-cost-breakdown');
   if(!act.length){
     el.innerHTML='<div class="empty">Немає підтверджених пакетів. Збережи сценарій з обраним клієнтом у вкладці Пакет.</div>';
+    if(cbEl)cbEl.innerHTML='<div class="empty">Немає підтверджених пакетів</div>';
   } else {
     el.innerHTML=`<table class="pkg-table">
       <thead><tr><th>Клієнт</th><th class="num">Ціна/міс</th><th class="num">Витрати</th><th class="num">Прибуток</th><th class="num">Маржа</th></tr></thead>
@@ -2892,6 +2899,32 @@ function renderDash(){
         <tr class="total"><td>Разом</td><td class="num">${pkgFmt(income)}</td><td class="num">${pkgFmt(costs)}</td><td class="num" style="color:${profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(profit)}</td><td class="num share">${income>0?Math.round(profit/income*100):0}%</td></tr>
       </tbody>
     </table>`;
+
+    // розбивка витрат по категоріях — сумуємо inputs кожного активного пакета
+    const catTotals={ania:0,sesja:0,grafika:0,koord:0,transport:0};
+    act.forEach(p=>{
+      const i=p.inputs||{};
+      catTotals.ania+=(i.aniaRate||0)*(i.aniaHours||0);
+      catTotals.sesja+=(i.sessionCost||0)*(i.sessionCount??1);
+      catTotals.grafika+=(i.graphicHours||0)*(i.graphicRate||0);
+      catTotals.koord+=(i.coordHours||0)*(i.kyryloRate||0);
+      catTotals.transport+=(i.transportCost||0);
+    });
+    const CAT_LABELS={ania:'Аня — виконання SMM',sesja:'Фото/відео сесії',grafika:'Графіка',koord:'Твоя координація + монтаж',transport:'Транспорт'};
+    const catCosts=Object.entries(catTotals);
+    const catSum=catCosts.reduce((a,[,v])=>a+v,0);
+    if(cbEl){
+      cbEl.innerHTML=`<table class="pkg-table">
+        <thead><tr><th>Категорія</th><th class="num">Сума / міс</th><th class="num">Частка</th></tr></thead>
+        <tbody>
+          ${catCosts.map(([k,v])=>{
+            const share=catSum>0?Math.round(v/catSum*100):0;
+            return `<tr><td>${CAT_LABELS[k]}</td><td class="num" style="color:${k==='ania'?PKG_COLORS.ania:'var(--text)'}">${pkgFmt(v)}</td><td class="num share">${share}%</td></tr>`;
+          }).join('')}
+          <tr class="total"><td>Витрати разом</td><td class="num">${pkgFmt(catSum)}</td><td class="num share">100%</td></tr>
+        </tbody>
+      </table>`;
+    }
   }
 
   // fakty z Журналу (bieżący miesiąc) + nieopłacone faktury (całość)
