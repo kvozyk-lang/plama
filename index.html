@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v22</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v23</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -706,6 +706,14 @@ input[type=range]:focus { box-shadow: none; }
 
     <div class="card-label" style="margin:8px 0 12px">Підтверджені пакети</div>
     <div id="pkg-list"><div class="empty">Немає підтверджених пакетів</div></div>
+
+    <div class="card" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-history-list','pkg-history-chevron')">
+        <div class="card-label" style="margin:0">Історія змін (відновлення видалених/перезаписаних пакетів)</div>
+        <span id="pkg-history-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
+      </div>
+      <div id="pkg-history-list" style="margin-top:12px;display:none"><div class="empty">Історія порожня</div></div>
+    </div>
   </div>
 
 </div>
@@ -916,10 +924,10 @@ async function sbLoad(){
     {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
   if(!r.ok) throw new Error('Supabase load '+r.status);
   const rows=await r.json();
-  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[]};
+  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[],pkgHistory:[]};
 }
 async function saveState(){
-  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages}});
+  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages,pkgHistory}});
   const r=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
     headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
              'Prefer':'resolution=merge-duplicates,return=minimal'},body});
@@ -1068,17 +1076,17 @@ async function loadAll(){
     const d=await sbLoad();
     // entries вже зберігаються у потрібному порядку (порядок = порядок масиву)
     clients=d.clients||[]; entries=d.entries||[];
-    estimates=d.estimates||[]; invoices=d.invoices||[]; packages=d.packages||[];
+    estimates=d.estimates||[]; invoices=d.invoices||[]; packages=d.packages||[]; pkgHistory=d.pkgHistory||[];
     setSyncStatus('ok','Supabase');
     refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); refreshPkgSelects(); rebuildMsDrops();
-    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderDash();
+    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderDash();
     renderLogStats(entries);
     try{
       const cur=localStorage.getItem('plama_tab')||'track';
       if(cur==='clients')renderClients();
       if(cur==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(cur==='invoices'){renderInvoices();refreshInvSelects();}
-      if(cur==='pakiet'){renderPackagesList();refreshPkgSelects();renderPakiet();}
+      if(cur==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
       if(cur==='dash')renderDash();
     }catch(e){}
   }catch(e){setSyncStatus('err','Помилка підключення');}
@@ -1202,7 +1210,7 @@ function switchTab(t,btn){
   if(t==='clients')renderClients();
   if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
   if(t==='invoices'){renderInvoices();refreshInvSelects();}
-  if(t==='pakiet'){renderPackagesList();refreshPkgSelects();renderPakiet();}
+  if(t==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
   if(t==='dash')renderDash();
   try{localStorage.setItem('plama_tab',t);}catch(e){}
 }
@@ -1220,7 +1228,7 @@ function restoreTab(){
       if(saved==='clients')renderClients();
       if(saved==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(saved==='invoices'){renderInvoices();refreshInvSelects();}
-      if(saved==='pakiet'){renderPackagesList();refreshPkgSelects();renderPakiet();}
+      if(saved==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
     }
   }catch(e){}
 }
@@ -2450,6 +2458,10 @@ function toggleLogItem(id){
 // TODO(claude-code): наразі зберігається лише у тому ж Supabase-блобі (tracker_state),
 // так само як estimates/invoices — окремого API-екшена не треба, saveState() серіалізує все.
 let packages=[];
+// pkgHistory: [{id, archivedAt, reason:'edited'|'deleted', snapshot:{...pakiet до зміни}}]
+// синхронізується разом з рештою стану (saveState/loadAll) — захист від втрати даних при редагуванні/видаленні
+let pkgHistory=[];
+const PKG_HISTORY_MAX=150;
 let pkgSessionSelf=true;
 const pkgGraphicSelf=true; // grafika zawsze po stronie Kyryla
 
@@ -2673,6 +2685,12 @@ function downloadPkgExport(){
 
 let pkgEditingId=null;
 
+function pkgArchive(pkg,reason){
+  if(!pkg)return;
+  pkgHistory.unshift({id:uid(),archivedAt:new Date().toISOString(),reason,snapshot:JSON.parse(JSON.stringify(pkg))});
+  if(pkgHistory.length>PKG_HISTORY_MAX)pkgHistory.length=PKG_HISTORY_MAX;
+}
+
 async function savePakiet(){
   const clientSel=document.getElementById('pkg-client');
   const clientId=clientSel.value;
@@ -2697,6 +2715,7 @@ async function savePakiet(){
   if(pkgEditingId){
     const idx=packages.findIndex(p=>p.id===pkgEditingId);
     if(idx>=0){
+      pkgArchive(packages[idx],'edited'); // зберігаємо версію ДО перезапису — можна відновити
       // безпека: клієнта редагованого пакета НІКОЛИ не змінюємо тут — тільки clientId, який
       // вже був у записі (select заблокований на час редагування, це друга лінія захисту)
       packages[idx]={...packages[idx],date:today(),name,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
@@ -2707,7 +2726,7 @@ async function savePakiet(){
     const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
     packages.unshift(pkg);
   }
-  renderPackagesList(); renderDash();
+  renderPackagesList(); renderPkgHistory(); renderDash();
   setSyncStatus('loading','Збереження...');
   try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет збережено ✓');}
   catch(e){setSyncStatus('err','Помилка збереження');}
@@ -2761,12 +2780,46 @@ function setPkgFormMode(editing){
 }
 
 async function deletePakiet(id){
-  packages=packages.filter(p=>p.id!==id);
+  const p=packages.find(x=>x.id===id);
+  if(p)pkgArchive(p,'deleted');
+  packages=packages.filter(x=>x.id!==id);
   if(pkgEditingId===id)cancelPkgEdit();
-  renderPackagesList(); renderDash();
+  renderPackagesList(); renderPkgHistory(); renderDash();
   setSyncStatus('loading','Видалення...');
   try{await saveState();setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
+}
+
+async function restorePkgFromHistory(histId){
+  const h=pkgHistory.find(x=>x.id===histId);
+  if(!h)return;
+  const restored={...JSON.parse(JSON.stringify(h.snapshot)),id:uid(),date:today()};
+  packages.unshift(restored);
+  renderPackagesList(); renderDash();
+  setSyncStatus('loading','Відновлення...');
+  try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет відновлено ✓');}
+  catch(e){setSyncStatus('err','Помилка');}
+}
+
+function renderPkgHistory(){
+  const el=document.getElementById('pkg-history-list');
+  if(!el)return;
+  if(!pkgHistory.length){el.innerHTML='<div class="empty">Історія порожня</div>';return;}
+  const pm={};clients.forEach(c=>pm[c.id]=c.name);
+  el.innerHTML=pkgHistory.map(h=>{
+    const s=h.snapshot||{};
+    const cname=s.clientId&&pm[s.clientId]?pm[s.clientId]:'(клієнт видалений)';
+    const dt=new Date(h.archivedAt);
+    const dtStr=isNaN(dt)?'':dt.toLocaleDateString('uk-UA')+' '+dt.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+    const reasonTxt=h.reason==='deleted'?'видалено':'перезаписано редагуванням';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <div>
+        <div style="color:var(--text)">${s.name||'?'} <span style="color:var(--text-3);font-weight:400">· ${cname}</span></div>
+        <div style="font-size:11.5px;color:var(--text-3);margin-top:2px">${dtStr} · ${reasonTxt}${s.results?' · '+pkgFmt(s.results.price):''}</div>
+      </div>
+      <button class="btn btn-sm" onclick="restorePkgFromHistory('${h.id}')">Відновити</button>
+    </div>`;
+  }).join('');
 }
 
 function activePackages(){
