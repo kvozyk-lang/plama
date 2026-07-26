@@ -1,4 +1,4 @@
-const CACHE = 'plama-v12';
+const CACHE = 'plama-v13';
 const ASSETS = ['/plama/', '/plama/index.html', '/plama/manifest.json'];
 
 self.addEventListener('install', e => {

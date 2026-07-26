@@ -10,18 +10,18 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>PLAMA — Трекер годин</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Serif+Text:ital@0;1&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #101113; --surface: #191b1e; --surface-2: #121316; --border: #26282d; --border-strong: #383b42;
   --brand: #4f8ef7; --brand-light: #6ea3ff; --brand-pale: rgba(79,142,247,0.12);
   --text: #f4f5f7; --text-2: #a6aab3; --text-3: #787d87;
   --green: #4ade80; --red: #f87171; --amber: #fbbf24;
-  --serif: 'DM Serif Text', serif; --sans: 'Poppins', sans-serif; --mono: 'DM Mono', monospace;
+  --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Helvetica, Arial, sans-serif;
+  --serif: var(--sans); --mono: var(--sans);
   --r: 16px; --r-sm: 10px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--sans); font-weight: 300; background: var(--bg); color: var(--text); font-size: 14px; min-height: 100vh; }
+body { font-family: var(--sans); font-weight: 400; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; font-variant-numeric: tabular-nums; }
 
 .topbar {
   background: #16171a; border-bottom: 1px solid var(--border);
@@ -31,19 +31,19 @@ body { font-family: var(--sans); font-weight: 300; background: var(--bg); color:
 .logo-area {
   display: flex; align-items: center; padding-right: 20px; margin-right: 4px;
   border-right: 1px solid rgba(255,255,255,0.12);
-  font-family: var(--serif); font-size: 16px; font-weight: 400;
-  color: #fff; white-space: nowrap; letter-spacing: 0.5px;
+  font-family: var(--sans); font-size: 15px; font-weight: 700;
+  color: #fff; white-space: nowrap; letter-spacing: 1.5px;
 }
 .nav-tabs { display: flex; align-items: stretch; flex: 1; overflow-x: auto; }
 .nav-btn {
   display: flex; align-items: center; gap: 6px; padding: 14px 14px;
-  font-family: var(--sans); font-size: 13px; font-weight: 300;
+  font-family: var(--sans); font-size: 13px; font-weight: 400;
   color: rgba(255,255,255,0.5); background: none; border: none;
   border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
 }
 .nav-btn:hover { color: #fff; }
-.nav-btn.active { color: #fff; font-weight: 500; border-bottom-color: var(--brand); }
+.nav-btn.active { color: #fff; font-weight: 600; border-bottom-color: var(--brand); }
 .sync-area {
   display: flex; align-items: center; gap: 7px;
   margin-left: auto; padding-left: 12px; font-size: 12px; color: rgba(255,255,255,0.55); white-space: nowrap;
@@ -59,25 +59,25 @@ body { font-family: var(--sans); font-weight: 300; background: var(--bg); color:
 .content { max-width: 640px; margin: 0 auto; padding: 28px 20px 60px; }
 .page { display: none; }
 .page.active { display: block; }
-.page-title { font-family: var(--serif); font-size: 26px; font-weight: 400; letter-spacing: 0.2px; margin-bottom: 4px; color: var(--text); }
-.page-sub { font-size: 13px; font-weight: 300; color: var(--text-2); margin-bottom: 22px; }
+.page-title { font-family: var(--sans); font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; color: var(--text); }
+.page-sub { font-size: 13px; font-weight: 400; color: var(--text-2); margin-bottom: 22px; }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 22px; margin-bottom: 14px; }
-.card-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text-3); margin-bottom: 14px; }
+.card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-3); margin-bottom: 14px; }
 
 .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
 .metric { background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--r); padding: 14px 16px; }
 .metric-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; font-weight: 400; }
-.metric-val { font-family: var(--mono); font-size: 22px; font-weight: 500; letter-spacing: -1px; color: var(--text); }
+.metric-val { font-family: var(--sans); font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); }
 
 .form-row { display: grid; gap: 12px; margin-bottom: 14px; }
 .form-2 { grid-template-columns: 1fr 1fr; }
 .form-3 { grid-template-columns: 1fr 1fr 86px; }
 .form-4 { grid-template-columns: 1fr 1fr 1fr 86px; }
-.field label { display: block; font-size: 11px; font-weight: 500; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+.field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
 input, select {
   width: 100%; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--r-sm);
-  background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 14px; font-weight: 300;
+  background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 14px; font-weight: 400;
   transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none; appearance: none;
   color-scheme: dark;
 }
@@ -107,7 +107,7 @@ input[type=range]:focus { box-shadow: none; }
 @media (max-width: 640px) { input, select { font-size: 16px; } }
 
 .timer-block { text-align: center; padding: 18px 0 14px; }
-.timer-display { font-family: var(--mono); font-size: 52px; font-weight: 400; letter-spacing: -2px; line-height: 1; color: var(--text); transition: color 0.3s; }
+.timer-display { font-family: var(--sans); font-size: 52px; font-weight: 700; letter-spacing: -1px; line-height: 1; color: var(--text); transition: color 0.3s; }
 .timer-display.running { color: var(--green); }
 .timer-controls { display: flex; gap: 8px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
 
@@ -143,7 +143,7 @@ input[type=range]:focus { box-shadow: none; }
   padding: 8px 0; border-bottom: 1px solid var(--border);
 }
 .subproj-row:last-child { border-bottom: none; }
-.subproj-name { font-size: 13px; font-weight: 300; }
+.subproj-name { font-size: 13px; font-weight: 400; }
 .subproj-meta { font-size: 12px; color: var(--text-2); font-family: var(--mono); }
 .add-subproj { display: flex; gap: 8px; align-items: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
 .add-subproj input { flex: 1; }
@@ -153,7 +153,7 @@ input[type=range]:focus { box-shadow: none; }
 .log-item:last-child { border-bottom: none; }
 .log-name { font-weight: 500; font-size: 14px; }
 .log-meta { font-size: 12px; color: var(--text-2); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.log-hrs { font-family: var(--mono); font-size: 15px; font-weight: 500; white-space: nowrap; }
+.log-hrs { font-family: var(--sans); font-size: 15px; font-weight: 600; white-space: nowrap; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
 
 .filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
@@ -180,17 +180,30 @@ input[type=range]:focus { box-shadow: none; }
 /* Report */
 .bar-row { margin-bottom: 12px; }
 .bar-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; align-items: center; }
-.bar-val { font-family: var(--mono); font-weight: 500; }
+.bar-val { font-family: var(--sans); font-weight: 600; }
 .bar-track { background: var(--border-strong); border-radius: 3px; height: 5px; }
 .bar-fill { height: 5px; border-radius: 3px; transition: width 0.4s; }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 .rep-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
 .rep-row:last-child { border-bottom: none; }
-.rep-val { font-family: var(--mono); font-weight: 500; }
+.rep-val { font-family: var(--sans); font-weight: 600; }
 .rep-sub { font-size: 12px; color: var(--text-2); padding: 6px 0 6px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; }
 .rep-sub:last-child { border-bottom: none; }
 
-.empty { text-align: center; color: var(--text-3); padding: 28px 0; font-size: 13px; font-weight: 300; }
+.empty { text-align: center; color: var(--text-3); padding: 28px 0; font-size: 13px; font-weight: 400; }
+
+/* Tabela pozycji — jak w kalkulatorze pakietu */
+.pkg-hero { font-size: 44px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.05; color: var(--text); }
+.pkg-hero-sub { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 8px; }
+.pkg-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+.pkg-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-3); padding: 8px 0; border-bottom: 1px solid var(--border); }
+.pkg-table td { padding: 11px 0; border-bottom: 1px solid var(--border); color: var(--text); }
+.pkg-table th.num, .pkg-table td.num { text-align: right; white-space: nowrap; }
+.pkg-table td.num { font-weight: 600; }
+.pkg-table td.share { color: var(--text-2); font-weight: 400; width: 64px; }
+.pkg-table tr.total td { font-weight: 700; }
+.pkg-table tr:last-child td { border-bottom: none; }
+.metric.take { border-color: rgba(74,222,128,0.45); }
 
 /* Multi-select dropdown */
 .ms-wrap { position: relative; }
@@ -235,7 +248,7 @@ input[type=range]:focus { box-shadow: none; }
 .inv-amounts { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
 .inv-amt { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; }
 .inv-amt-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-.inv-amt-val { font-family: var(--mono); font-size: 16px; font-weight: 500; }
+.inv-amt-val { font-family: var(--sans); font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
 .inv-amt-val.red { color: var(--red); }
 .inv-amt-val.green { color: var(--green); }
 .inv-dates { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); margin-bottom: 12px; flex-wrap: wrap; }
@@ -331,7 +344,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v12</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v13</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -340,7 +353,7 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- TRACK -->
   <div id="page-track" class="page active">
-    <div class="page-title">⏱️ Записати час</div>
+    <div class="page-title">Записати час</div>
     <div class="page-sub">Обери проєкт один раз — далі таймер або ручний запис</div>
 
     <!-- Спільний контекст: клієнт/підпроєкт/категорія/нотатка -->
@@ -363,7 +376,7 @@ input[type=range]:focus { box-shadow: none; }
 
     <!-- Спосіб 1: таймер -->
     <div class="card">
-      <div class="card-label">⏱ Таймер</div>
+      <div class="card-label">Таймер</div>
       <div class="timer-block">
         <div class="timer-display" id="timer-display">00:00:00</div>
         <div class="timer-controls">
@@ -378,17 +391,17 @@ input[type=range]:focus { box-shadow: none; }
 
     <!-- Спосіб 2: вручну (той самий проєкт зверху) -->
     <div class="card">
-      <div class="card-label">📅 Або ввести вручну</div>
+      <div class="card-label">Або ввести вручну</div>
       <div class="form-row form-3">
         <div class="field"><label>Дата</label><input type="date" id="m-date"></div>
         <div class="field"><label>Тип оплати</label>
           <select id="m-type" onchange="togglePayType()">
-            <option value="hours">⏱️ За годинами</option>
-            <option value="fixed">💰 Фіксована сума</option>
+            <option value="hours">За годинами</option>
+            <option value="fixed">Фіксована сума</option>
           </select>
         </div>
-        <div class="field" id="m-hours-wrap"><label>⏱️ Годин</label><input type="number" id="m-hours" value="1" min="0.25" step="0.25"></div>
-        <div class="field" id="m-fixed-wrap" style="display:none"><label>💰 Сума (zł)</label><input type="number" id="m-fixed" value="0" min="0" step="1"></div>
+        <div class="field" id="m-hours-wrap"><label>Годин</label><input type="number" id="m-hours" value="1" min="0.25" step="0.25"></div>
+        <div class="field" id="m-fixed-wrap" style="display:none"><label>Сума (zł)</label><input type="number" id="m-fixed" value="0" min="0" step="1"></div>
       </div>
       <button class="btn btn-primary" onclick="manualAdd()">+ Додати запис</button>
     </div>
@@ -396,11 +409,11 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- LOG -->
   <div id="page-log" class="page">
-    <div class="page-title">📋 Журнал</div>
+    <div class="page-title">Журнал</div>
     <div class="page-sub">Всі записані сесії роботи</div>
     <div class="metrics">
-      <div class="metric"><div class="metric-label">⏱️ Годин</div><div class="metric-val" id="lm-hrs">—</div></div>
-      <div class="metric"><div class="metric-label">💰 Заробіток</div><div class="metric-val" id="lm-earn">—</div></div>
+      <div class="metric"><div class="metric-label">Годин</div><div class="metric-val" id="lm-hrs">—</div></div>
+      <div class="metric"><div class="metric-label">Заробіток</div><div class="metric-val" id="lm-earn">—</div></div>
       <div class="metric"><div class="metric-label">Записів</div><div class="metric-val" id="lm-count">—</div></div>
     </div>
     <div class="filter-row">
@@ -442,13 +455,13 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- CLIENTS -->
   <div id="page-clients" class="page">
-    <div class="page-title">🗂️ Клієнти</div>
+    <div class="page-title">Клієнти</div>
     <div class="page-sub">Клієнти, підпроєкти і ставки</div>
     <div class="card">
       <div class="card-label">Новий клієнт</div>
       <div class="form-row form-2">
         <div class="field"><label>Назва клієнта</label><input type="text" id="c-name" placeholder="напр. NARRO"></div>
-        <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="c-rate" value="50" min="1" step="1"></div>
+        <div class="field"><label>Ставка (zł/год)</label><input type="number" id="c-rate" value="50" min="1" step="1"></div>
       </div>
       <button class="btn btn-primary" onclick="addClient()">+ Додати клієнта</button>
     </div>
@@ -457,7 +470,7 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- ESTIMATE -->
   <div id="page-estimate" class="page">
-    <div class="page-title">🧮 Калькуляція</div>
+    <div class="page-title">Калькуляція</div>
     <div class="page-sub">Попередній розрахунок вартості проєкту для клієнта</div>
 
     <div class="card">
@@ -468,7 +481,7 @@ input[type=range]:focus { box-shadow: none; }
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Підпроєкт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('est-client','est-subproj')" title="Новий підпроєкт">+</button></div></div>
-        <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="est-rate" value="50" min="1" step="1" oninput="recalcEstimate()"></div>
+        <div class="field"><label>Ставка (zł/год)</label><input type="number" id="est-rate" value="50" min="1" step="1" oninput="recalcEstimate()"></div>
       </div>
       <div class="form-row">
         <div class="field"><label>Нотатка</label><input type="text" id="est-note" placeholder="необов'язково"></div>
@@ -480,10 +493,10 @@ input[type=range]:focus { box-shadow: none; }
 
       <div style="background:var(--brand-pale);border-radius:var(--r-sm);padding:12px 14px;margin-top:16px">
         <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:4px">
-          <span>⏱️ Годин разом</span><span id="est-total-hrs" style="font-family:var(--mono);font-weight:500">0h</span>
+          <span>Годин разом</span><span id="est-total-hrs" style="font-family:var(--mono);font-weight:500">0h</span>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:500;color:var(--brand)">
-          <span>💰 Сума</span><span id="est-total-earn" style="font-family:var(--mono)">0 zł</span>
+          <span>Сума</span><span id="est-total-earn" style="font-family:var(--mono)">0 zł</span>
         </div>
       </div>
       <div style="margin-top:12px;display:flex;gap:8px">
@@ -498,15 +511,15 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- INVOICES -->
   <div id="page-invoices" class="page">
-    <div class="page-title">💵 Облік оплат</div>
+    <div class="page-title">Облік оплат</div>
     <div class="page-sub">Виставлені фактури і статус оплат</div>
 
     <div class="metrics" id="inv-metrics" style="grid-template-columns:repeat(5,1fr)">
-      <div class="metric"><div class="metric-label">📄 Нетто</div><div class="metric-val" id="inv-m-netto">—</div></div>
-      <div class="metric"><div class="metric-label">📊 ПДВ 23%</div><div class="metric-val" id="inv-m-vat">—</div></div>
-      <div class="metric"><div class="metric-label">💰 Брутто</div><div class="metric-val" id="inv-m-total">—</div></div>
-      <div class="metric"><div class="metric-label">✅ Оплачено</div><div class="metric-val" id="inv-m-paid">—</div></div>
-      <div class="metric"><div class="metric-label">⏳ Очікується</div><div class="metric-val" id="inv-m-pending">—</div></div>
+      <div class="metric"><div class="metric-label">Нетто</div><div class="metric-val" id="inv-m-netto">—</div></div>
+      <div class="metric"><div class="metric-label">ПДВ 23%</div><div class="metric-val" id="inv-m-vat">—</div></div>
+      <div class="metric"><div class="metric-label">Брутто</div><div class="metric-val" id="inv-m-total">—</div></div>
+      <div class="metric"><div class="metric-label">Оплачено</div><div class="metric-val" id="inv-m-paid">—</div></div>
+      <div class="metric"><div class="metric-label">Очікується</div><div class="metric-val" id="inv-m-pending">—</div></div>
     </div>
 
     <div class="card">
@@ -517,7 +530,7 @@ input[type=range]:focus { box-shadow: none; }
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="inv-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('inv-client','inv-subproj')">+</button></div></div>
-        <div class="field"><label>💰 Нетто (zł)</label><input type="number" id="inv-amount" min="0" step="1" placeholder="0" oninput="updateInvVatPreview()"></div>
+        <div class="field"><label>Нетто (zł)</label><input type="number" id="inv-amount" min="0" step="1" placeholder="0" oninput="updateInvVatPreview()"></div>
       </div>
       <div id="inv-vat-preview" style="display:none;background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:14px">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
@@ -527,8 +540,8 @@ input[type=range]:focus { box-shadow: none; }
         </div>
       </div>
       <div class="form-row form-2">
-        <div class="field"><label>📅 Дата виставлення</label><input type="date" id="inv-issue-date"></div>
-        <div class="field"><label>⏰ Термін оплати</label><input type="date" id="inv-due-date"></div>
+        <div class="field"><label>Дата виставлення</label><input type="date" id="inv-issue-date"></div>
+        <div class="field"><label>Термін оплати</label><input type="date" id="inv-due-date"></div>
       </div>
       <div class="form-row"><div class="field"><label>Нотатка</label><input type="text" id="inv-note" placeholder="необов'язково"></div></div>
       <button class="btn btn-primary" onclick="saveInvoice()">+ Додати фактуру</button>
@@ -539,14 +552,14 @@ input[type=range]:focus { box-shadow: none; }
       <select id="if-subproj" onchange="renderInvoices()"><option value="">Всі підпроєкти</option></select>
       <select id="if-status" onchange="renderInvoices()">
         <option value="">Всі статуси</option>
-        <option value="unpaid">⏳ Неоплачено</option>
-        <option value="overdue">🔴 Прострочено</option>
-        <option value="paid">✅ Оплачено</option>
+        <option value="unpaid">Неоплачено</option>
+        <option value="overdue">Прострочено</option>
+        <option value="paid">Оплачено</option>
       </select>
     </div>
     <div class="filter-row">
-      <div class="field" style="margin:0"><label>📅 Від</label><input type="date" id="if-date-from" onchange="renderInvoices()"></div>
-      <div class="field" style="margin:0"><label>📅 До</label><input type="date" id="if-date-to" onchange="renderInvoices()"></div>
+      <div class="field" style="margin:0"><label>Від</label><input type="date" id="if-date-from" onchange="renderInvoices()"></div>
+      <div class="field" style="margin:0"><label>До</label><input type="date" id="if-date-to" onchange="renderInvoices()"></div>
       <button class="btn btn-sm" onclick="clearInvDates()" style="align-self:flex-end">✕ Скинути дати</button>
     </div>
 
@@ -555,7 +568,7 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- PAKIET SMM -->
   <div id="page-pakiet" class="page">
-    <div class="page-title">📦 SMM-пакет</div>
+    <div class="page-title">SMM-пакет</div>
     <div class="page-sub">Калькулятор вартості повного пакету (сесія + графіка + Аня + координація)</div>
 
     <div class="card">
@@ -575,9 +588,12 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
-      <div class="card-label">Сесія (1×/міс, до 4г)</div>
+      <div class="card-label">Сесії (1 сесія = до 4г)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Вартість сесії (zł): <b id="pkg-v-sessionCost">700</b></label><input type="range" id="pkg-sessionCost" min="300" max="1500" step="50" value="700" oninput="renderPakiet()"></div>
+        <div class="field"><label>Сесій на місяць: <b id="pkg-v-sessionCount">1</b></label><input type="range" id="pkg-sessionCount" min="0" max="4" step="1" value="1" oninput="renderPakiet()"></div>
+        <div class="field"><label>Вартість однієї сесії (zł): <b id="pkg-v-sessionCost">700</b></label><input type="range" id="pkg-sessionCost" min="300" max="1500" step="50" value="700" oninput="renderPakiet()"></div>
+      </div>
+      <div class="form-row form-2">
         <div class="field"><label>Хто робить?</label>
           <div style="display:flex;gap:6px;margin-top:4px">
             <button type="button" class="btn btn-sm" id="pkg-btn-session-self" onclick="pkgSetSessionSelf(true)" style="flex:1">Ти</button>
@@ -612,6 +628,13 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
+      <div class="card-label">Транспорт (виїзди до клієнта)</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Очікувані витрати (zł/міс): <b id="pkg-v-transport">100</b></label><input type="range" id="pkg-transport" min="0" max="600" step="20" value="100" oninput="renderPakiet()"></div>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-label">Націнка і порівняння</div>
       <div class="form-row form-2">
         <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="renderPakiet()"></div>
@@ -620,18 +643,26 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
-      <div class="card-label">Результат</div>
-      <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
-        <div class="metric"><div class="metric-label">💰 Ціна пакету</div><div class="metric-val" id="pkg-price">—</div></div>
-        <div class="metric"><div class="metric-label">📈 Прибуток</div><div class="metric-val" id="pkg-profit">—</div></div>
-        <div class="metric"><div class="metric-label">🧾 Витрати разом</div><div class="metric-val" id="pkg-total">—</div></div>
+      <div class="card-label">Сугерована ціна пакету</div>
+      <div><span class="pkg-hero" id="pkg-price">—</span><span class="pkg-hero-sub">нетто / місяць / клієнт</span></div>
+      <div id="pkg-delta" style="font-size:13px;font-weight:500;margin:6px 0 18px"></div>
+
+      <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+        <div class="metric"><div class="metric-label">Сума витрат / міс</div><div class="metric-val" id="pkg-total">—</div></div>
+        <div class="metric"><div class="metric-label">Чистий прибуток</div><div class="metric-val" id="pkg-profit">—</div></div>
+        <div class="metric"><div class="metric-label">Маржа від ціни</div><div class="metric-val" id="pkg-margin">—</div></div>
       </div>
-      <div id="pkg-delta" style="font-size:13px;color:var(--text-2);margin-bottom:14px"></div>
+      <div class="metrics" style="grid-template-columns:1fr 1fr;margin-bottom:18px">
+        <div class="metric take"><div class="metric-label">До тебе разом</div><div class="metric-val" id="pkg-take">—</div></div>
+        <div class="metric"><div class="metric-label">Назовні (Аня + зовнішні)</div><div class="metric-val" id="pkg-out">—</div></div>
+      </div>
 
       <div style="display:flex;height:36px;border-radius:var(--r-sm);overflow:hidden;background:var(--border)" id="pkg-bar"></div>
       <div id="pkg-legend" style="display:flex;flex-wrap:wrap;gap:12px;margin-top:10px;font-size:12px;color:var(--text-2)"></div>
 
-      <div style="display:grid;grid-template-columns:1fr auto;gap:4px;margin-top:16px;font-size:13px" id="pkg-breakdown"></div>
+      <div id="pkg-breakdown"></div>
+
+      <div id="pkg-flow"></div>
 
       <div style="background:var(--brand-pale);border-radius:var(--r-sm);padding:12px 14px;margin-top:16px;font-size:12.5px;color:var(--text-2);line-height:1.5" id="pkg-take-box"></div>
 
@@ -649,12 +680,12 @@ input[type=range]:focus { box-shadow: none; }
 <!-- Payment edit modal -->
 <div class="modal-backdrop" id="pay-edit-modal">
   <div class="modal">
-    <div class="modal-title">✎ Редагувати платіж <button class="btn-icon" onclick="closePayEditModal()">✕</button></div>
+    <div class="modal-title">Редагувати платіж <button class="btn-icon" onclick="closePayEditModal()">✕</button></div>
     <input type="hidden" id="pe-inv-id">
     <input type="hidden" id="pe-pay-id">
     <div class="form-row form-2">
-      <div class="field"><label>💰 Сума (zł)</label><input type="number" id="pe-amount" min="0" step="1"></div>
-      <div class="field"><label>📅 Дата</label><input type="date" id="pe-date"></div>
+      <div class="field"><label>Сума (zł)</label><input type="number" id="pe-amount" min="0" step="1"></div>
+      <div class="field"><label>Дата</label><input type="date" id="pe-date"></div>
     </div>
     <div class="form-row"><div class="field"><label>Нотатка</label><input type="text" id="pe-note" placeholder="необов'язково"></div></div>
     <div class="modal-actions">
@@ -667,12 +698,12 @@ input[type=range]:focus { box-shadow: none; }
 <!-- Payment modal -->
 <div class="modal-backdrop" id="payment-modal">
   <div class="modal">
-    <div class="modal-title">💳 Ввести оплату <button class="btn-icon" onclick="closePaymentModal()">✕</button></div>
+    <div class="modal-title">Ввести оплату <button class="btn-icon" onclick="closePaymentModal()">✕</button></div>
     <input type="hidden" id="pay-inv-id">
     <div id="pay-inv-info" style="background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--brand)"></div>
     <div class="form-row form-2">
-      <div class="field"><label>💰 Сума оплати (zł)</label><input type="number" id="pay-amount" min="0" step="1" placeholder="0" oninput="updatePayRemaining()"></div>
-      <div class="field"><label>📅 Дата оплати</label><input type="date" id="pay-date"></div>
+      <div class="field"><label>Сума оплати (zł)</label><input type="number" id="pay-amount" min="0" step="1" placeholder="0" oninput="updatePayRemaining()"></div>
+      <div class="field"><label>Дата оплати</label><input type="date" id="pay-date"></div>
     </div>
     <div id="pay-remaining" style="font-size:13px;color:var(--text-2);margin-bottom:4px"></div>
     <div class="form-row"><div class="field"><label>Нотатка (необов'язково)</label><input type="text" id="pay-note" placeholder="напр. Перша частина"></div></div>
@@ -686,7 +717,7 @@ input[type=range]:focus { box-shadow: none; }
 <!-- Invoice edit modal -->
 <div class="modal-backdrop" id="inv-edit-modal">
   <div class="modal">
-    <div class="modal-title">✎ Редагувати фактуру <button class="btn-icon" onclick="closeInvModal()">✕</button></div>
+    <div class="modal-title">Редагувати фактуру <button class="btn-icon" onclick="closeInvModal()">✕</button></div>
     <input type="hidden" id="inv-edit-id">
     <div class="form-row form-2">
       <div class="field"><label>Номер фактури</label><input type="text" id="inv-edit-name"></div>
@@ -694,7 +725,7 @@ input[type=range]:focus { box-shadow: none; }
     </div>
     <div class="form-row form-2">
       <div class="field"><label>Підпроєкт</label><select id="inv-edit-subproj"><option value="">— без підпроєкту —</option></select></div>
-      <div class="field"><label>💰 Нетто (zł)</label><input type="number" id="inv-edit-amount" min="0" step="1" oninput="updateInvEditVat()"></div>
+      <div class="field"><label>Нетто (zł)</label><input type="number" id="inv-edit-amount" min="0" step="1" oninput="updateInvEditVat()"></div>
     </div>
     <div id="inv-edit-vat-preview" style="display:none;background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:14px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center">
@@ -704,8 +735,8 @@ input[type=range]:focus { box-shadow: none; }
       </div>
     </div>
     <div class="form-row form-2">
-      <div class="field"><label>📅 Дата виставлення</label><input type="date" id="inv-edit-issue"></div>
-      <div class="field"><label>⏰ Термін оплати</label><input type="date" id="inv-edit-due"></div>
+      <div class="field"><label>Дата виставлення</label><input type="date" id="inv-edit-issue"></div>
+      <div class="field"><label>Термін оплати</label><input type="date" id="inv-edit-due"></div>
     </div>
     <div class="form-row"><div class="field"><label>Нотатка</label><input type="text" id="inv-edit-note" placeholder="необов'язково"></div></div>
     <div class="modal-actions">
@@ -719,7 +750,7 @@ input[type=range]:focus { box-shadow: none; }
 <div id="undo-toast" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:100;background:#26282d;border:1px solid var(--border-strong);color:var(--text);border-radius:var(--r);padding:14px 18px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:280px;max-width:340px">
   <div style="font-size:13px;margin-bottom:10px;opacity:0.8" id="undo-msg">Запис збережено</div>
   <div style="display:flex;gap:8px">
-    <button class="btn btn-sm" style="flex:1;background:rgba(255,255,255,0.12);color:var(--text);border:none" id="undo-edit-btn">✎ Редагувати</button>
+    <button class="btn btn-sm" style="flex:1;background:rgba(255,255,255,0.12);color:var(--text);border:none" id="undo-edit-btn">Редагувати</button>
     <button class="btn btn-sm" style="flex:1;background:rgba(255,80,80,0.25);color:#ffb3b3;border:none" id="undo-cancel-btn">✕ Скасувати</button>
   </div>
 </div>
@@ -741,7 +772,7 @@ input[type=range]:focus { box-shadow: none; }
 <div class="modal-backdrop" id="edit-modal">
   <div class="modal">
     <div class="modal-title">
-      <span id="edit-modal-title-text">✎ Редагувати запис</span>
+      <span id="edit-modal-title-text">Редагувати запис</span>
       <button class="btn-icon" onclick="closeEditModal()">✕</button>
     </div>
     <!-- Info header -->
@@ -766,16 +797,16 @@ input[type=range]:focus { box-shadow: none; }
     <div class="form-row form-2">
       <div class="field"><label>Тип оплати</label>
         <select id="e-type" onchange="toggleEditPayType()">
-          <option value="hours">⏱️ За годинами</option>
-          <option value="fixed">💰 Фіксована сума</option>
+          <option value="hours">За годинами</option>
+          <option value="fixed">Фіксована сума</option>
         </select>
       </div>
-      <div class="field" id="e-rate-wrap"><label>💰 Ставка (zł/год)</label><input type="number" id="e-rate" min="1" step="1" placeholder="напр. 160"></div>
+      <div class="field" id="e-rate-wrap"><label>Ставка (zł/год)</label><input type="number" id="e-rate" min="1" step="1" placeholder="напр. 160"></div>
     </div>
     <div class="form-row form-2">
-      <div class="field" id="e-hours-wrap"><label>⏱️ Годин</label><input type="number" id="e-hours" min="0.25" step="0.25" oninput="recalcEarn()"></div>
-      <div class="field" id="e-fixed-wrap" style="display:none"><label>💰 Сума (zł)</label><input type="number" id="e-fixed" min="0" step="1"></div>
-      <div class="field" id="e-earn-preview" style="display:none"><label>💰 Сума до оплати</label><input type="number" id="e-earn-out" min="0" step="1" style="font-weight:500;color:var(--brand)"></div>
+      <div class="field" id="e-hours-wrap"><label>Годин</label><input type="number" id="e-hours" min="0.25" step="0.25" oninput="recalcEarn()"></div>
+      <div class="field" id="e-fixed-wrap" style="display:none"><label>Сума (zł)</label><input type="number" id="e-fixed" min="0" step="1"></div>
+      <div class="field" id="e-earn-preview" style="display:none"><label>Сума до оплати</label><input type="number" id="e-earn-out" min="0" step="1" style="font-weight:500;color:var(--brand)"></div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeEditModal()">Скасувати</button>
@@ -796,7 +827,7 @@ input[type=range]:focus { box-shadow: none; }
       <div class="field"><label>Назва</label><input type="text" id="qa-name" placeholder="" onkeydown="if(event.key==='Enter')confirmQuickAdd()"></div>
     </div>
     <div class="form-row" id="qa-rate-row">
-      <div class="field"><label>💰 Ставка (zł/год)</label><input type="number" id="qa-rate" value="160" min="1" step="1"></div>
+      <div class="field"><label>Ставка (zł/год)</label><input type="number" id="qa-rate" value="160" min="1" step="1"></div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="closeQaModal()">Скасувати</button>
@@ -1449,7 +1480,7 @@ async function saveRenameSubproj(clientId, subprojId){
 function startRenameClient(clientId, currentName){
   // через qa-модалку — prompt() не працює в iOS PWA
   _qa={kind:'rename-client',clientSel:'',subprojSel:'',renameId:clientId};
-  document.getElementById('qa-title').textContent='✎ Перейменувати клієнта';
+  document.getElementById('qa-title').textContent='Перейменувати клієнта';
   document.getElementById('qa-name').value=currentName||'';
   document.getElementById('qa-name').placeholder='';
   document.getElementById('qa-rate-row').style.display='none';
@@ -1476,7 +1507,7 @@ function renderClients(){
             <input id="sp-name-${s.id}" type="text" value="${s.name}" style="display:none;font-size:13px;padding:2px 6px;width:140px" onclick="event.stopPropagation()">
             <button class="btn-icon" style="font-size:12px" onclick="event.stopPropagation();startRenameSubproj('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✎</button>
           </div>
-          <div class="subproj-meta">⏱️ ${fmtHrs(sHrs)} · 💰 ${sEarn.toFixed(0)} zł</div>
+          <div class="subproj-meta">${fmtHrs(sHrs)} · ${sEarn.toFixed(0)} zł</div>
         </div>
         <button class="btn-icon" title="Додати запис у цей підпроєкт" onclick="event.stopPropagation();openAddModal('${c.id}','${s.id}')">＋</button>
         <button class="btn-icon" onclick="event.stopPropagation();confirmDeleteSubproject('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✕</button>
@@ -1493,7 +1524,7 @@ function renderClients(){
         ?`залишок <strong>${totalRemaining.toFixed(0)} zł</strong>${overdueCnt?` · <span style="color:var(--red)">${overdueCnt} прострочено</span>`:''}`
         :'<span style="color:var(--green)">✓ все оплачено</span>';
       invHtml=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToInvoices('${c.id}')" title="Відкрити в Обліку">
-        <span>💵 Фактур: ${cInvoices.length} · ${statusTxt}</span>
+        <span>Фактур: ${cInvoices.length} · ${statusTxt}</span>
         <span style="color:var(--text-3);white-space:nowrap">→ Облік</span>
       </div>`;
     }
@@ -1501,7 +1532,7 @@ function renderClients(){
       <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
         <span class="client-chevron">▶</span>
         <span class="client-name">${c.name}</span>
-        <span class="client-meta">💰 ${c.rate} zł/год · ⏱️ ${fmtHrs(totalHrs)} · ${totalEarn.toFixed(0)} zł</span>
+        <span class="client-meta">${c.rate} zł/год · ${fmtHrs(totalHrs)} · ${totalEarn.toFixed(0)} zł</span>
         <div class="client-actions" onclick="event.stopPropagation()">
           <button class="btn-icon" title="Додати запис" onclick="openAddModal('${c.id}','')">＋</button>
           <button class="btn-icon" onclick="startRenameClient('${c.id}','${c.name.replace(/'/g,"\\'")}')">✎</button>
@@ -1554,16 +1585,16 @@ function renderLog(){
       :`<div style="text-align:right"><div style="font-family:var(--mono);font-weight:500">${fmtHrs(e.hours)}</div>${earn>0?`<div style="font-size:12px;font-weight:500;color:var(--brand);font-family:var(--mono)">${earn} zł</div>`:''}</div>`;
     const expandDetails=`<div id="log-expand-${e.id}" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:12px;color:var(--text-2)">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px">
-        ${loc?`<div>📁 <strong>Проєкт:</strong> ${loc}</div>`:''}
-        <div>📅 <strong>Дата:</strong> ${dateClean}</div>
-        <div>🏷️ <strong>Категорія:</strong> ${e.cat}</div>
+        ${loc?`<div><strong>Проєкт:</strong> ${loc}</div>`:''}
+        <div><strong>Дата:</strong> ${dateClean}</div>
+        <div><strong>Категорія:</strong> ${e.cat}</div>
         ${e.fixed
-          ?`<div>💰 <strong>Фіксована сума:</strong> ${earn} zł</div>`
-          :`<div>⏱️ <strong>Годин:</strong> ${e.hours}h</div>
-            <div>💰 <strong>Ставка:</strong> ${rate} zł/год</div>
-            <div>💵 <strong>Сума:</strong> ${earn} zł</div>`
+          ?`<div><strong>Фіксована сума:</strong> ${earn} zł</div>`
+          :`<div><strong>Годин:</strong> ${e.hours}h</div>
+            <div><strong>Ставка:</strong> ${rate} zł/год</div>
+            <div><strong>Сума:</strong> ${earn} zł</div>`
         }
-        ${e.note?`<div style="grid-column:1/-1">📝 <strong>Нотатка:</strong> ${e.note}</div>`:''}
+        ${e.note?`<div style="grid-column:1/-1"><strong>Нотатка:</strong> ${e.note}</div>`:''}
       </div>
     </div>`;
     return`<div data-id="${e.id}" style="border-bottom:1px solid var(--border);padding:12px 0">
@@ -1630,8 +1661,8 @@ function renderLogStats(list){
       }).join('');
       return`<div class="rep-row" style="flex-direction:column;gap:0;padding-bottom:0">
         <div style="display:flex;justify-content:space-between;padding:10px 0;width:100%">
-          <div><div style="font-weight:500;color:var(--brand)">${c.name}</div><div style="color:var(--text-2);font-size:12px">💰 ${c.rate} zł/год</div></div>
-          <div style="text-align:right"><div class="rep-val">⏱️ ${fmtHrs(cHrs)}</div><div style="color:var(--text-2);font-family:var(--mono)">${cEarn.toFixed(0)} zł</div></div>
+          <div><div style="font-weight:500;color:var(--brand)">${c.name}</div><div style="color:var(--text-2);font-size:12px">${c.rate} zł/год</div></div>
+          <div style="text-align:right"><div class="rep-val">${fmtHrs(cHrs)}</div><div style="color:var(--text-2);font-family:var(--mono)">${cEarn.toFixed(0)} zł</div></div>
         </div>${subs}
       </div>`;
     }).filter(Boolean).join('');
@@ -1655,8 +1686,8 @@ function addEstimateLine(cat='',type='hours',hours=1,fixed=0,note=''){
     </div>
     <div class="field" style="margin:0">
       <select onchange="toggleEstLineType('${id}',this.value);recalcEstimate()" style="width:100%">
-        <option value="hours" ${type==='hours'?'selected':''}>⏱️ Години</option>
-        <option value="fixed" ${type==='fixed'?'selected':''}>💰 Фікс. сума</option>
+        <option value="hours" ${type==='hours'?'selected':''}>Години</option>
+        <option value="fixed" ${type==='fixed'?'selected':''}>Фікс. сума</option>
       </select>
     </div>
     <div class="field" style="margin:0">
@@ -1784,17 +1815,17 @@ function renderEstimates(){
         <div>
           <div style="font-weight:500;font-size:15px;color:var(--brand)">${est.name}</div>
           <div style="font-size:12px;color:var(--text-2);margin-top:2px">
-            📅 ${String(est.date).slice(0,10)}${client?' · '+client:''}${est.note?' · '+est.note:''}
+            ${String(est.date).slice(0,10)}${client?' · '+client:''}${est.note?' · '+est.note:''}
           </div>
         </div>
         <div style="display:flex;gap:4px">
-          <button class="btn btn-sm" onclick="loadEstimateToForm(${JSON.stringify(est).replace(/"/g,'&quot;')})" title="Копіювати у форму">📋</button>
+          <button class="btn btn-sm" onclick="loadEstimateToForm(${JSON.stringify(est).replace(/"/g,'&quot;')})" title="Копіювати у форму"></button>
           <button class="btn-icon" onclick="confirmDeleteEstimate('${est.id}','${est.name.replace(/'/g,"\\'")}')">✕</button>
         </div>
       </div>
       <div style="margin-bottom:10px">${lines}</div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand);padding-top:6px">
-        <span>⏱️ ${est.totalHrs%1===0?est.totalHrs:est.totalHrs.toFixed(1)}h &nbsp; 💰 Разом</span>
+        <span>${est.totalHrs%1===0?est.totalHrs:est.totalHrs.toFixed(1)}h &nbsp; Разом</span>
         <span style="font-family:var(--mono);font-size:16px">${est.totalEarn.toFixed(0)} zł</span>
       </div>
     </div>`;
@@ -1896,7 +1927,7 @@ function addPayment(invId){
   const paid=inv.paidTotal||0;
   const remaining=inv.amount-paid;
   document.getElementById('pay-inv-info').innerHTML=
-    `<strong>${inv.name}</strong><br>💰 Виставлено: ${inv.amount} zł &nbsp;·&nbsp; ✅ Оплачено: ${paid} zł &nbsp;·&nbsp; ⏳ Залишок: <strong>${remaining} zł</strong>`;
+    `<strong>${inv.name}</strong><br>Виставлено: ${inv.amount} zł &nbsp;·&nbsp; Оплачено: ${paid} zł &nbsp;·&nbsp; Залишок: <strong>${remaining} zł</strong>`;
   document.getElementById('pay-remaining').textContent='';
   document.getElementById('payment-modal').classList.add('open');
 }
@@ -1910,7 +1941,7 @@ function updatePayRemaining(){
   const remaining=inv.amount-afterPay;
   const el=document.getElementById('pay-remaining');
   if(amount>0){
-    el.textContent=remaining>0?`Залишок після оплати: ${remaining} zł`:`✅ Фактура буде повністю оплачена`;
+    el.textContent=remaining>0?`Залишок після оплати: ${remaining} zł`:`Фактура буде повністю оплачена`;
     el.style.color=remaining>0?'var(--text-2)':'var(--green)';
   } else {
     el.textContent='';
@@ -2012,10 +2043,10 @@ function renderInvoices(){
     const daysLeft=inv.dueDate?Math.ceil((new Date(inv.dueDate)-new Date(todayStr))/86400000):null;
 
     let statusHtml='';
-    if(isPaid) statusHtml='<span class="inv-status paid">✅ Оплачено</span>';
-    else if(isOverdue) statusHtml=`<span class="inv-status overdue">🔴 Прострочено на ${Math.abs(daysLeft)} дн.</span>`;
-    else if(daysLeft!==null) statusHtml=`<span class="inv-status pending">🟢 Ще ${daysLeft>0?daysLeft+' дн.':'сьогодні'}</span>`;
-    else statusHtml='<span class="inv-status pending">⏳ Очікується</span>';
+    if(isPaid) statusHtml='<span class="inv-status paid">Оплачено</span>';
+    else if(isOverdue) statusHtml=`<span class="inv-status overdue">Прострочено на ${Math.abs(daysLeft)} дн.</span>`;
+    else if(daysLeft!==null) statusHtml=`<span class="inv-status pending">Ще ${daysLeft>0?daysLeft+' дн.':'сьогодні'}</span>`;
+    else statusHtml='<span class="inv-status pending">Очікується</span>';
 
     const paymentsHtml=(inv.payments||[]).length?`
       <div class="inv-payments">
@@ -2034,27 +2065,27 @@ function renderInvoices(){
       <div class="inv-header">
         <div>
           <div class="inv-title">${inv.name}</div>
-          ${loc?`<div class="inv-client">📁 ${loc}</div>`:''}
-          ${inv.note?`<div class="inv-client">📝 ${inv.note}</div>`:''}
+          ${loc?`<div class="inv-client">${loc}</div>`:''}
+          ${inv.note?`<div class="inv-client">${inv.note}</div>`:''}
         </div>
         ${statusHtml}
       </div>
       <div class="inv-amounts" style="grid-template-columns:repeat(4,1fr)">
-        <div class="inv-amt"><div class="inv-amt-label">📄 Нетто</div><div class="inv-amt-val">${netto.toFixed(2)} zł</div></div>
-        <div class="inv-amt"><div class="inv-amt-label">📊 ПДВ 23%</div><div class="inv-amt-val" style="color:var(--amber)">${vat.toFixed(2)} zł</div></div>
-        <div class="inv-amt"><div class="inv-amt-label">💰 Брутто</div><div class="inv-amt-val" style="font-weight:600">${brutto.toFixed(2)} zł</div></div>
-        <div class="inv-amt"><div class="inv-amt-label">✅ Оплачено</div><div class="inv-amt-val green">${paid.toFixed(2)} zł</div></div>
+        <div class="inv-amt"><div class="inv-amt-label">Нетто</div><div class="inv-amt-val">${netto.toFixed(2)} zł</div></div>
+        <div class="inv-amt"><div class="inv-amt-label">ПДВ 23%</div><div class="inv-amt-val" style="color:var(--text-2)">${vat.toFixed(2)} zł</div></div>
+        <div class="inv-amt"><div class="inv-amt-label">Брутто</div><div class="inv-amt-val" style="font-weight:700">${brutto.toFixed(2)} zł</div></div>
+        <div class="inv-amt"><div class="inv-amt-label">Оплачено</div><div class="inv-amt-val ${paid>0?'green':''}" ${paid>0?'':'style="color:var(--text-3)"'}>${paid.toFixed(2)} zł</div></div>
       </div>
-      ${remaining>0?`<div style="font-size:13px;font-weight:500;color:${isOverdue?'var(--red)':'var(--text-2)'};padding:6px 0">⏳ Залишок: ${remaining.toFixed(2)} zł</div>`:''}
+      ${remaining>0?`<div style="font-size:13px;font-weight:600;color:${isOverdue?'var(--red)':'var(--amber)'};background:${isOverdue?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.08)'};border-radius:8px;padding:9px 12px;margin:2px 0 10px">Залишок до оплати: ${remaining.toFixed(2)} zł</div>`:''}
       <div class="inv-dates">
-        <span>📅 Виставлено: <strong>${inv.issueDate}</strong></span>
-        ${inv.dueDate?`<span>⏰ Термін: <strong style="color:${isOverdue?'var(--red)':''}">${inv.dueDate}</strong></span>`:''}
+        <span>Виставлено: <strong>${inv.issueDate}</strong></span>
+        ${inv.dueDate?`<span>Термін: <strong style="color:${isOverdue?'var(--red)':''}">${inv.dueDate}</strong></span>`:''}
       </div>
       ${paymentsHtml}
-      <div class="inv-actions" style="margin-top:10px">
-        ${!isPaid?`<button class="btn btn-primary btn-sm" onclick="addPayment('${inv.id}')">💳 Ввести оплату</button>`:''}
-        <button class="btn btn-sm" onclick="openInvEdit('${inv.id}')">✎ Редагувати</button>
-        <button class="btn btn-sm btn-ghost" onclick="deleteInvoice('${inv.id}')">✕ Видалити</button>
+      <div class="inv-actions" style="margin-top:10px;align-items:center">
+        ${!isPaid?`<button class="btn btn-primary btn-sm" onclick="addPayment('${inv.id}')">Ввести оплату</button>`:''}
+        <button class="btn btn-sm" onclick="openInvEdit('${inv.id}')">Редагувати</button>
+        <button class="btn-icon" title="Видалити фактуру" onclick="deleteInvoice('${inv.id}')" style="margin-left:auto">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -2204,7 +2235,7 @@ function openAddModal(clientId='', subprojId=''){
 
 function openEditModal(id){
   const e=entries.find(x=>x.id===id); if(!e)return;
-  document.getElementById('edit-modal-title-text').textContent='✎ Редагувати запис';
+  document.getElementById('edit-modal-title-text').textContent='Редагувати запис';
   document.getElementById('e-info').style.display='';
   document.getElementById('e-id').value=e.id;
   document.getElementById('e-date').value=e.date;
@@ -2221,7 +2252,7 @@ function openEditModal(id){
   const dateDisplay=e.date?String(e.date).slice(0,10):today();
   document.getElementById('e-info').innerHTML=
     `<strong>${e.note||e.cat}</strong>${loc?' · '+loc:''}<br>
-     📅 ${dateDisplay} &nbsp;|&nbsp; ${e.fixed?`💰 Фіксована: ${e.earn} zł`:`⏱️ ${e.hours}h · 💰 ${e.earn} zł`}`;
+     ${dateDisplay} &nbsp;|&nbsp; ${e.fixed?`Фіксована: ${e.earn} zł`:`${e.hours}h · ${e.earn} zł`}`;
   toggleEditPayType();
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}"${c.id===e.clientId?' selected':''}>${c.name}</option>`).join('');
   document.getElementById('e-client').innerHTML=cOpts;
@@ -2360,7 +2391,7 @@ function toggleLogItem(id){
 let packages=[];
 let pkgSessionSelf=true, pkgGraphicSelf=true;
 
-const PKG_COLORS={ania:'#4f8ef7',sesja:'#f0693e',grafika:'#12b586',koord:'#e3a008',zysk:'#22a94f'};
+const PKG_COLORS={ania:'#4f8ef7',sesja:'#f0693e',grafika:'#12b586',koord:'#e3a008',transport:'#a78bfa',zysk:'#22a94f'};
 
 function refreshPkgSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
@@ -2376,24 +2407,26 @@ function pkgFmt(n){return Math.round(n).toLocaleString('uk-UA')+' zł';}
 
 function pkgCompute(){
   const aniaRate=pkgVal('pkg-aniaRate'), aniaHours=pkgVal('pkg-aniaHours');
-  const sessionCost=pkgVal('pkg-sessionCost');
+  const sessionCost=pkgVal('pkg-sessionCost'), sessionCount=pkgVal('pkg-sessionCount');
+  const sessionTotal=sessionCost*sessionCount;
   const graphicHours=pkgVal('pkg-graphicHours');
   const graphicRate=pkgGraphicSelf?pkgVal('pkg-kyryloRate'):100;
   const kyryloRate=pkgVal('pkg-kyryloRate'), coordHours=pkgVal('pkg-coordHours');
   const markup=pkgVal('pkg-markup'), currentPrice=pkgVal('pkg-currentPrice');
   const overageRate=pkgVal('pkg-overageRate');
+  const transportCost=pkgVal('pkg-transport');
 
   const aniaCost=aniaRate*aniaHours;
   const graphicCost=graphicHours*graphicRate;
   const coordCost=coordHours*kyryloRate;
-  const totalCost=aniaCost+sessionCost+graphicCost+coordCost;
+  const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
   const price=totalCost*(1+markup/100);
   const profit=price-totalCost;
   const marginPct=price>0?(profit/price)*100:0;
-  const yourTake=coordCost+(pkgSessionSelf?sessionCost:0)+(pkgGraphicSelf?graphicCost:0)+profit;
-  const externalOut=aniaCost+(pkgSessionSelf?0:sessionCost)+(pkgGraphicSelf?0:graphicCost);
+  const yourTake=coordCost+(pkgSessionSelf?sessionTotal:0)+(pkgGraphicSelf?graphicCost:0)+profit;
+  const externalOut=aniaCost+(pkgSessionSelf?0:sessionTotal)+(pkgGraphicSelf?0:graphicCost)+transportCost;
 
-  return {aniaRate,aniaHours,sessionCost,graphicHours,graphicRate,kyryloRate,coordHours,markup,currentPrice,overageRate,
+  return {aniaRate,aniaHours,sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,markup,currentPrice,overageRate,transportCost,
     aniaCost,graphicCost,coordCost,totalCost,price,profit,marginPct,yourTake,externalOut};
 }
 
@@ -2401,10 +2434,12 @@ function renderPakiet(){
   document.getElementById('pkg-v-aniaRate').textContent=pkgVal('pkg-aniaRate');
   document.getElementById('pkg-v-aniaHours').textContent=pkgVal('pkg-aniaHours');
   document.getElementById('pkg-v-sessionCost').textContent=pkgVal('pkg-sessionCost');
+  document.getElementById('pkg-v-sessionCount').textContent=pkgVal('pkg-sessionCount');
   document.getElementById('pkg-v-graphicHours').textContent=pkgVal('pkg-graphicHours');
   document.getElementById('pkg-v-overageRate').textContent=pkgVal('pkg-overageRate');
   document.getElementById('pkg-v-kyryloRate').textContent=pkgVal('pkg-kyryloRate');
   document.getElementById('pkg-v-coordHours').textContent=pkgVal('pkg-coordHours');
+  document.getElementById('pkg-v-transport').textContent=pkgVal('pkg-transport');
   document.getElementById('pkg-v-markup').textContent=pkgVal('pkg-markup')+'%';
   document.getElementById('pkg-v-currentPrice').textContent=pkgVal('pkg-currentPrice')+' zł';
 
@@ -2417,6 +2452,9 @@ function renderPakiet(){
   document.getElementById('pkg-price').textContent=pkgFmt(c.price);
   document.getElementById('pkg-profit').textContent=pkgFmt(c.profit);
   document.getElementById('pkg-total').textContent=pkgFmt(c.totalCost);
+  document.getElementById('pkg-margin').textContent=Math.round(c.marginPct)+'%';
+  document.getElementById('pkg-take').textContent=pkgFmt(c.yourTake);
+  document.getElementById('pkg-out').textContent=pkgFmt(c.externalOut);
 
   const delta=c.price-c.currentPrice;
   const deltaEl=document.getElementById('pkg-delta');
@@ -2427,9 +2465,10 @@ function renderPakiet(){
 
   const segs=[
     {key:'ania',label:'Аня',val:c.aniaCost},
-    {key:'sesja',label:'Сесія',val:c.sessionCost},
+    {key:'sesja',label:'Сесії',val:c.sessionTotal},
     {key:'grafika',label:'Графіка',val:c.graphicCost},
     {key:'koord',label:'Координація',val:c.coordCost},
+    {key:'transport',label:'Транспорт',val:c.transportCost},
     {key:'zysk',label:'Прибуток',val:c.profit},
   ];
   const bar=document.getElementById('pkg-bar');
@@ -2441,13 +2480,46 @@ function renderPakiet(){
     `<span style="display:flex;align-items:center;gap:5px"><span style="width:9px;height:9px;border-radius:2px;background:${PKG_COLORS[s.key]};display:inline-block"></span>${s.label}</span>`
   ).join('');
 
-  document.getElementById('pkg-breakdown').innerHTML=segs.map(s=>
-    `<div style="color:var(--text-2)">${s.label}</div><div style="text-align:right;font-family:var(--mono)">${pkgFmt(s.val)}</div>`
-  ).join('')+`<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px;font-weight:600">Витрати разом</div><div style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px;text-align:right;font-family:var(--mono);font-weight:600">${pkgFmt(c.totalCost)}</div>`;
+  const costSegs=segs.filter(s=>s.key!=='zysk');
+  const FULL_LABELS={
+    ania:'Аня — виконання SMM (зовнішнє)',
+    sesja:`Фото/відео сесії ${c.sessionCount} × ${c.sessionCost} zł (${pkgSessionSelf?'до тебе':'фотограф'})`,
+    grafika:`Графіка ${pkgVal('pkg-graphicHours')} г × ${c.graphicRate} zł (${pkgGraphicSelf?'до тебе':'фрилансер'})`,
+    koord:'Твоя координація + монтаж (до тебе)',
+    transport:'Транспорт — виїзди до клієнта (зовнішнє)',
+  };
+  document.getElementById('pkg-breakdown').innerHTML=
+    `<div class="card-label" style="margin:20px 0 0">Структура витрат</div>
+    <table class="pkg-table">
+      <thead><tr><th>Позиція</th><th class="num">Вартість</th><th class="num">Частка</th></tr></thead>
+      <tbody>
+        ${costSegs.map(s=>{
+          const share=c.totalCost>0?Math.round(s.val/c.totalCost*100):0;
+          return `<tr><td>${FULL_LABELS[s.key]||s.label}</td><td class="num">${pkgFmt(s.val)}</td><td class="num share">${share}%</td></tr>`;
+        }).join('')}
+        <tr class="total"><td>Витрати разом</td><td class="num">${pkgFmt(c.totalCost)}</td><td class="num share">100%</td></tr>
+        <tr class="total"><td>Ціна пакету</td><td class="num">${pkgFmt(c.price)}</td><td class="num share"></td></tr>
+      </tbody>
+    </table>`;
+
+  const ownWork=c.yourTake-c.profit;
+  const outLabel='Аня'+(pkgSessionSelf?'':' + фотограф')+(pkgGraphicSelf?'':' + фрилансер')+(c.transportCost>0?' + транспорт':'');
+  document.getElementById('pkg-flow').innerHTML=
+    `<div class="card-label" style="margin:20px 0 0">Куди йдуть гроші щомісяця</div>
+    <table class="pkg-table">
+      <tbody>
+        <tr><td>Клієнт платить (ціна пакету)</td><td class="num">${pkgFmt(c.price)}</td></tr>
+        <tr><td style="color:var(--text-2)">Назовні — ${outLabel}</td><td class="num" style="color:var(--red)">− ${pkgFmt(c.externalOut)}</td></tr>
+        <tr class="total"><td>До тебе разом</td><td class="num">${pkgFmt(c.yourTake)}</td></tr>
+        <tr><td style="color:var(--text-2);padding-left:16px">у т.ч. оплата твоєї роботи</td><td class="num" style="font-weight:400;color:var(--text-2)">${pkgFmt(ownWork)}</td></tr>
+        <tr><td style="color:var(--text-2);padding-left:16px">у т.ч. чистий прибуток (націнка ${pkgVal('pkg-markup')}%)</td><td class="num" style="color:var(--green)">${pkgFmt(c.profit)}</td></tr>
+      </tbody>
+    </table>`;
 
   document.getElementById('pkg-take-box').innerHTML=
-    `<b>До тебе:</b> ${pkgFmt(c.yourTake)} · <b>Назовні (Аня${pkgSessionSelf&&pkgGraphicSelf?'':' + фрилансери'}):</b> ${pkgFmt(c.externalOut)}<br>`+
-    `Понадлімітна графіка (${pkgVal('pkg-graphicHours')}г ліміт): клієнт платить ${pkgVal('pkg-overageRate')} zł/г, твій маржинал на цих годинах — ${pkgFmt(pkgVal('pkg-overageRate')-c.graphicRate)}/г.`;
+    `Понадлімітна графіка (${pkgVal('pkg-graphicHours')}г ліміт): клієнт платить <b>${pkgVal('pkg-overageRate')} zł/г</b>, `+
+    `твій маржинал на цих годинах — <b>${pkgFmt(pkgVal('pkg-overageRate')-c.graphicRate)}/г</b>`+
+    `${pkgSessionSelf&&pkgGraphicSelf?'':' · назовні йде також оплата фрилансерам'}.`;
 }
 
 async function savePakiet(){
@@ -2456,8 +2528,8 @@ async function savePakiet(){
   const clientId=document.getElementById('pkg-client').value;
   const c=pkgCompute();
   const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,
-    inputs:{aniaRate:c.aniaRate,aniaHours:c.aniaHours,sessionCost:c.sessionCost,graphicHours:c.graphicHours,
-      kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,overageRate:c.overageRate},
+    inputs:{aniaRate:c.aniaRate,aniaHours:c.aniaHours,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
+      kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,overageRate:c.overageRate,transportCost:c.transportCost},
     results:{totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut}};
   packages.unshift(pkg);
   renderPackagesList();
@@ -2485,12 +2557,12 @@ function renderPackagesList(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
           <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name}</div>
-          <div style="font-size:12px;color:var(--text-2);margin-top:2px">📅 ${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px">${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
         </div>
         <button class="btn-icon" onclick="deletePakiet('${p.id}')">✕</button>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
-        <span>💰 Ціна</span><span style="font-family:var(--mono)">${pkgFmt(p.results.price)}</span>
+        <span>Ціна</span><span style="font-family:var(--mono)">${pkgFmt(p.results.price)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-top:4px">
         <span>Прибуток</span><span style="font-family:var(--mono)">${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
