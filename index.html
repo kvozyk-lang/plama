@@ -345,7 +345,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v16</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v17</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -2520,8 +2520,13 @@ function renderPakiet(){
 }
 
 async function savePakiet(){
-  const name=document.getElementById('pkg-name').value.trim();
-  if(!name){document.getElementById('pkg-name').focus();showToast('Введи назву сценарію');return;}
+  let name=document.getElementById('pkg-name').value.trim();
+  const clientSel=document.getElementById('pkg-client');
+  if(!name){
+    const cname=clientSel&&clientSel.value?clientSel.options[clientSel.selectedIndex].text:'';
+    const now=new Date();
+    name=(cname?cname+' — ':'')+'сценарій '+now.toLocaleDateString('uk-UA')+' '+now.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+  }
   const clientId=document.getElementById('pkg-client').value;
   const c=pkgCompute();
   const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,
