@@ -317,6 +317,10 @@ input[type=range]:focus { box-shadow: none; }
 <div class="topbar">
   <div class="logo-area">PLAMA</div>
   <div class="nav-tabs">
+    <button class="nav-btn" onclick="switchTab('dash',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Дашборд
+    </button>
     <button class="nav-btn active" onclick="switchTab('track',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       Записати
@@ -345,12 +349,38 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v17</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v18</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
 
 <div class="content">
+
+  <!-- DASHBOARD -->
+  <div id="page-dash" class="page">
+    <div class="page-title">Дашборд</div>
+    <div class="page-sub">Підтверджені пакети + фактичні дані по клієнтах</div>
+
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric"><div class="metric-label">Дохід з пакетів / міс</div><div class="metric-val" id="dash-income">—</div></div>
+      <div class="metric"><div class="metric-label">Витрати / міс</div><div class="metric-val" id="dash-costs">—</div></div>
+      <div class="metric"><div class="metric-label">Чистий прибуток / міс</div><div class="metric-val" id="dash-profit">—</div></div>
+    </div>
+    <div class="metrics" style="grid-template-columns:1fr 1fr">
+      <div class="metric take"><div class="metric-label">Лишається тобі / міс</div><div class="metric-val" id="dash-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
+      <div class="metric"><div class="metric-label">Віддаєш іншим / міс</div><div class="metric-val" id="dash-out">—</div><div class="metric-sub">Аня, підрядники, транспорт</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Підтверджені пакети по клієнтах</div>
+      <div id="dash-packages"><div class="empty">Немає підтверджених пакетів</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Фактичні дані — поточний місяць</div>
+      <div id="dash-actual"><div class="empty">Немає даних</div></div>
+    </div>
+  </div>
 
   <!-- TRACK -->
   <div id="page-track" class="page active">
@@ -573,11 +603,12 @@ input[type=range]:focus { box-shadow: none; }
     <div class="page-sub">Калькулятор вартості повного пакету (сесія + графіка + Аня + координація)</div>
 
     <div class="card">
-      <div class="card-label">Клієнт (необов'язково)</div>
+      <div class="card-label">Клієнт пакету</div>
       <div class="form-row form-2">
-        <div class="field"><label>Клієнт</label><select id="pkg-client" onchange="renderPakiet()"><option value="">— без клієнта —</option></select></div>
-        <div class="field"><label>Назва сценарію</label><input type="text" id="pkg-name" placeholder="напр. NARRO — повний пакет"></div>
+        <div class="field"><label>Клієнт (обов'язково)</label><select id="pkg-client" onchange="renderPakiet()"><option value="">— обери клієнта —</option></select></div>
+        <div class="field"><label>Назва сценарію (необов'язково)</label><input type="text" id="pkg-name" placeholder="напр. NARRO — повний пакет"></div>
       </div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Збережений сценарій = підтверджений пакет для цього клієнта. Найновіший пакет клієнта рахується як активний і потрапляє в Дашборд.</div>
     </div>
 
     <div class="card">
@@ -666,8 +697,8 @@ input[type=range]:focus { box-shadow: none; }
       </div>
     </div>
 
-    <div class="card-label" style="margin:8px 0 12px">Збережені сценарії</div>
-    <div id="pkg-list"><div class="empty">Немає збережених сценаріїв</div></div>
+    <div class="card-label" style="margin:8px 0 12px">Підтверджені пакети</div>
+    <div id="pkg-list"><div class="empty">Немає підтверджених пакетів</div></div>
   </div>
 
 </div>
@@ -1021,7 +1052,7 @@ async function loadAll(){
     estimates=d.estimates||[]; invoices=d.invoices||[]; packages=d.packages||[];
     setSyncStatus('ok','Supabase');
     refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); refreshPkgSelects(); rebuildMsDrops();
-    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList();
+    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderDash();
     renderLogStats(entries);
     try{
       const cur=localStorage.getItem('plama_tab')||'track';
@@ -1029,6 +1060,7 @@ async function loadAll(){
       if(cur==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(cur==='invoices'){renderInvoices();refreshInvSelects();}
       if(cur==='pakiet'){renderPackagesList();refreshPkgSelects();renderPakiet();}
+      if(cur==='dash')renderDash();
     }catch(e){}
   }catch(e){setSyncStatus('err','Помилка підключення');}
 }
@@ -1152,6 +1184,7 @@ function switchTab(t,btn){
   if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
   if(t==='invoices'){renderInvoices();refreshInvSelects();}
   if(t==='pakiet'){renderPackagesList();refreshPkgSelects();renderPakiet();}
+  if(t==='dash')renderDash();
   try{localStorage.setItem('plama_tab',t);}catch(e){}
 }
 
@@ -2520,21 +2553,28 @@ function renderPakiet(){
 }
 
 async function savePakiet(){
-  let name=document.getElementById('pkg-name').value.trim();
   const clientSel=document.getElementById('pkg-client');
-  if(!name){
-    const cname=clientSel&&clientSel.value?clientSel.options[clientSel.selectedIndex].text:'';
-    const now=new Date();
-    name=(cname?cname+' — ':'')+'сценарій '+now.toLocaleDateString('uk-UA')+' '+now.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});
+  const clientId=clientSel.value;
+  if(!clientId){
+    clientSel.focus();
+    clientSel.style.borderColor='var(--red)';
+    setTimeout(()=>{clientSel.style.borderColor='';},2500);
+    showToast('Обери клієнта — пакет підтверджується для конкретного клієнта');
+    return;
   }
-  const clientId=document.getElementById('pkg-client').value;
+  let name=document.getElementById('pkg-name').value.trim();
+  if(!name){
+    const cname=clientSel.options[clientSel.selectedIndex].text;
+    const now=new Date();
+    name=cname+' — пакет '+now.toLocaleDateString('uk-UA');
+  }
   const c=pkgCompute();
   const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,
     inputs:{aniaRate:c.aniaRate,aniaHours:c.aniaHours,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
       kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,overageRate:c.overageRate,transportCost:c.transportCost},
     results:{totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut}};
   packages.unshift(pkg);
-  renderPackagesList();
+  renderPackagesList(); renderDash();
   setSyncStatus('loading','Збереження...');
   try{await saveState();setSyncStatus('ok','Supabase');showToast('Сценарій збережено ✓');}
   catch(e){setSyncStatus('err','Помилка збереження');}
@@ -2542,35 +2582,101 @@ async function savePakiet(){
 
 async function deletePakiet(id){
   packages=packages.filter(p=>p.id!==id);
-  renderPackagesList();
+  renderPackagesList(); renderDash();
   setSyncStatus('loading','Видалення...');
   try{await saveState();setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
 }
 
+function activePackages(){
+  // najnowszy pakiet klienta = aktywny (packages trzymane od najnowszego)
+  const seen={},act=[];
+  for(const p of packages){
+    if(!p.clientId||seen[p.clientId])continue;
+    seen[p.clientId]=1;act.push(p);
+  }
+  return act;
+}
+
 function renderPackagesList(){
   const el=document.getElementById('pkg-list');
   if(!el)return;
-  if(!packages.length){el.innerHTML='<div class="empty">Немає збережених сценаріїв</div>';return;}
+  if(!packages.length){el.innerHTML='<div class="empty">Немає підтверджених пакетів</div>';return;}
   const projMap={};clients.forEach(c=>projMap[c.id]=c);
+  const activeIds=new Set(activePackages().map(p=>p.id));
   el.innerHTML=packages.map(p=>{
     const client=p.clientId&&projMap[p.clientId]?projMap[p.clientId].name:'';
-    return `<div class="card" style="margin-bottom:12px">
+    const isActive=activeIds.has(p.id);
+    return `<div class="card" style="margin-bottom:12px${isActive?';border-color:rgba(74,222,128,0.45)':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div>
-          <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name}</div>
+          <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name} ${isActive?'<span style="font-size:11px;font-weight:600;color:var(--green);background:rgba(74,222,128,0.12);border-radius:100px;padding:2px 8px;vertical-align:middle">активний</span>':''}</div>
           <div style="font-size:12px;color:var(--text-2);margin-top:2px">${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
         </div>
         <button class="btn-icon" onclick="deletePakiet('${p.id}')">✕</button>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
-        <span>Ціна</span><span style="font-family:var(--mono)">${pkgFmt(p.results.price)}</span>
+        <span>Ціна</span><span>${pkgFmt(p.results.price)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-top:4px">
-        <span>Прибуток</span><span style="font-family:var(--mono)">${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
+        <span>Прибуток</span><span>${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
       </div>
     </div>`;
   }).join('');
+}
+
+// ── DASHBOARD ───────────────────────────────────
+function renderDash(){
+  const el=document.getElementById('dash-packages');
+  if(!el)return;
+  const pm={};clients.forEach(c=>pm[c.id]=c);
+  const act=activePackages();
+  const sum=k=>act.reduce((a,p)=>a+(p.results&&p.results[k]||0),0);
+  const income=sum('price'),costs=sum('totalCost'),profit=sum('profit'),take=sum('yourTake'),out=sum('externalOut');
+  document.getElementById('dash-income').textContent=pkgFmt(income);
+  document.getElementById('dash-costs').textContent=pkgFmt(costs);
+  const profitEl=document.getElementById('dash-profit');
+  profitEl.textContent=pkgFmt(profit);
+  profitEl.style.color=profit>=0?'var(--green)':'var(--red)';
+  document.getElementById('dash-take').textContent=pkgFmt(take);
+  document.getElementById('dash-out').textContent=pkgFmt(out);
+
+  if(!act.length){
+    el.innerHTML='<div class="empty">Немає підтверджених пакетів. Збережи сценарій з обраним клієнтом у вкладці SMM-пакет.</div>';
+  } else {
+    el.innerHTML=`<table class="pkg-table">
+      <thead><tr><th>Клієнт</th><th class="num">Ціна/міс</th><th class="num">Витрати</th><th class="num">Прибуток</th><th class="num">Маржа</th></tr></thead>
+      <tbody>
+        ${act.map(p=>{
+          const cname=pm[p.clientId]?pm[p.clientId].name:'?';
+          const r=p.results,loss=r.profit<0;
+          return `<tr><td>${cname}</td><td class="num">${pkgFmt(r.price)}</td><td class="num" style="font-weight:400;color:var(--text-2)">${pkgFmt(r.totalCost)}</td><td class="num" style="color:${loss?'var(--red)':'var(--green)'}">${pkgFmt(r.profit)}</td><td class="num share">${Math.round(r.marginPct)}%</td></tr>`;
+        }).join('')}
+        <tr class="total"><td>Разом</td><td class="num">${pkgFmt(income)}</td><td class="num">${pkgFmt(costs)}</td><td class="num" style="color:${profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(profit)}</td><td class="num share">${income>0?Math.round(profit/income*100):0}%</td></tr>
+      </tbody>
+    </table>`;
+  }
+
+  // fakty z Журналу (bieżący miesiąc) + nieopłacone faktury (całość)
+  const actualEl=document.getElementById('dash-actual');
+  const ym=today().slice(0,7);
+  const rows=clients.map(c=>{
+    const ce=entries.filter(e=>e.clientId===c.id&&String(e.date).slice(0,7)===ym);
+    const hrs=ce.reduce((a,e)=>a+(e.hours||0),0);
+    const earn=ce.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+    const unpaid=invoices.filter(i=>i.clientId===c.id).reduce((a,i)=>a+Math.max(0,(i.amount||0)-(i.paidTotal||0)),0);
+    if(!hrs&&!earn&&!unpaid)return null;
+    return {name:c.name,hrs,earn,unpaid};
+  }).filter(Boolean);
+  if(!rows.length){actualEl.innerHTML='<div class="empty">Немає даних за цей місяць</div>';return;}
+  const tHrs=rows.reduce((a,r)=>a+r.hrs,0),tEarn=rows.reduce((a,r)=>a+r.earn,0),tUnpaid=rows.reduce((a,r)=>a+r.unpaid,0);
+  actualEl.innerHTML=`<table class="pkg-table">
+    <thead><tr><th>Клієнт</th><th class="num">Годин</th><th class="num">Зароблено</th><th class="num">Неоплачені фактури</th></tr></thead>
+    <tbody>
+      ${rows.map(r=>`<tr><td>${r.name}</td><td class="num" style="font-weight:400;color:var(--text-2)">${fmtHrs(r.hrs)}</td><td class="num">${r.earn.toFixed(0)} zł</td><td class="num" style="color:${r.unpaid>0?'var(--amber)':'var(--text-3)'}">${r.unpaid.toFixed(0)} zł</td></tr>`).join('')}
+      <tr class="total"><td>Разом</td><td class="num">${fmtHrs(tHrs)}</td><td class="num">${tEarn.toFixed(0)} zł</td><td class="num" style="color:${tUnpaid>0?'var(--amber)':'var(--text-3)'}">${tUnpaid.toFixed(0)} zł</td></tr>
+    </tbody>
+  </table>`;
 }
 </script>
 </body>
