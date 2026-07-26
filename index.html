@@ -345,7 +345,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v14</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v15</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -636,6 +636,7 @@ input[type=range]:focus { box-shadow: none; }
         <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="renderPakiet()"></div>
         <div class="field"><label>Поточна ціна (для порівняння): <b id="pkg-v-currentPrice">3500 zł</b></label><input type="range" id="pkg-currentPrice" min="2000" max="6000" step="100" value="3500" oninput="renderPakiet()"></div>
       </div>
+      <div id="pkg-markup-note" style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5"></div>
     </div>
 
     <div class="card">
@@ -2439,6 +2440,9 @@ function renderPakiet(){
   document.getElementById('pkg-v-transport').textContent=pkgVal('pkg-transport');
   document.getElementById('pkg-v-markup').textContent=pkgVal('pkg-markup')+'%';
   document.getElementById('pkg-v-currentPrice').textContent=pkgVal('pkg-currentPrice')+' zł';
+  const mk=pkgVal('pkg-markup');
+  document.getElementById('pkg-markup-note').textContent=
+    `Ціна = витрати × (1 + націнка). Націнка ${mk}% рахується від витрат, тому маржа від ціни = ${mk}/${100+mk} = ${Math.round(mk/(100+mk)*100)}%.`;
 
   document.getElementById('pkg-btn-session-self').classList.toggle('btn-primary',pkgSessionSelf);
   document.getElementById('pkg-btn-session-out').classList.toggle('btn-primary',!pkgSessionSelf);
