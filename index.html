@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v19</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v20</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -362,9 +362,13 @@ input[type=range]:focus { box-shadow: none; }
     <div class="page-sub">Підтверджені пакети + фактичні дані по клієнтах</div>
 
     <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
-      <div class="metric"><div class="metric-label">Дохід з пакетів / міс</div><div class="metric-val" id="dash-income">—</div></div>
-      <div class="metric"><div class="metric-label">Витрати / міс</div><div class="metric-val" id="dash-costs">—</div></div>
-      <div class="metric"><div class="metric-label">Чистий прибуток / міс</div><div class="metric-val" id="dash-profit">—</div></div>
+      <div class="metric"><div class="metric-label">Дохід разом / міс</div><div class="metric-val" id="dash-income-total">—</div><div class="metric-sub">пакети + інші роботи</div></div>
+      <div class="metric"><div class="metric-label">Витрати / міс</div><div class="metric-val" id="dash-costs">—</div><div class="metric-sub">з активних пакетів</div></div>
+      <div class="metric"><div class="metric-label">Прибуток / міс</div><div class="metric-val" id="dash-profit">—</div><div class="metric-sub">дохід − витрати</div></div>
+    </div>
+    <div class="metrics" style="grid-template-columns:1fr 1fr">
+      <div class="metric"><div class="metric-label">Дохід з пакетів / міс</div><div class="metric-val" id="dash-income-pkg">—</div><div class="metric-sub">активні підтверджені пакети</div></div>
+      <div class="metric"><div class="metric-label">Дохід з інших робіт</div><div class="metric-val" id="dash-income-other">—</div><div class="metric-sub">Журнал — поточний місяць</div></div>
     </div>
     <div class="metrics" style="grid-template-columns:1fr 1fr">
       <div class="metric take"><div class="metric-label">Лишається тобі / міс</div><div class="metric-val" id="dash-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
@@ -692,8 +696,10 @@ input[type=range]:focus { box-shadow: none; }
 
       <div style="background:var(--brand-pale);border-radius:var(--r-sm);padding:12px 14px;margin-top:16px;font-size:12.5px;color:var(--text-2);line-height:1.5" id="pkg-take-box"></div>
 
-      <div style="margin-top:14px;display:flex;gap:8px">
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="savePakiet()">✓ Зберегти сценарій</button>
+        <button class="btn" onclick="openPkgExport('claude')">Експорт: для Claude</button>
+        <button class="btn" onclick="openPkgExport('smm')">Експорт: техзавдання SMM</button>
       </div>
     </div>
 
@@ -858,6 +864,18 @@ input[type=range]:focus { box-shadow: none; }
     <div class="modal-actions">
       <button class="btn" onclick="closeQaModal()">Скасувати</button>
       <button class="btn btn-primary" onclick="confirmQuickAdd()">✓ Створити</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div class="modal-backdrop" id="export-modal">
+  <div class="modal">
+    <div class="modal-title"><span id="export-title">Експорт оферти</span><button class="btn-icon" onclick="closeExportModal()">✕</button></div>
+    <textarea id="export-text" readonly style="width:100%;height:300px;background:var(--surface-2);border:1px solid var(--border-strong);border-radius:var(--r-sm);color:var(--text);font-size:12.5px;font-family:ui-monospace,'SF Mono',Menlo,monospace;padding:12px;line-height:1.55;resize:vertical"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="downloadPkgExport()">Завантажити .txt</button>
+      <button class="btn btn-primary" onclick="copyPkgExport()">Копіювати</button>
     </div>
   </div>
 </div>
@@ -2566,6 +2584,92 @@ function renderPakiet(){
     `${pkgSessionSelf?'':' · назовні йде також оплата фотографу'}.`;
 }
 
+// ── EXPORT OFERTY ───────────────────────────────
+let _exportFile='oferta.txt';
+
+function pkgExportText(kind){
+  const c=pkgCompute();
+  const clientSel=document.getElementById('pkg-client');
+  const cname=clientSel.value?clientSel.options[clientSel.selectedIndex].text:'(клієнт не обраний)';
+  const date=new Date().toLocaleDateString('uk-UA');
+  const sessionWho=pkgSessionSelf?'Кирило':'зовнішній фотограф';
+  if(kind==='claude'){
+    return `# Оферта PLAMA — повний SMM-пакет
+Клієнт: ${cname}
+Дата розрахунку: ${date}
+
+## Склад пакету (щомісяця)
+- Ведення SMM (виконує співробітниця): ${c.aniaHours} год/міс
+- Фото/відео сесії: ${c.sessionCount} × до 4 год — виконує ${sessionWho}
+- Графіка (поточна підтримка): до ${c.graphicHours} год/міс; понад ліміт — окрема фактура по ${c.graphicRate} zł/год
+- Координація + монтаж кращих reels: ${c.coordHours} год/міс
+- Транспорт/виїзди до клієнта: включено
+
+## Внутрішній розрахунок (НЕ для клієнта)
+- Аня: ${c.aniaHours} год × ${c.aniaRate} zł = ${Math.round(c.aniaCost)} zł
+- Сесії: ${c.sessionCount} × ${c.sessionCost} zł = ${Math.round(c.sessionTotal)} zł (${sessionWho})
+- Графіка: ${c.graphicHours} год × ${c.graphicRate} zł = ${Math.round(c.graphicCost)} zł
+- Координація: ${c.coordHours} год × ${c.kyryloRate} zł = ${Math.round(c.coordCost)} zł
+- Транспорт: ${Math.round(c.transportCost)} zł
+- Витрати разом: ${Math.round(c.totalCost)} zł
+- Націнка: ${c.markup}% → Ціна: ${Math.round(c.price)} zł нетто/міс (маржа від ціни ${Math.round(c.marginPct)}%)
+- Чистий прибуток: ${Math.round(c.profit)} zł/міс · Лишається Кирилу: ${Math.round(c.yourTake)} zł · Назовні: ${Math.round(c.externalOut)} zł
+
+## Завдання для Claude
+На основі цих даних підготуй продуктову оферту для клієнта ${cname}:
+розпиши цінність і деталі пакету, умови співпраці (ціна ${Math.round(c.price)} zł нетто/міс + VAT,
+понадлімітна графіка ${c.graphicRate} zł/год, сесії ${c.sessionCount}×/міс до 4 год).
+Внутрішні витрати, ставки і маржу в оферті НЕ розкривати.`;
+  }
+  return `# Техзавдання — SMM-пакет: ${cname}
+Дата: ${date}
+
+## Обсяг роботи на місяць
+- Ведення SMM: ${c.aniaHours} год/міс
+  (план контенту, монтаж каруселей/reels/TikTok з готового матеріалу, сторіз, публікації)
+- Фото/відео сесії: ${c.sessionCount} × до 4 год/міс — виконує ${sessionWho};
+  матеріал із сесій — база для контенту
+- Графіка (поточна підтримка): до ${c.graphicHours} год/міс
+  (банери, макети, сторіз-шаблони; понад ліміт — попередньо погодити)
+- Координація і монтаж кращих reels: Кирило, ${c.coordHours} год/міс
+
+## Примітки
+- Ліміти годин м'які — перевищення погоджуємо заздалегідь.
+- Облік годин ведемо в трекері PLAMA.`;
+}
+
+function openPkgExport(kind){
+  const clientSel=document.getElementById('pkg-client');
+  if(!clientSel.value){
+    clientSel.focus();
+    clientSel.style.borderColor='var(--red)';
+    setTimeout(()=>{clientSel.style.borderColor='';},2500);
+    showToast('Обери клієнта перед експортом оферти');
+    return;
+  }
+  const cname=clientSel.options[clientSel.selectedIndex].text.replace(/[^\p{L}\p{N}]+/gu,'-');
+  const d=today();
+  _exportFile=`oferta-${cname}-${d}-${kind==='claude'?'claude':'smm-brief'}.txt`;
+  document.getElementById('export-title').textContent=kind==='claude'?'Експорт для Claude (повна оферта)':'Експорт: техзавдання SMM (без цін)';
+  document.getElementById('export-text').value=pkgExportText(kind);
+  document.getElementById('export-modal').classList.add('open');
+}
+function closeExportModal(){document.getElementById('export-modal').classList.remove('open');}
+function copyPkgExport(){
+  const ta=document.getElementById('export-text');
+  const done=()=>showToast('Скопійовано ✓');
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(ta.value).then(done).catch(()=>{ta.select();document.execCommand('copy');done();});
+  } else {ta.select();document.execCommand('copy');done();}
+}
+function downloadPkgExport(){
+  const blob=new Blob([document.getElementById('export-text').value],{type:'text/plain;charset=utf-8'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=_exportFile;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
 async function savePakiet(){
   const clientSel=document.getElementById('pkg-client');
   const clientId=clientSel.value;
@@ -2647,11 +2751,17 @@ function renderDash(){
   const act=activePackages();
   const sum=k=>act.reduce((a,p)=>a+(p.results&&p.results[k]||0),0);
   const income=sum('price'),costs=sum('totalCost'),profit=sum('profit'),take=sum('yourTake'),out=sum('externalOut');
-  document.getElementById('dash-income').textContent=pkgFmt(income);
+  const ymNow=today().slice(0,7);
+  const otherIncome=entries.filter(e=>String(e.date).slice(0,7)===ymNow).reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+  const incomeTotal=income+otherIncome;
+  const profitTotal=incomeTotal-costs;
+  document.getElementById('dash-income-total').textContent=pkgFmt(incomeTotal);
+  document.getElementById('dash-income-pkg').textContent=pkgFmt(income);
+  document.getElementById('dash-income-other').textContent=pkgFmt(otherIncome);
   document.getElementById('dash-costs').textContent=pkgFmt(costs);
   const profitEl=document.getElementById('dash-profit');
-  profitEl.textContent=pkgFmt(profit);
-  profitEl.style.color=profit>=0?'var(--green)':'var(--red)';
+  profitEl.textContent=pkgFmt(profitTotal);
+  profitEl.style.color=profitTotal>=0?'var(--green)':'var(--red)';
   document.getElementById('dash-take').textContent=pkgFmt(take);
   document.getElementById('dash-out').textContent=pkgFmt(out);
 
