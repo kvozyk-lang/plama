@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v21</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v22</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -2697,7 +2697,9 @@ async function savePakiet(){
   if(pkgEditingId){
     const idx=packages.findIndex(p=>p.id===pkgEditingId);
     if(idx>=0){
-      packages[idx]={...packages[idx],date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+      // безпека: клієнта редагованого пакета НІКОЛИ не змінюємо тут — тільки clientId, який
+      // вже був у записі (select заблокований на час редагування, це друга лінія захисту)
+      packages[idx]={...packages[idx],date:today(),name,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
     }
     pkgEditingId=null;
     setPkgFormMode(false);
@@ -2746,8 +2748,16 @@ function cancelPkgEdit(){
 function setPkgFormMode(editing){
   const banner=document.getElementById('pkg-edit-banner');
   const saveBtn=document.getElementById('pkg-save-btn');
+  const clientSel=document.getElementById('pkg-client');
   if(banner)banner.style.display=editing?'flex':'none';
   if(saveBtn)saveBtn.textContent=editing?'✓ Зберегти зміни':'✓ Зберегти сценарій';
+  // Клієнт пакету не можна змінити під час редагування — інакше зміна клієнта
+  // при збереженні перепише existing запис на дані іншого клієнта (втрата даних!)
+  if(clientSel){
+    clientSel.disabled=!!editing;
+    clientSel.style.opacity=editing?'0.6':'';
+    clientSel.style.cursor=editing?'not-allowed':'';
+  }
 }
 
 async function deletePakiet(id){
