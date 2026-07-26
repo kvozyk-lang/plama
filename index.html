@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v18</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v19</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -1449,6 +1449,14 @@ function goToSubproj(clientId, subprojId){
 }
 
 // Перехід в «Облік» з фільтром по клієнту (з картки клієнта)
+function goToPakiet(clientId){
+  const btn=document.querySelector(`.nav-btn[onclick*="'pakiet'"]`);
+  if(btn)switchTab('pakiet',btn);
+  const sel=document.getElementById('pkg-client');
+  if(sel&&clientId)sel.value=clientId;
+  renderPakiet();
+}
+
 function goToInvoices(clientId){
   msState.inv=new Set(clientId?[clientId]:[]);
   const btn=document.querySelector(`.nav-btn[onclick*="'invoices'"]`);
@@ -1556,6 +1564,11 @@ function renderClients(){
         <span style="color:var(--text-3);white-space:nowrap">→ Облік</span>
       </div>`;
     }
+    const actPkg=activePackages().find(p=>p.clientId===c.id);
+    const pkgHtml=actPkg?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToPakiet('${c.id}')" title="Відкрити в SMM-пакеті">
+        <span>Пакет: <strong>${pkgFmt(actPkg.results.price)}/міс</strong> · прибуток <span style="color:${actPkg.results.profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(actPkg.results.profit)}</span> (${Math.round(actPkg.results.marginPct)}%)</span>
+        <span style="color:var(--text-3);white-space:nowrap">→ SMM-пакет</span>
+      </div>`:'';
     return`<div class="client-block">
       <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
         <span class="client-chevron">▶</span>
@@ -1569,6 +1582,7 @@ function renderClients(){
       </div>
       <div class="subprojects">
         ${subs||'<div style="font-size:13px;color:var(--text-3);padding:8px 0">Поки немає підпроєктів</div>'}
+        ${pkgHtml}
         ${invHtml}
         <div class="add-subproj">
           <input type="text" id="${inputId}" placeholder="Назва підпроєкту (напр. Травень 2026)" onkeydown="if(event.key==='Enter')addSubproject('${c.id}','${inputId}')">
