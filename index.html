@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v26</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v27</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -2894,7 +2894,7 @@ function renderDash(){
         ${act.map(p=>{
           const cname=pm[p.clientId]?pm[p.clientId].name:'?';
           const r=p.results,loss=r.profit<0;
-          return `<tr><td>${cname}</td><td class="num">${pkgFmt(r.price)}</td><td class="num" style="font-weight:400;color:var(--text-2)">${pkgFmt(r.totalCost)}</td><td class="num" style="color:${loss?'var(--red)':'var(--green)'}">${pkgFmt(r.profit)}</td><td class="num share">${Math.round(r.marginPct)}%</td></tr>`;
+          return `<tr style="cursor:pointer" onclick="goToPakiet('${p.clientId}')" title="Відкрити пакет ${cname}"><td>${cname} <span style="color:var(--text-3)">→</span></td><td class="num">${pkgFmt(r.price)}</td><td class="num" style="font-weight:400;color:var(--text-2)">${pkgFmt(r.totalCost)}</td><td class="num" style="color:${loss?'var(--red)':'var(--green)'}">${pkgFmt(r.profit)}</td><td class="num share">${Math.round(r.marginPct)}%</td></tr>`;
         }).join('')}
         <tr class="total"><td>Разом</td><td class="num">${pkgFmt(income)}</td><td class="num">${pkgFmt(costs)}</td><td class="num" style="color:${profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(profit)}</td><td class="num share">${income>0?Math.round(profit/income*100):0}%</td></tr>
       </tbody>
