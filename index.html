@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v20</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v21</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -362,13 +362,9 @@ input[type=range]:focus { box-shadow: none; }
     <div class="page-sub">Підтверджені пакети + фактичні дані по клієнтах</div>
 
     <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
-      <div class="metric"><div class="metric-label">Дохід разом / міс</div><div class="metric-val" id="dash-income-total">—</div><div class="metric-sub">пакети + інші роботи</div></div>
-      <div class="metric"><div class="metric-label">Витрати / міс</div><div class="metric-val" id="dash-costs">—</div><div class="metric-sub">з активних пакетів</div></div>
-      <div class="metric"><div class="metric-label">Прибуток / міс</div><div class="metric-val" id="dash-profit">—</div><div class="metric-sub">дохід − витрати</div></div>
-    </div>
-    <div class="metrics" style="grid-template-columns:1fr 1fr">
-      <div class="metric"><div class="metric-label">Дохід з пакетів / міс</div><div class="metric-val" id="dash-income-pkg">—</div><div class="metric-sub">активні підтверджені пакети</div></div>
-      <div class="metric"><div class="metric-label">Дохід з інших робіт</div><div class="metric-val" id="dash-income-other">—</div><div class="metric-sub">Журнал — поточний місяць</div></div>
+      <div class="metric"><div class="metric-label">Дохід з пакетів / міс</div><div class="metric-val" id="dash-income">—</div></div>
+      <div class="metric"><div class="metric-label">Витрати / міс</div><div class="metric-val" id="dash-costs">—</div></div>
+      <div class="metric"><div class="metric-label">Чистий прибуток / міс</div><div class="metric-val" id="dash-profit">—</div></div>
     </div>
     <div class="metrics" style="grid-template-columns:1fr 1fr">
       <div class="metric take"><div class="metric-label">Лишається тобі / міс</div><div class="metric-val" id="dash-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
@@ -606,6 +602,11 @@ input[type=range]:focus { box-shadow: none; }
     <div class="page-title">SMM-пакет</div>
     <div class="page-sub">Калькулятор вартості повного пакету (сесія + графіка + Аня + координація)</div>
 
+    <div id="pkg-edit-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.4);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
+      <span>Редагування збереженого пакета — зміни оновлять цей самий запис.</span>
+      <button class="btn btn-sm" onclick="cancelPkgEdit()">Скасувати редагування</button>
+    </div>
+
     <div class="card">
       <div class="card-label">Клієнт пакету</div>
       <div class="form-row form-2">
@@ -697,7 +698,7 @@ input[type=range]:focus { box-shadow: none; }
       <div style="background:var(--brand-pale);border-radius:var(--r-sm);padding:12px 14px;margin-top:16px;font-size:12.5px;color:var(--text-2);line-height:1.5" id="pkg-take-box"></div>
 
       <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="savePakiet()">✓ Зберегти сценарій</button>
+        <button class="btn btn-primary" id="pkg-save-btn" onclick="savePakiet()">✓ Зберегти сценарій</button>
         <button class="btn" onclick="openPkgExport('claude')">Експорт: для Claude</button>
         <button class="btn" onclick="openPkgExport('smm')">Експорт: техзавдання SMM</button>
       </div>
@@ -2670,6 +2671,8 @@ function downloadPkgExport(){
   setTimeout(()=>URL.revokeObjectURL(a.href),2000);
 }
 
+let pkgEditingId=null;
+
 async function savePakiet(){
   const clientSel=document.getElementById('pkg-client');
   const clientId=clientSel.value;
@@ -2687,19 +2690,69 @@ async function savePakiet(){
     name=cname+' — пакет '+now.toLocaleDateString('uk-UA');
   }
   const c=pkgCompute();
-  const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,
-    inputs:{aniaRate:c.aniaRate,aniaHours:c.aniaHours,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
-      kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,overageRate:c.overageRate,transportCost:c.transportCost},
-    results:{totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut}};
-  packages.unshift(pkg);
+  const inputs={aniaRate:c.aniaRate,aniaHours:c.aniaHours,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
+      graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,currentPrice:c.currentPrice,transportCost:c.transportCost};
+  const results={totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
+
+  if(pkgEditingId){
+    const idx=packages.findIndex(p=>p.id===pkgEditingId);
+    if(idx>=0){
+      packages[idx]={...packages[idx],date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+    }
+    pkgEditingId=null;
+    setPkgFormMode(false);
+  } else {
+    const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+    packages.unshift(pkg);
+  }
   renderPackagesList(); renderDash();
   setSyncStatus('loading','Збереження...');
-  try{await saveState();setSyncStatus('ok','Supabase');showToast('Сценарій збережено ✓');}
+  try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет збережено ✓');}
   catch(e){setSyncStatus('err','Помилка збереження');}
+}
+
+function editPakiet(id){
+  const p=packages.find(x=>x.id===id);
+  if(!p)return;
+  pkgEditingId=id;
+  const btn=document.querySelector(`.nav-btn[onclick*="'pakiet'"]`);
+  if(btn)switchTab('pakiet',btn);
+  document.getElementById('pkg-client').value=p.clientId||'';
+  document.getElementById('pkg-name').value=p.name||'';
+  const i=p.inputs||{};
+  document.getElementById('pkg-aniaRate').value=i.aniaRate??50;
+  document.getElementById('pkg-aniaHours').value=i.aniaHours??20;
+  document.getElementById('pkg-sessionCost').value=i.sessionCost??700;
+  document.getElementById('pkg-sessionCount').value=i.sessionCount??1;
+  document.getElementById('pkg-graphicHours').value=i.graphicHours??6;
+  document.getElementById('pkg-graphicRate').value=i.graphicRate??150;
+  document.getElementById('pkg-kyryloRate').value=i.kyryloRate??200;
+  document.getElementById('pkg-coordHours').value=i.coordHours??4;
+  document.getElementById('pkg-markup').value=i.markup??50;
+  document.getElementById('pkg-currentPrice').value=i.currentPrice??3500;
+  document.getElementById('pkg-transport').value=i.transportCost??100;
+  pkgSessionSelf=p.sessionSelf!==false;
+  setPkgFormMode(true);
+  renderPakiet();
+  document.getElementById('page-pakiet').scrollIntoView({block:'start'});
+}
+
+function cancelPkgEdit(){
+  pkgEditingId=null;
+  document.getElementById('pkg-name').value='';
+  setPkgFormMode(false);
+}
+
+function setPkgFormMode(editing){
+  const banner=document.getElementById('pkg-edit-banner');
+  const saveBtn=document.getElementById('pkg-save-btn');
+  if(banner)banner.style.display=editing?'flex':'none';
+  if(saveBtn)saveBtn.textContent=editing?'✓ Зберегти зміни':'✓ Зберегти сценарій';
 }
 
 async function deletePakiet(id){
   packages=packages.filter(p=>p.id!==id);
+  if(pkgEditingId===id)cancelPkgEdit();
   renderPackagesList(); renderDash();
   setSyncStatus('loading','Видалення...');
   try{await saveState();setSyncStatus('ok','Supabase');}
@@ -2731,7 +2784,10 @@ function renderPackagesList(){
           <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name} ${isActive?'<span style="font-size:11px;font-weight:600;color:var(--green);background:rgba(74,222,128,0.12);border-radius:100px;padding:2px 8px;vertical-align:middle">активний</span>':''}</div>
           <div style="font-size:12px;color:var(--text-2);margin-top:2px">${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
         </div>
-        <button class="btn-icon" onclick="deletePakiet('${p.id}')">✕</button>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn-icon" title="Редагувати" onclick="editPakiet('${p.id}')">✎</button>
+          <button class="btn-icon" onclick="deletePakiet('${p.id}')">✕</button>
+        </div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
         <span>Ціна</span><span>${pkgFmt(p.results.price)}</span>
@@ -2751,17 +2807,11 @@ function renderDash(){
   const act=activePackages();
   const sum=k=>act.reduce((a,p)=>a+(p.results&&p.results[k]||0),0);
   const income=sum('price'),costs=sum('totalCost'),profit=sum('profit'),take=sum('yourTake'),out=sum('externalOut');
-  const ymNow=today().slice(0,7);
-  const otherIncome=entries.filter(e=>String(e.date).slice(0,7)===ymNow).reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
-  const incomeTotal=income+otherIncome;
-  const profitTotal=incomeTotal-costs;
-  document.getElementById('dash-income-total').textContent=pkgFmt(incomeTotal);
-  document.getElementById('dash-income-pkg').textContent=pkgFmt(income);
-  document.getElementById('dash-income-other').textContent=pkgFmt(otherIncome);
+  document.getElementById('dash-income').textContent=pkgFmt(income);
   document.getElementById('dash-costs').textContent=pkgFmt(costs);
   const profitEl=document.getElementById('dash-profit');
-  profitEl.textContent=pkgFmt(profitTotal);
-  profitEl.style.color=profitTotal>=0?'var(--green)':'var(--red)';
+  profitEl.textContent=pkgFmt(profit);
+  profitEl.style.color=profit>=0?'var(--green)':'var(--red)';
   document.getElementById('dash-take').textContent=pkgFmt(take);
   document.getElementById('dash-out').textContent=pkgFmt(out);
 
