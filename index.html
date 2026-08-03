@@ -341,7 +341,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v32</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v33</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -723,7 +723,7 @@ input[type=range]:focus { box-shadow: none; }
     <input type="hidden" id="pe-inv-id">
     <input type="hidden" id="pe-pay-id">
     <div class="form-row form-2">
-      <div class="field"><label>Сума (zł)</label><input type="number" id="pe-amount" min="0" step="1"></div>
+      <div class="field"><label>Сума (zł)</label><input type="number" id="pe-amount" min="0" step="0.01" inputmode="decimal"></div>
       <div class="field"><label>Дата</label><input type="date" id="pe-date"></div>
     </div>
     <div class="form-row"><div class="field"><label>Нотатка</label><input type="text" id="pe-note" placeholder="необов'язково"></div></div>
@@ -741,7 +741,10 @@ input[type=range]:focus { box-shadow: none; }
     <input type="hidden" id="pay-inv-id">
     <div id="pay-inv-info" style="background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--brand)"></div>
     <div class="form-row form-2">
-      <div class="field"><label>Сума оплати (zł)</label><input type="number" id="pay-amount" min="0" step="1" placeholder="0" oninput="updatePayRemaining()"></div>
+      <div class="field"><label>Сума оплати (zł)</label>
+        <input type="number" id="pay-amount" min="0" step="0.01" inputmode="decimal" placeholder="0" oninput="updatePayRemaining()">
+        <button type="button" class="btn btn-sm" id="pay-full-btn" onclick="payFullAmount()" style="margin-top:6px;width:100%">Уся сума</button>
+      </div>
       <div class="field"><label>Дата оплати</label><input type="date" id="pay-date"></div>
     </div>
     <div id="pay-remaining" style="font-size:13px;color:var(--text-2);margin-bottom:4px"></div>
@@ -907,6 +910,10 @@ let clients=[], entries=[];
 let timerInt=null, timerStart=null, timerRunning=false, timerAccum=0;
 
 const today=()=>new Date().toISOString().slice(0,10);
+// Гроші округлюємо до копійки — інакше 4489.5-2000-2489.5 може дати 0.00000001
+// і фактура назавжди лишиться «не повністю оплаченою».
+const money2=n=>Math.round((Number(n)||0)*100)/100;
+const PAID_EPS=0.005; // пів копійки — похибка округлення, а не борг
 const fmtHrs=h=>h%1===0?h+'h':parseFloat(h.toFixed(2))+'h';
 const uid=()=>Date.now()+Math.random().toString(36).slice(2,6);
 const fmtTime=s=>[Math.floor(s/3600),Math.floor((s%3600)/60),s%60].map(n=>String(n).padStart(2,'0')).join(':');
@@ -1986,8 +1993,8 @@ async function savePayEdit(){
   const note=document.getElementById('pe-note').value;
   const inv=invoices.find(i=>i.id===invId); if(!inv)return;
   const pIdx=(inv.payments||[]).findIndex(p=>p.id===payId); if(pIdx===-1)return;
-  inv.payments[pIdx]={...inv.payments[pIdx],amount,date,note};
-  inv.paidTotal=inv.payments.reduce((a,p)=>a+p.amount,0);
+  inv.payments[pIdx]={...inv.payments[pIdx],amount:money2(amount),date,note};
+  inv.paidTotal=money2(inv.payments.reduce((a,p)=>a+p.amount,0));
   closePayEditModal(); renderInvoices();
   setSyncStatus('loading','Збереження...');
   try{
@@ -2003,11 +2010,21 @@ function addPayment(invId){
   document.getElementById('pay-amount').value='';
   document.getElementById('pay-note').value='';
   const paid=inv.paidTotal||0;
-  const remaining=inv.amount-paid;
+  const remaining=money2(inv.amount-paid);
   document.getElementById('pay-inv-info').innerHTML=
-    `<strong>${inv.name}</strong><br>Виставлено: ${inv.amount} zł &nbsp;·&nbsp; Оплачено: ${paid} zł &nbsp;·&nbsp; Залишок: <strong>${remaining} zł</strong>`;
+    `<strong>${inv.name}</strong><br>Виставлено: ${money2(inv.amount)} zł &nbsp;·&nbsp; Оплачено: ${money2(paid)} zł &nbsp;·&nbsp; Залишок: <strong>${remaining} zł</strong>`;
+  const fullBtn=document.getElementById('pay-full-btn');
+  if(fullBtn)fullBtn.textContent=`Уся сума — ${remaining} zł`;
   document.getElementById('pay-remaining').textContent='';
   document.getElementById('payment-modal').classList.add('open');
+}
+
+// Одна кнопка замість ручного вписування суми до копійки.
+function payFullAmount(){
+  const inv=invoices.find(i=>i.id===document.getElementById('pay-inv-id').value);
+  if(!inv)return;
+  document.getElementById('pay-amount').value=money2(inv.amount-(inv.paidTotal||0));
+  updatePayRemaining();
 }
 
 function updatePayRemaining(){
@@ -2016,11 +2033,11 @@ function updatePayRemaining(){
   const amount=parseFloat(document.getElementById('pay-amount').value)||0;
   const paid=inv.paidTotal||0;
   const afterPay=paid+amount;
-  const remaining=inv.amount-afterPay;
+  const remaining=money2(inv.amount-afterPay);
   const el=document.getElementById('pay-remaining');
   if(amount>0){
-    el.textContent=remaining>0?`Залишок після оплати: ${remaining} zł`:`Фактура буде повністю оплачена`;
-    el.style.color=remaining>0?'var(--text-2)':'var(--green)';
+    el.textContent=remaining>PAID_EPS?`Залишок після оплати: ${remaining} zł`:`Фактура буде повністю оплачена`;
+    el.style.color=remaining>PAID_EPS?'var(--text-2)':'var(--green)';
   } else {
     el.textContent='';
   }
@@ -2038,8 +2055,8 @@ async function confirmPayment(){
   const note=document.getElementById('pay-note').value;
   const inv=invoices.find(i=>i.id===invId);if(!inv)return;
   if(!inv.payments)inv.payments=[];
-  inv.payments.push({id:uid(),amount,date,note});
-  inv.paidTotal=inv.payments.reduce((a,p)=>a+p.amount,0);
+  inv.payments.push({id:uid(),amount:money2(amount),date,note});
+  inv.paidTotal=money2(inv.payments.reduce((a,p)=>a+p.amount,0));
   closePaymentModal(); renderInvoices();
   setSyncStatus('loading','Збереження...');
   try{
@@ -2051,7 +2068,7 @@ async function confirmPayment(){
 function deletePayment(invId,payId){
   const inv=invoices.find(i=>i.id===invId);if(!inv)return;
   inv.payments=(inv.payments||[]).filter(p=>p.id!==payId);
-  inv.paidTotal=inv.payments.reduce((a,p)=>a+p.amount,0);
+  inv.paidTotal=money2(inv.payments.reduce((a,p)=>a+p.amount,0));
   renderInvoices();
   setSyncStatus('loading','Збереження...');
   gasPost({action:'updateInvoice',id:invId,invoice:JSON.stringify(inv)})
@@ -2115,9 +2132,9 @@ function renderInvoices(){
     const vat=inv.vat||parseFloat((netto*0.23).toFixed(2));
     const brutto=inv.amount||parseFloat((netto*1.23).toFixed(2));
     const paid=inv.paidTotal||0;
-    const remaining=brutto-paid;
-    const isOverdue=inv.dueDate&&inv.dueDate<todayStr&&remaining>0;
-    const isPaid=remaining<=0;
+    const remaining=money2(brutto-paid);
+    const isOverdue=inv.dueDate&&inv.dueDate<todayStr&&remaining>PAID_EPS;
+    const isPaid=remaining<=PAID_EPS;
     const daysLeft=inv.dueDate?Math.ceil((new Date(inv.dueDate)-new Date(todayStr))/86400000):null;
 
     let statusHtml='';
