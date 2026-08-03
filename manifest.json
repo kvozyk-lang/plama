@@ -1,6 +1,6 @@
 {
-  "name": "PLAMA — Трекер годин",
-  "short_name": "PLAMA",
+  "name": "PLAMA · Трекер годин",
+  "short_name": "Трекер",
   "description": "Трекер робочих годин для PLAMA studio",
   "start_url": "/plama/",
   "display": "standalone",
