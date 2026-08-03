@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v28</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v30</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -636,9 +636,8 @@ input[type=range]:focus { box-shadow: none; }
 
     <div class="card">
       <div class="card-label">Аня — виконання SMM</div>
-      <div class="form-row form-2">
-        <div class="field"><label>Ставка (zł/год): <b id="pkg-v-aniaRate">50</b></label><input type="range" id="pkg-aniaRate" min="20" max="120" step="5" value="50" oninput="renderPakiet()"></div>
-        <div class="field"><label>Годин/міс на клієнта: <b id="pkg-v-aniaHours">20</b></label><input type="range" id="pkg-aniaHours" min="5" max="40" step="1" value="20" oninput="renderPakiet()"></div>
+      <div class="form-row">
+        <div class="field"><label>Ціна за клієнта (zł/міс)</label><input type="number" id="pkg-aniaCost" min="0" step="50" value="1000" inputmode="numeric" placeholder="напр. 1000" oninput="renderPakiet()"></div>
       </div>
     </div>
 
@@ -2497,7 +2496,7 @@ function pkgVal(id){const el=document.getElementById(id);return el?parseFloat(el
 function pkgFmt(n){return Math.round(n).toLocaleString('uk-UA')+' zł';}
 
 function pkgCompute(){
-  const aniaRate=pkgVal('pkg-aniaRate'), aniaHours=pkgVal('pkg-aniaHours');
+  const aniaCost=pkgVal('pkg-aniaCost');
   const sessionCost=pkgVal('pkg-sessionCost'), sessionCount=pkgVal('pkg-sessionCount');
   const sessionTotal=sessionCost*sessionCount;
   const graphicHours=pkgVal('pkg-graphicHours');
@@ -2507,7 +2506,6 @@ function pkgCompute(){
   const markup=pkgVal('pkg-markup'), currentPrice=pkgVal('pkg-currentPrice');
   const transportCost=pkgVal('pkg-transport');
 
-  const aniaCost=aniaRate*aniaHours;
   const graphicCost=graphicHours*graphicRate;
   const coordCost=coordHours*kyryloRate;
   const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
@@ -2517,13 +2515,11 @@ function pkgCompute(){
   const yourTake=coordCost+(pkgSessionSelf?sessionTotal:0)+(pkgGraphicSelf?graphicCost:0)+profit;
   const externalOut=aniaCost+(pkgSessionSelf?0:sessionTotal)+(pkgGraphicSelf?0:graphicCost)+transportCost;
 
-  return {aniaRate,aniaHours,sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,markup,currentPrice,overageRate,transportCost,
+  return {sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,markup,currentPrice,overageRate,transportCost,
     aniaCost,graphicCost,coordCost,totalCost,price,profit,marginPct,yourTake,externalOut};
 }
 
 function renderPakiet(){
-  document.getElementById('pkg-v-aniaRate').textContent=pkgVal('pkg-aniaRate');
-  document.getElementById('pkg-v-aniaHours').textContent=pkgVal('pkg-aniaHours');
   document.getElementById('pkg-v-sessionCost').textContent=pkgVal('pkg-sessionCost');
   document.getElementById('pkg-v-sessionCount').textContent=pkgVal('pkg-sessionCount');
   document.getElementById('pkg-v-graphicHours').textContent=pkgVal('pkg-graphicHours');
@@ -2622,13 +2618,13 @@ let _exportFile='oferta.txt';
 function pkgCalcFromInputs(p){
   const i=p.inputs||{};
   const sessionSelf=p.sessionSelf!==false;
-  const aniaRate=i.aniaRate||0, aniaHours=i.aniaHours||0;
+  // aniaCost — нова модель (фікс. ціна). Старі пакети зберігали ставку × години — рахуємо як раніше.
+  const aniaCost=i.aniaCost??((i.aniaRate||0)*(i.aniaHours||0));
   const sessionCost=i.sessionCost||0, sessionCount=i.sessionCount??1;
   const sessionTotal=sessionCost*sessionCount;
   const graphicHours=i.graphicHours||0, graphicRate=i.graphicRate||150;
   const kyryloRate=i.kyryloRate||0, coordHours=i.coordHours||0;
   const markup=i.markup||0, currentPrice=i.currentPrice||0, transportCost=i.transportCost||0;
-  const aniaCost=aniaRate*aniaHours;
   const graphicCost=graphicHours*graphicRate;
   const coordCost=coordHours*kyryloRate;
   const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
@@ -2637,7 +2633,7 @@ function pkgCalcFromInputs(p){
   const marginPct=price>0?(profit/price)*100:0;
   const yourTake=coordCost+(sessionSelf?sessionTotal:0)+graphicCost+profit;
   const externalOut=aniaCost+(sessionSelf?0:sessionTotal)+transportCost;
-  return {aniaRate,aniaHours,sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,
+  return {sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,
     markup,currentPrice,transportCost,aniaCost,graphicCost,coordCost,totalCost,price,profit,marginPct,yourTake,externalOut,sessionSelf};
 }
 
@@ -2657,14 +2653,14 @@ function pkgExportTextFrom(kind,c,cname,sessionSelf){
 Дата розрахунку: ${date}
 
 ## Склад пакету (щомісяця)
-- Ведення SMM (виконує співробітниця): ${c.aniaHours} год/міс
+- Ведення SMM (виконує співробітниця): повне ведення профілю
 - Фото/відео сесії: ${c.sessionCount} × до 4 год — виконує ${sessionWho}
 - Графіка (поточна підтримка): до ${c.graphicHours} год/міс; понад ліміт — окрема фактура по ${c.graphicRate} zł/год
 - Координація + монтаж кращих reels: ${c.coordHours} год/міс
 - Транспорт/виїзди до клієнта: включено
 
 ## Внутрішній розрахунок (НЕ для клієнта)
-- Аня: ${c.aniaHours} год × ${c.aniaRate} zł = ${Math.round(c.aniaCost)} zł
+- Аня: ${Math.round(c.aniaCost)} zł (фікс. ціна/міс)
 - Сесії: ${c.sessionCount} × ${c.sessionCost} zł = ${Math.round(c.sessionTotal)} zł (${sessionWho})
 - Графіка: ${c.graphicHours} год × ${c.graphicRate} zł = ${Math.round(c.graphicCost)} zł
 - Координація: ${c.coordHours} год × ${c.kyryloRate} zł = ${Math.round(c.coordCost)} zł
@@ -2683,7 +2679,7 @@ function pkgExportTextFrom(kind,c,cname,sessionSelf){
 Дата: ${date}
 
 ## Обсяг роботи на місяць
-- Ведення SMM: ${c.aniaHours} год/міс
+- Ведення SMM: повне ведення профілю
   (план контенту, монтаж каруселей/reels/TikTok з готового матеріалу, сторіз, публікації)
 - Фото/відео сесії: ${c.sessionCount} × до 4 год/міс — виконує ${sessionWho};
   матеріал із сесій — база для контенту
@@ -2764,7 +2760,7 @@ async function savePakiet(){
     name=cname+' — пакет '+now.toLocaleDateString('uk-UA');
   }
   const c=pkgCompute();
-  const inputs={aniaRate:c.aniaRate,aniaHours:c.aniaHours,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
+  const inputs={aniaCost:c.aniaCost,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
       graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,currentPrice:c.currentPrice,transportCost:c.transportCost};
   const results={totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
 
@@ -2797,8 +2793,7 @@ function editPakiet(id){
   document.getElementById('pkg-client').value=p.clientId||'';
   document.getElementById('pkg-name').value=p.name||'';
   const i=p.inputs||{};
-  document.getElementById('pkg-aniaRate').value=i.aniaRate??50;
-  document.getElementById('pkg-aniaHours').value=i.aniaHours??20;
+  document.getElementById('pkg-aniaCost').value=i.aniaCost??(((i.aniaRate||0)*(i.aniaHours||0))||1000);
   document.getElementById('pkg-sessionCost').value=i.sessionCost??700;
   document.getElementById('pkg-sessionCount').value=i.sessionCount??1;
   document.getElementById('pkg-graphicHours').value=i.graphicHours??6;
@@ -2906,7 +2901,7 @@ function pkgDetailHtml(p){
   const c=pkgCalcFromInputs(p);
   const sessionWho=c.sessionSelf?'ти':'фотограф';
   const rows=[
-    ['Аня — виконання SMM',`${c.aniaHours} год × ${c.aniaRate} zł`,c.aniaCost],
+    ['Аня — виконання SMM','фікс. ціна / міс',c.aniaCost],
     ['Фото/відео сесії',`${c.sessionCount} × ${c.sessionCost} zł (${sessionWho})`,c.sessionTotal],
     ['Графіка',`${c.graphicHours} год × ${c.graphicRate} zł`,c.graphicCost],
     ['Координація + монтаж',`${c.coordHours} год × ${c.kyryloRate} zł`,c.coordCost],
@@ -3007,7 +3002,7 @@ function renderDash(){
     const catTotals={ania:0,sesja:0,grafika:0,koord:0,transport:0};
     act.forEach(p=>{
       const i=p.inputs||{};
-      catTotals.ania+=(i.aniaRate||0)*(i.aniaHours||0);
+      catTotals.ania+=i.aniaCost??((i.aniaRate||0)*(i.aniaHours||0));
       catTotals.sesja+=(i.sessionCost||0)*(i.sessionCount??1);
       catTotals.grafika+=(i.graphicHours||0)*(i.graphicRate||0);
       catTotals.koord+=(i.coordHours||0)*(i.kyryloRate||0);
