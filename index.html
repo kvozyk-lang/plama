@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v30</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v31</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -621,7 +621,7 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card-label" id="pkg-calc-anchor" style="margin:28px 0 12px">Калькулятор нового пакету</div>
 
     <div id="pkg-edit-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.4);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
-      <span>Редагування збереженого пакета — зміни оновлять цей самий запис.</span>
+      <span>Редагування збереженого пакета — зміни зберігаються автоматично. «Скасувати» поверне версію до початку редагування.</span>
       <button class="btn btn-sm" onclick="cancelPkgEdit()">Скасувати редагування</button>
     </div>
 
@@ -629,7 +629,7 @@ input[type=range]:focus { box-shadow: none; }
       <div class="card-label">Клієнт пакету</div>
       <div class="form-row form-2">
         <div class="field"><label>Клієнт (обов'язково)</label><select id="pkg-client" onchange="renderPakiet()"><option value="">— обери клієнта —</option></select></div>
-        <div class="field"><label>Назва сценарію (необов'язково)</label><input type="text" id="pkg-name" placeholder="напр. NARRO — повний пакет"></div>
+        <div class="field"><label>Назва сценарію (необов'язково)</label><input type="text" id="pkg-name" placeholder="напр. NARRO — повний пакет" oninput="pkgInput()"></div>
       </div>
       <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Збережений сценарій = підтверджений пакет для цього клієнта. Найновіший пакет клієнта рахується як активний і потрапляє в Дашборд.</div>
     </div>
@@ -637,15 +637,15 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Аня — виконання SMM</div>
       <div class="form-row">
-        <div class="field"><label>Ціна за клієнта (zł/міс)</label><input type="number" id="pkg-aniaCost" min="0" step="50" value="1000" inputmode="numeric" placeholder="напр. 1000" oninput="renderPakiet()"></div>
+        <div class="field"><label>Ціна за клієнта (zł/міс)</label><input type="number" id="pkg-aniaCost" min="0" step="50" value="1000" inputmode="numeric" placeholder="напр. 1000" oninput="pkgInput()"></div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-label">Сесії (1 сесія = до 4г)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Сесій на місяць: <b id="pkg-v-sessionCount">1</b></label><input type="range" id="pkg-sessionCount" min="0" max="4" step="1" value="1" oninput="renderPakiet()"></div>
-        <div class="field"><label>Вартість однієї сесії (zł): <b id="pkg-v-sessionCost">700</b></label><input type="range" id="pkg-sessionCost" min="300" max="1500" step="50" value="700" oninput="renderPakiet()"></div>
+        <div class="field"><label>Сесій на місяць: <b id="pkg-v-sessionCount">1</b></label><input type="range" id="pkg-sessionCount" min="0" max="4" step="1" value="1" oninput="pkgInput()"></div>
+        <div class="field"><label>Вартість однієї сесії (zł): <b id="pkg-v-sessionCost">700</b></label><input type="range" id="pkg-sessionCost" min="300" max="1500" step="50" value="700" oninput="pkgInput()"></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Хто робить?</label>
@@ -660,8 +660,8 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Графіка (поточна підтримка)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Годин/міс (м'який ліміт): <b id="pkg-v-graphicHours">6</b></label><input type="range" id="pkg-graphicHours" min="0" max="15" step="1" value="6" oninput="renderPakiet()"></div>
-        <div class="field"><label>Ставка (zł/год): <b id="pkg-v-graphicRate">150</b></label><input type="range" id="pkg-graphicRate" min="80" max="300" step="10" value="150" oninput="renderPakiet()"></div>
+        <div class="field"><label>Годин/міс (м'який ліміт): <b id="pkg-v-graphicHours">6</b></label><input type="range" id="pkg-graphicHours" min="0" max="15" step="1" value="6" oninput="pkgInput()"></div>
+        <div class="field"><label>Ставка (zł/год): <b id="pkg-v-graphicRate">150</b></label><input type="range" id="pkg-graphicRate" min="80" max="300" step="10" value="150" oninput="pkgInput()"></div>
       </div>
       <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Та сама ставка діє для годин понад ліміт — вони рахуються окремою фактурою.</div>
     </div>
@@ -669,23 +669,23 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Твоя координація + монтаж кращих reels</div>
       <div class="form-row form-2">
-        <div class="field"><label>Твоя ставка (zł/год): <b id="pkg-v-kyryloRate">200</b></label><input type="range" id="pkg-kyryloRate" min="100" max="400" step="10" value="200" oninput="renderPakiet()"></div>
-        <div class="field"><label>Годин/міс на клієнта: <b id="pkg-v-coordHours">4</b></label><input type="range" id="pkg-coordHours" min="0" max="15" step="1" value="4" oninput="renderPakiet()"></div>
+        <div class="field"><label>Твоя ставка (zł/год): <b id="pkg-v-kyryloRate">200</b></label><input type="range" id="pkg-kyryloRate" min="100" max="400" step="10" value="200" oninput="pkgInput()"></div>
+        <div class="field"><label>Годин/міс на клієнта: <b id="pkg-v-coordHours">4</b></label><input type="range" id="pkg-coordHours" min="0" max="15" step="1" value="4" oninput="pkgInput()"></div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-label">Транспорт (виїзди до клієнта)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Очікувані витрати (zł/міс): <b id="pkg-v-transport">100</b></label><input type="range" id="pkg-transport" min="0" max="600" step="20" value="100" oninput="renderPakiet()"></div>
+        <div class="field"><label>Очікувані витрати (zł/міс): <b id="pkg-v-transport">100</b></label><input type="range" id="pkg-transport" min="0" max="600" step="20" value="100" oninput="pkgInput()"></div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-label">Націнка і порівняння</div>
       <div class="form-row form-2">
-        <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="renderPakiet()"></div>
-        <div class="field"><label>Поточна ціна (для порівняння): <b id="pkg-v-currentPrice">3500 zł</b></label><input type="range" id="pkg-currentPrice" min="2000" max="6000" step="100" value="3500" oninput="renderPakiet()"></div>
+        <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="pkgInput()"></div>
+        <div class="field"><label>Поточна ціна (для порівняння): <b id="pkg-v-currentPrice">3500 zł</b></label><input type="range" id="pkg-currentPrice" min="2000" max="6000" step="100" value="3500" oninput="pkgInput()"></div>
       </div>
       <div id="pkg-markup-note" style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5"></div>
     </div>
@@ -2490,7 +2490,7 @@ function refreshPkgSelects(){
   if(el)el.innerHTML=cOpts;
 }
 
-function pkgSetSessionSelf(v){pkgSessionSelf=v;renderPakiet();}
+function pkgSetSessionSelf(v){pkgSessionSelf=v;pkgInput();}
 
 function pkgVal(id){const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;}
 function pkgFmt(n){return Math.round(n).toLocaleString('uk-UA')+' zł';}
@@ -2736,6 +2736,48 @@ function downloadPkgExport(){
 }
 
 let pkgEditingId=null;
+let pkgEditBackup=null;      // копія пакета ДО редагування — для «Скасувати»
+let pkgEditArchived=false;   // чи вже зроблено міграцію в історію в цій сесії редагування
+let pkgAutoSaveTimer=null;
+
+// Викликається при КОЖНІЙ зміні у формі калькулятора.
+function pkgInput(){
+  renderPakiet();
+  pkgAutoSaveQueue();
+}
+
+// Автозбереження — ЛИШЕ під час редагування підтвердженого пакета.
+// Новий пакет і далі створюється кнопкою (він потребує обраного клієнта).
+function pkgAutoSaveQueue(){
+  if(!pkgEditingId)return;
+  clearTimeout(pkgAutoSaveTimer);
+  setSyncStatus('loading','Збереження...');
+  pkgAutoSaveTimer=setTimeout(pkgAutoSaveRun,900);
+}
+
+async function pkgAutoSaveRun(){
+  if(!pkgEditingId)return;
+  const idx=packages.findIndex(p=>p.id===pkgEditingId);
+  if(idx<0)return;
+  pkgApplyFormTo(idx);
+  renderPackagesList(); renderPkgHistory(); renderDash();
+  try{await saveState();setSyncStatus('ok','Supabase');}
+  catch(e){setSyncStatus('err','Помилка збереження');}
+}
+
+// Переносить поточний стан форми в пакет packages[idx].
+// Міграція в історію — ОДНА на всю сесію редагування, інакше історія
+// забилася б десятками проміжних версій і витіснила справжні старі.
+function pkgApplyFormTo(idx){
+  if(!pkgEditArchived){pkgArchive(packages[idx],'edited');pkgEditArchived=true;}
+  const c=pkgCompute();
+  const inputs={aniaCost:c.aniaCost,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
+      graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,currentPrice:c.currentPrice,transportCost:c.transportCost};
+  const results={totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
+  const name=document.getElementById('pkg-name').value.trim()||packages[idx].name;
+  // клієнта НЕ чіпаємо — select заблокований під час редагування
+  packages[idx]={...packages[idx],date:today(),name,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+}
 
 function pkgArchive(pkg,reason){
   if(!pkg)return;
@@ -2765,14 +2807,15 @@ async function savePakiet(){
   const results={totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
 
   if(pkgEditingId){
+    clearTimeout(pkgAutoSaveTimer); // скидаємо відкладене автозбереження — пишемо зараз
     const idx=packages.findIndex(p=>p.id===pkgEditingId);
     if(idx>=0){
-      pkgArchive(packages[idx],'edited'); // зберігаємо версію ДО перезапису — можна відновити
       // безпека: клієнта редагованого пакета НІКОЛИ не змінюємо тут — тільки clientId, який
-      // вже був у записі (select заблокований на час редагування, це друга лінія захисту)
-      packages[idx]={...packages[idx],date:today(),name,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+      // вже був у записі (select заблокований на час редагування, це друга лінія захисту).
+      // pkgApplyFormTo сам подбає про одну міграцію в історію на сесію редагування.
+      pkgApplyFormTo(idx);
     }
-    pkgEditingId=null;
+    pkgEditingId=null; pkgEditBackup=null; pkgEditArchived=false;
     setPkgFormMode(false);
   } else {
     const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
@@ -2788,6 +2831,9 @@ function editPakiet(id){
   const p=packages.find(x=>x.id===id);
   if(!p)return;
   pkgEditingId=id;
+  pkgEditBackup=JSON.parse(JSON.stringify(p)); // для «Скасувати» — автозбереження вже перезапише запис
+  pkgEditArchived=false;
+  clearTimeout(pkgAutoSaveTimer);
   const btn=document.querySelector(`.nav-btn[onclick*="'pakiet'"]`);
   if(btn)switchTab('pakiet',btn);
   document.getElementById('pkg-client').value=p.clientId||'';
@@ -2810,10 +2856,24 @@ function editPakiet(id){
   if(anchor)anchor.scrollIntoView({block:'start',behavior:'smooth'});
 }
 
-function cancelPkgEdit(){
-  pkgEditingId=null;
+async function cancelPkgEdit(){
+  clearTimeout(pkgAutoSaveTimer);
+  // Зміни вже збережені автоматично, тому «Скасувати» = справжнє відкочування
+  // до копії, знятої на початку редагування.
+  const restore=pkgEditBackup, id=pkgEditingId;
+  pkgEditingId=null; pkgEditBackup=null; pkgEditArchived=false;
   document.getElementById('pkg-name').value='';
   setPkgFormMode(false);
+  if(restore&&id){
+    const idx=packages.findIndex(p=>p.id===id);
+    if(idx>=0){
+      packages[idx]=restore;
+      renderPackagesList(); renderPkgHistory(); renderDash();
+      setSyncStatus('loading','Збереження...');
+      try{await saveState();setSyncStatus('ok','Supabase');showToast('Зміни скасовано ✓');}
+      catch(e){setSyncStatus('err','Помилка збереження');}
+    }
+  }
 }
 
 function setPkgFormMode(editing){
@@ -2822,7 +2882,8 @@ function setPkgFormMode(editing){
   const clientSel=document.getElementById('pkg-client');
   const anchor=document.getElementById('pkg-calc-anchor');
   if(banner)banner.style.display=editing?'flex':'none';
-  if(saveBtn)saveBtn.textContent=editing?'✓ Зберегти зміни':'✓ Зберегти сценарій';
+  // У режимі редагування зміни зберігаються самі — кнопка лише закриває редагування.
+  if(saveBtn)saveBtn.textContent=editing?'✓ Готово':'✓ Зберегти сценарій';
   if(anchor)anchor.textContent=editing?'Редагування пакета':'Калькулятор нового пакету';
   // Клієнт пакету не можна змінити під час редагування — інакше зміна клієнта
   // при збереженні перепише existing запис на дані іншого клієнта (втрата даних!)
