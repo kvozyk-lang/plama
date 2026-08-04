@@ -317,10 +317,6 @@ input[type=range]:focus { box-shadow: none; }
 
 <div class="topbar">
   <div class="nav-tabs">
-    <button class="nav-btn" onclick="switchTab('dash',this)">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
-      Дашборд
-    </button>
     <button class="nav-btn active" onclick="switchTab('track',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
       Записати
@@ -343,49 +339,18 @@ input[type=range]:focus { box-shadow: none; }
     </button>
     <button class="nav-btn" onclick="switchTab('pakiet',this)">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22.08V12"/></svg>
-      Пакет
+      Пакети
     </button>
   </div>
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v38</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v39</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
 
 <div class="content">
-
-  <!-- DASHBOARD -->
-  <div id="page-dash" class="page">
-    <div class="page-title">Дашборд Пакетів</div>
-    <div class="page-sub">Підтверджені пакети + фактичні дані по клієнтах</div>
-
-    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
-      <div class="metric"><div class="metric-label">Дохід з пакетів / міс</div><div class="metric-val" id="dash-income">—</div></div>
-      <div class="metric"><div class="metric-label">Витрати / міс</div><div class="metric-val" id="dash-costs">—</div></div>
-      <div class="metric"><div class="metric-label">Чистий прибуток / міс</div><div class="metric-val" id="dash-profit">—</div></div>
-    </div>
-    <div class="metrics" style="grid-template-columns:1fr 1fr">
-      <div class="metric take"><div class="metric-label">Лишається тобі / міс</div><div class="metric-val" id="dash-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
-      <div class="metric"><div class="metric-label">Віддаєш іншим / міс</div><div class="metric-val" id="dash-out">—</div><div class="metric-sub">Аня, підрядники, транспорт</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">Підтверджені пакети по клієнтах</div>
-      <div id="dash-packages"><div class="empty">Немає підтверджених пакетів</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">На що йдуть витрати (по всіх пакетах разом)</div>
-      <div id="dash-cost-breakdown"><div class="empty">Немає підтверджених пакетів</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">Фактичні дані — поточний місяць</div>
-      <div id="dash-actual"><div class="empty">Немає даних</div></div>
-    </div>
-  </div>
 
   <!-- TRACK -->
   <div id="page-track" class="page active">
@@ -604,15 +569,34 @@ input[type=range]:focus { box-shadow: none; }
 
   <!-- PAKIET SMM -->
   <div id="page-pakiet" class="page">
-    <div class="page-title">Пакет</div>
-    <div class="page-sub">Підтверджені пакети клієнтів + калькулятор нового пакету</div>
+    <div class="page-title">Пакети</div>
+    <div class="page-sub">Активні пакети клієнтів — скільки приносять за місяць</div>
 
-    <div class="card-label" style="margin:8px 0 12px">Підтверджені пакети</div>
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric"><div class="metric-label">Дохід</div><div class="metric-val" id="pkg-sum-income">—</div></div>
+      <div class="metric"><div class="metric-label">Витрати</div><div class="metric-val" id="pkg-sum-costs">—</div></div>
+      <div class="metric"><div class="metric-label">Прибуток</div><div class="metric-val" id="pkg-sum-profit">—</div></div>
+    </div>
+    <div class="metrics" style="grid-template-columns:1fr 1fr">
+      <div class="metric take"><div class="metric-label">Лишається тобі</div><div class="metric-val" id="pkg-sum-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
+      <div class="metric"><div class="metric-label">Віддаєш іншим</div><div class="metric-val" id="pkg-sum-out">—</div><div class="metric-sub">Аня, підрядники, транспорт</div></div>
+    </div>
+    <div id="pkg-sum-note" style="font-size:12.5px;color:var(--text-3);margin:-4px 0 16px;line-height:1.5"></div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-cost-breakdown','pkg-cost-chevron')">
+        <div class="card-label" style="margin:0">На що йдуть витрати</div>
+        <span id="pkg-cost-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
+      </div>
+      <div id="pkg-cost-breakdown" style="margin-top:12px;display:none"><div class="empty">Немає активних пакетів</div></div>
+    </div>
+
+    <div class="card-label" style="margin:28px 0 12px">Активні пакети</div>
     <div id="pkg-list"><div class="empty">Немає підтверджених пакетів</div></div>
 
     <div class="card" style="margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-history-list','pkg-history-chevron')">
-        <div class="card-label" style="margin:0">Історія змін (відновлення видалених/перезаписаних пакетів)</div>
+        <div class="card-label" style="margin:0">Історія змін</div>
         <span id="pkg-history-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
       </div>
       <div id="pkg-history-list" style="margin-top:12px;display:none"><div class="empty">Історія порожня</div></div>
@@ -631,7 +615,7 @@ input[type=range]:focus { box-shadow: none; }
         <div class="field"><label>Клієнт (обов'язково)</label><select id="pkg-client" onchange="renderPakiet()"><option value="">— обери клієнта —</option></select></div>
         <div class="field"><label>Назва сценарію (необов'язково)</label><input type="text" id="pkg-name" placeholder="напр. NARRO — повний пакет" oninput="pkgInput()"></div>
       </div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Збережений сценарій = підтверджений пакет для цього клієнта. Найновіший пакет клієнта рахується як активний і потрапляє в Дашборд.</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Збережений сценарій = підтверджений пакет для цього клієнта. Найновіший пакет клієнта рахується як активний і потрапляє в підсумок угорі.</div>
     </div>
 
     <div class="card">
@@ -687,7 +671,7 @@ input[type=range]:focus { box-shadow: none; }
         <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="pkgInput()"></div>
         <div class="field"><label>Фактична ціна (zł/міс)</label><input type="number" id="pkg-finalPrice" min="0" step="50" inputmode="numeric" placeholder="порожньо = сугерована" oninput="pkgInput()"></div>
       </div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Фактична ціна = скільки клієнт реально платить. Якщо вона задана — саме вона йде в прибуток, маржу і Дашборд. Порожнє поле = рахуємо за націнкою.</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Фактична ціна = скільки клієнт реально платить. Якщо вона задана — саме вона йде в прибуток, маржу і підсумок угорі. Порожнє поле = рахуємо за націнкою.</div>
       <div id="pkg-markup-note" style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5"></div>
     </div>
 
@@ -1103,7 +1087,6 @@ async function loadAll(){
       if(cur==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(cur==='invoices'){renderInvoices();refreshInvSelects();}
       if(cur==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
-      if(cur==='dash')renderDash();
     }catch(e){}
   }catch(e){setSyncStatus('err','Помилка підключення');}
 }
@@ -1227,13 +1210,14 @@ function switchTab(t,btn){
   if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
   if(t==='invoices'){renderInvoices();refreshInvSelects();}
   if(t==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
-  if(t==='dash')renderDash();
   try{localStorage.setItem('plama_tab',t);}catch(e){}
 }
 
 function restoreTab(){
   try{
-    const saved=localStorage.getItem('plama_tab')||'track';
+    let saved=localStorage.getItem('plama_tab')||'track';
+    // вкладку «Дашборд» прибрано — її аналітика тепер угорі «Пакетів»
+    if(saved==='dash'){saved='pakiet';localStorage.setItem('plama_tab',saved);}
     const btn=document.querySelector(`.nav-btn[onclick*="'${saved}'"]`);
     if(btn){
       document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
@@ -2256,9 +2240,8 @@ if('serviceWorker' in navigator){
 
 // ── SWIPE NAVIGATION ───────────────────────────
 (function(){
-  // Musi zawierać WSZYSTKIE zakładki w kolejności z nav — brak 'dash' sprawiał,
-  // że swipe nie działał na Дашборді ani nie dawał się do niego wrócić.
-  const TABS=['dash','track','log','clients','estimate','invoices','pakiet'];
+  // Musi zawierać WSZYSTKIE zakładki w kolejności z nav.
+  const TABS=['track','log','clients','estimate','invoices','pakiet'];
   let touchStartX=0, touchStartY=0, touchStartTime=0, touchIgnored=false;
   // Не кожен горизонтальний рух — це «перегорнути вкладку». Прокрутка самої стрічки
   // вкладок, тягання повзунка чи горизонтальний скрол таблиці мають лишатися собою.
@@ -2561,7 +2544,7 @@ function pkgCompute(){
   const coordCost=coordHours*kyryloRate;
   const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
   const suggestedPrice=totalCost*(1+markup/100);
-  // фактична ціна має пріоритет — саме вона йде в прибуток, маржу і Дашборд
+  // фактична ціна має пріоритет — саме вона йде в прибуток, маржу і підсумок
   const priceCustom=finalPrice!==null;
   const price=priceCustom?finalPrice:suggestedPrice;
   const profit=price-totalCost;
@@ -3090,84 +3073,65 @@ function renderPackagesList(){
   }).join('');
 }
 
-// ── DASHBOARD ───────────────────────────────────
+// ── ПІДСУМОК ПО АКТИВНИХ ПАКЕТАХ (угорі вкладки «Пакети») ──
+// Раніше це була окрема вкладка «Дашборд» — прибрана, бо дублювала список пакетів.
 function renderDash(){
-  const el=document.getElementById('dash-packages');
-  if(!el)return;
-  const pm={};clients.forEach(c=>pm[c.id]=c);
+  const inc=document.getElementById('pkg-sum-income');
+  if(!inc)return;
   const act=activePackages();
   const sum=k=>act.reduce((a,p)=>a+(p.results&&p.results[k]||0),0);
   const income=sum('price'),costs=sum('totalCost'),profit=sum('profit'),take=sum('yourTake'),out=sum('externalOut');
-  document.getElementById('dash-income').textContent=pkgFmt(income);
-  document.getElementById('dash-costs').textContent=pkgFmt(costs);
-  const profitEl=document.getElementById('dash-profit');
+  inc.textContent=pkgFmt(income);
+  document.getElementById('pkg-sum-costs').textContent=pkgFmt(costs);
+  const profitEl=document.getElementById('pkg-sum-profit');
   profitEl.textContent=pkgFmt(profit);
   profitEl.style.color=profit>=0?'var(--green)':'var(--red)';
-  document.getElementById('dash-take').textContent=pkgFmt(take);
-  document.getElementById('dash-out').textContent=pkgFmt(out);
+  document.getElementById('pkg-sum-take').textContent=pkgFmt(take);
+  document.getElementById('pkg-sum-out').textContent=pkgFmt(out);
 
-  const cbEl=document.getElementById('dash-cost-breakdown');
-  if(!act.length){
-    el.innerHTML='<div class="empty">Немає підтверджених пакетів. Збережи сценарій з обраним клієнтом у вкладці Пакет.</div>';
-    if(cbEl)cbEl.innerHTML='<div class="empty">Немає підтверджених пакетів</div>';
-  } else {
-    el.innerHTML=`<table class="pkg-table">
-      <thead><tr><th>Клієнт</th><th class="num">Ціна/міс</th><th class="num">Витрати</th><th class="num">Прибуток</th><th class="num">Маржа</th></tr></thead>
-      <tbody>
-        ${act.map(p=>{
-          const cname=pm[p.clientId]?pm[p.clientId].name:'?';
-          const r=p.results,loss=r.profit<0;
-          return `<tr style="cursor:pointer" onclick="goToPakiet('${p.clientId}')" title="Відкрити пакет ${cname}"><td>${cname} <span style="color:var(--text-3)">→</span></td><td class="num">${pkgFmt(r.price)}</td><td class="num" style="font-weight:400;color:var(--text-2)">${pkgFmt(r.totalCost)}</td><td class="num" style="color:${loss?'var(--red)':'var(--green)'}">${pkgFmt(r.profit)}</td><td class="num share">${Math.round(r.marginPct)}%</td></tr>`;
-        }).join('')}
-        <tr class="total"><td>Разом</td><td class="num">${pkgFmt(income)}</td><td class="num">${pkgFmt(costs)}</td><td class="num" style="color:${profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(profit)}</td><td class="num share">${income>0?Math.round(profit/income*100):0}%</td></tr>
-      </tbody>
-    </table>`;
-
-    // розбивка витрат по категоріях — сумуємо inputs кожного активного пакета
-    const catTotals={ania:0,sesja:0,grafika:0,koord:0,transport:0};
-    act.forEach(p=>{
-      const i=p.inputs||{};
-      catTotals.ania+=i.aniaCost??((i.aniaRate||0)*(i.aniaHours||0));
-      catTotals.sesja+=(i.sessionCost||0)*(i.sessionCount??1);
-      catTotals.grafika+=(i.graphicHours||0)*(i.graphicRate||0);
-      catTotals.koord+=(i.coordHours||0)*(i.kyryloRate||0);
-      catTotals.transport+=(i.transportCost||0);
-    });
-    const CAT_LABELS={ania:'Аня — виконання SMM',sesja:'Фото/відео сесії',grafika:'Графіка',koord:'Твоя координація + монтаж',transport:'Транспорт'};
-    const catCosts=Object.entries(catTotals);
-    const catSum=catCosts.reduce((a,[,v])=>a+v,0);
-    if(cbEl){
-      cbEl.innerHTML=`<table class="pkg-table">
-        <thead><tr><th>Категорія</th><th class="num">Сума / міс</th><th class="num">Частка</th></tr></thead>
-        <tbody>
-          ${catCosts.map(([k,v])=>{
-            const share=catSum>0?Math.round(v/catSum*100):0;
-            return `<tr><td>${CAT_LABELS[k]}</td><td class="num" style="color:${k==='ania'?PKG_COLORS.ania:'var(--text)'}">${pkgFmt(v)}</td><td class="num share">${share}%</td></tr>`;
-          }).join('')}
-          <tr class="total"><td>Витрати разом</td><td class="num">${pkgFmt(catSum)}</td><td class="num share">100%</td></tr>
-        </tbody>
-      </table>`;
+  // Один рядок замість цілої таблиці «фактичні дані»: борг клієнтів — єдине,
+  // чого не видно ні в списку пакетів, ні в Журналі з першого погляду.
+  const noteEl=document.getElementById('pkg-sum-note');
+  if(noteEl){
+    const unpaid=invoices.reduce((a,i)=>a+Math.max(0,(i.amount||0)-(i.paidTotal||0)),0);
+    const marginPct=income>0?Math.round(profit/income*100):0;
+    const parts=[];
+    if(act.length){
+      const n=act.length,n10=n%10,n100=n%100;
+      const word=(n10===1&&n100!==11)?'активний пакет':((n10>=2&&n10<=4&&(n100<12||n100>14))?'активні пакети':'активних пакетів');
+      parts.push(`${n} ${word} · маржа ${marginPct}%`);
     }
+    if(unpaid>PAID_EPS)parts.push(`<span style="color:var(--amber)">неоплачені фактури ${pkgFmt(unpaid)}</span>`);
+    noteEl.innerHTML=parts.join(' · ');
   }
 
-  // fakty z Журналу (bieżący miesiąc) + nieopłacone faktury (całość)
-  const actualEl=document.getElementById('dash-actual');
-  const ym=today().slice(0,7);
-  const rows=clients.map(c=>{
-    const ce=entries.filter(e=>e.clientId===c.id&&String(e.date).slice(0,7)===ym);
-    const hrs=ce.reduce((a,e)=>a+(e.hours||0),0);
-    const earn=ce.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
-    const unpaid=invoices.filter(i=>i.clientId===c.id).reduce((a,i)=>a+Math.max(0,(i.amount||0)-(i.paidTotal||0)),0);
-    if(!hrs&&!earn&&!unpaid)return null;
-    return {name:c.name,hrs,earn,unpaid};
-  }).filter(Boolean);
-  if(!rows.length){actualEl.innerHTML='<div class="empty">Немає даних за цей місяць</div>';return;}
-  const tHrs=rows.reduce((a,r)=>a+r.hrs,0),tEarn=rows.reduce((a,r)=>a+r.earn,0),tUnpaid=rows.reduce((a,r)=>a+r.unpaid,0);
-  actualEl.innerHTML=`<table class="pkg-table">
-    <thead><tr><th>Клієнт</th><th class="num">Годин</th><th class="num">Зароблено</th><th class="num">Неоплачені фактури</th></tr></thead>
+  const cbEl=document.getElementById('pkg-cost-breakdown');
+  if(!cbEl)return;
+  if(!act.length){
+    cbEl.innerHTML='<div class="empty">Немає активних пакетів</div>';
+    return;
+  }
+  // розбивка витрат по категоріях — сумуємо inputs кожного активного пакета
+  const catTotals={ania:0,sesja:0,grafika:0,koord:0,transport:0};
+  act.forEach(p=>{
+    const i=p.inputs||{};
+    catTotals.ania+=i.aniaCost??((i.aniaRate||0)*(i.aniaHours||0));
+    catTotals.sesja+=(i.sessionCost||0)*(i.sessionCount??1);
+    catTotals.grafika+=(i.graphicHours||0)*(i.graphicRate||0);
+    catTotals.koord+=(i.coordHours||0)*(i.kyryloRate||0);
+    catTotals.transport+=(i.transportCost||0);
+  });
+  const CAT_LABELS={ania:'Аня — виконання SMM',sesja:'Фото/відео сесії',grafika:'Графіка',koord:'Твоя координація + монтаж',transport:'Транспорт'};
+  const catCosts=Object.entries(catTotals);
+  const catSum=catCosts.reduce((a,[,v])=>a+v,0);
+  cbEl.innerHTML=`<table class="pkg-table">
+    <thead><tr><th>Категорія</th><th class="num">Сума / міс</th><th class="num">Частка</th></tr></thead>
     <tbody>
-      ${rows.map(r=>`<tr><td>${r.name}</td><td class="num" style="font-weight:400;color:var(--text-2)">${fmtHrs(r.hrs)}</td><td class="num">${r.earn.toFixed(0)} zł</td><td class="num" style="color:${r.unpaid>0?'var(--amber)':'var(--text-3)'}">${r.unpaid.toFixed(0)} zł</td></tr>`).join('')}
-      <tr class="total"><td>Разом</td><td class="num">${fmtHrs(tHrs)}</td><td class="num">${tEarn.toFixed(0)} zł</td><td class="num" style="color:${tUnpaid>0?'var(--amber)':'var(--text-3)'}">${tUnpaid.toFixed(0)} zł</td></tr>
+      ${catCosts.map(([k,v])=>{
+        const share=catSum>0?Math.round(v/catSum*100):0;
+        return `<tr><td>${CAT_LABELS[k]}</td><td class="num" style="color:${k==='ania'?PKG_COLORS.ania:'var(--text)'}">${pkgFmt(v)}</td><td class="num share">${share}%</td></tr>`;
+      }).join('')}
+      <tr class="total"><td>Витрати разом</td><td class="num">${pkgFmt(catSum)}</td><td class="num share">100%</td></tr>
     </tbody>
   </table>`;
 }
