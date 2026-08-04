@@ -345,15 +345,11 @@ input[type=range]:focus { box-shadow: none; }
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22.08V12"/></svg>
       Пакет
     </button>
-    <button class="nav-btn" onclick="switchTab('content',this)">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h3M8 17h6"/></svg>
-      Контент
-    </button>
   </div>
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v36</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v37</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -383,11 +379,6 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">На що йдуть витрати (по всіх пакетах разом)</div>
       <div id="dash-cost-breakdown"><div class="empty">Немає підтверджених пакетів</div></div>
-    </div>
-
-    <div class="card">
-      <div class="card-label">Контент — поточний місяць</div>
-      <div id="dash-content"><div class="empty">Немає плану контенту</div></div>
     </div>
 
     <div class="card">
@@ -644,17 +635,10 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
-      <div class="card-label">План контенту на місяць</div>
-      <div id="pkg-plan-summary" style="font-size:13px;color:var(--text-2);line-height:1.5"></div>
-      <div style="margin-top:10px"><button class="btn btn-sm" onclick="goToContent()">Редагувати у вкладці «Контент»</button></div>
-    </div>
-
-    <div class="card">
       <div class="card-label">Аня — виконання SMM</div>
       <div class="form-row">
         <div class="field"><label>Ціна за клієнта (zł/міс)</label><input type="number" id="pkg-aniaCost" min="0" step="50" value="1000" inputmode="numeric" placeholder="напр. 1000" oninput="pkgInput()"></div>
       </div>
-      <div id="pkg-ania-perpost" style="font-size:12px;color:var(--text-3);margin-top:6px;line-height:1.5"></div>
     </div>
 
     <div class="card">
@@ -736,44 +720,6 @@ input[type=range]:focus { box-shadow: none; }
         <button class="btn" onclick="openPkgExport('claude')">Експорт: для Claude</button>
         <button class="btn" onclick="openPkgExport('smm')">Експорт: техзавдання SMM</button>
       </div>
-    </div>
-  </div>
-
-  <!-- CONTENT -->
-  <div id="page-content" class="page">
-    <div class="page-title">Контент</div>
-    <div class="page-sub">Скільки публікацій хто має зробити цього місяця — по клієнтах і платформах</div>
-
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="contentShiftMonth(-1)" title="Попередній місяць">‹</button>
-        <input type="month" id="content-month" onchange="contentSetMonth(this.value)" style="width:auto;flex:0 0 auto">
-        <button class="btn btn-sm" onclick="contentShiftMonth(1)" title="Наступний місяць">›</button>
-        <span id="content-month-label" style="font-size:13px;color:var(--text-2);margin-left:4px"></span>
-        <span style="display:flex;gap:6px;margin-left:auto">
-          <button class="btn btn-sm" id="content-f-all" onclick="contentSetFilter('all')">Всі</button>
-          <button class="btn btn-sm" id="content-f-ja" onclick="contentSetFilter('ja')">Я</button>
-          <button class="btn btn-sm" id="content-f-ania" onclick="contentSetFilter('ania')">Аня</button>
-        </span>
-      </div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">План береться з активного пакета клієнта — зміни його у вкладці «Пакет». Тут відмічаєш лише виконання.</div>
-    </div>
-
-    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
-      <div class="metric"><div class="metric-label">План / міс</div><div class="metric-val" id="content-m-plan">—</div><div class="metric-sub">публікацій</div></div>
-      <div class="metric take"><div class="metric-label">Зроблено</div><div class="metric-val" id="content-m-done">—</div><div class="metric-sub" id="content-m-donesub">—</div></div>
-      <div class="metric"><div class="metric-label">Лишилось</div><div class="metric-val" id="content-m-left">—</div><div class="metric-sub" id="content-m-leftsub">—</div></div>
-    </div>
-
-    <div id="content-list"><div class="empty">Немає плану контенту</div></div>
-
-    <div class="card">
-      <div class="card-label">Додати план для клієнта</div>
-      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-        <div class="field" style="flex:1;min-width:180px"><select id="content-add-client"></select></div>
-        <button class="btn btn-primary" onclick="contentAddPlan()">Додати план</button>
-      </div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:8px;line-height:1.5">План живе на клієнті, не на пакеті — клієнт без пакета теж може мати план контенту.</div>
     </div>
   </div>
 
@@ -994,10 +940,10 @@ async function sbLoad(){
     {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
   if(!r.ok) throw new Error('Supabase load '+r.status);
   const rows=await r.json();
-  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[],pkgHistory:[],contentPlans:{},contentDone:{}};
+  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[],pkgHistory:[]};
 }
 async function saveState(){
-  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages,pkgHistory,contentPlans,contentDone}});
+  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages,pkgHistory}});
   const r=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
     headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
              'Prefer':'resolution=merge-duplicates,return=minimal'},body});
@@ -1147,14 +1093,9 @@ async function loadAll(){
     // entries вже зберігаються у потрібному порядку (порядок = порядок масиву)
     clients=d.clients||[]; entries=d.entries||[];
     estimates=d.estimates||[]; invoices=d.invoices||[]; packages=d.packages||[]; pkgHistory=d.pkgHistory||[];
-    contentDone=d.contentDone||{};
-    contentPlans=d.contentPlans||{};
-    // міграція: у першій версії план лежав у пакеті (packages[].plan)
-    packages.forEach(p=>{if(p.plan&&p.clientId&&!contentPlans[p.clientId])contentPlans[p.clientId]=normalizePlan(p.plan);});
     setSyncStatus('ok','Supabase');
     refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); refreshPkgSelects(); rebuildMsDrops();
-    refreshContentAddSelect();
-    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderContent(); renderDash();
+    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderDash();
     renderLogStats(entries);
     try{
       const cur=localStorage.getItem('plama_tab')||'track';
@@ -1162,7 +1103,6 @@ async function loadAll(){
       if(cur==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(cur==='invoices'){renderInvoices();refreshInvSelects();}
       if(cur==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
-      if(cur==='content')renderContent();
       if(cur==='dash')renderDash();
     }catch(e){}
   }catch(e){setSyncStatus('err','Помилка підключення');}
@@ -1287,7 +1227,6 @@ function switchTab(t,btn){
   if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
   if(t==='invoices'){renderInvoices();refreshInvSelects();}
   if(t==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
-  if(t==='content')renderContent();
   if(t==='dash')renderDash();
   try{localStorage.setItem('plama_tab',t);}catch(e){}
 }
@@ -1306,7 +1245,6 @@ function restoreTab(){
       if(saved==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(saved==='invoices'){renderInvoices();refreshInvSelects();}
       if(saved==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
-      if(saved==='content')renderContent();
     }
   }catch(e){}
 }
@@ -2320,7 +2258,7 @@ if('serviceWorker' in navigator){
 (function(){
   // Musi zawierać WSZYSTKIE zakładki w kolejności z nav — brak 'dash' sprawiał,
   // że swipe nie działał na Дашборді ani nie dawał się do niego wrócić.
-  const TABS=['dash','track','log','clients','estimate','invoices','pakiet','content'];
+  const TABS=['dash','track','log','clients','estimate','invoices','pakiet'];
   let touchStartX=0, touchStartY=0, touchStartTime=0;
   document.addEventListener('touchstart',e=>{
     touchStartX=e.touches[0].clientX;
@@ -2568,59 +2506,6 @@ const pkgGraphicSelf=true; // grafika zawsze po stronie Kyryla
 
 const PKG_COLORS={ania:'#4f8ef7',sesja:'#f0693e',grafika:'#12b586',koord:'#e3a008',transport:'#a78bfa',zysk:'#22a94f'};
 
-// ── ПЛАН КОНТЕНТУ ───────────────────────────────
-// Норма публікацій на місяць — скільки і на яких платформах виходить у клієнта
-// щомісяця і хто це готує. Сторіз свідомо не рахуємо.
-// Формат: {ig_post:{qty,owner}, ...}; owner: 'ja' (Кирило) | 'ania'.
-const PLATFORMS=[
-  {key:'ig_post',label:'Instagram — пост / карусель',short:'IG',color:'#e1306c'},
-  {key:'ig_reel',label:'Instagram — Reels',short:'Reels',color:'#a855f7'},
-  {key:'tiktok', label:'TikTok',short:'TikTok',color:'#22d3ee'},
-  {key:'fb',     label:'Facebook',short:'FB',color:'#4f8ef7'},
-  {key:'google', label:'Google Business — пост',short:'Google',color:'#22c55e'},
-];
-const OWNERS={ja:{label:'Я',color:'#e3a008'},ania:{label:'Аня',color:'#4f8ef7'}};
-
-function emptyPlan(){const o={};PLATFORMS.forEach(p=>o[p.key]={qty:0,owner:'ania'});return o;}
-// План може бути відсутній/частковий — normalizePlan завжди повертає повну структуру.
-function normalizePlan(plan){
-  const o=emptyPlan();
-  if(plan)PLATFORMS.forEach(p=>{
-    const src=plan[p.key];
-    if(!src)return;
-    o[p.key]={qty:Math.max(0,parseInt(src.qty)||0),owner:src.owner==='ja'?'ja':'ania'};
-  });
-  return o;
-}
-function planTotals(plan){
-  const p=normalizePlan(plan), t={total:0,ja:0,ania:0};
-  PLATFORMS.forEach(pf=>{const r=p[pf.key];t.total+=r.qty;t[r.owner]+=r.qty;});
-  return t;
-}
-
-// Плани живуть на КЛІЄНТІ, а не на пакеті: клієнт без пакета (напр. RISO BAR) теж
-// повинен мати план, а один пакет може покривати кілька брендів (LAGOS).
-// contentPlans: {clientId: {ig_post:{qty,owner}, ...}}
-let contentPlans={};
-function getPlan(clientId){return normalizePlan(contentPlans[clientId]);}
-function hasPlan(clientId){return !!contentPlans[clientId]&&planTotals(contentPlans[clientId]).total>0;}
-
-// Пакет плану більше не редагує — показує зведення і ціну Ані за публікацію.
-function renderPkgPlanSummary(){
-  const cid=(document.getElementById('pkg-client')||{}).value||'';
-  const t=planTotals(contentPlans[cid]);
-  const el=document.getElementById('pkg-plan-summary');
-  if(el)el.textContent=!cid
-    ? 'Обери клієнта, щоб побачити його план контенту.'
-    : (t.total?`Разом ${t.total} публікацій/міс · ти ${t.ja} · Аня ${t.ania}`
-              :'У цього клієнта ще немає плану контенту.');
-  // Ціна за публікацію — головна перевірка, чи фікс. ціна Ані взагалі спиває з обсягом.
-  const ap=document.getElementById('pkg-ania-perpost');
-  if(ap)ap.textContent=t.ania
-    ? `${t.ania} публікацій Ані/міс → ${fmtZl(pkgVal('pkg-aniaCost')/t.ania)} за публікацію.`
-    : 'Признач Ані публікації в плані контенту, щоб побачити ціну за публікацію.';
-}
-
 function refreshPkgSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   const el=document.getElementById('pkg-client');
@@ -2684,7 +2569,6 @@ function renderPakiet(){
 
   document.getElementById('pkg-btn-session-self').classList.toggle('btn-primary',pkgSessionSelf);
   document.getElementById('pkg-btn-session-out').classList.toggle('btn-primary',!pkgSessionSelf);
-  renderPkgPlanSummary();
 
   const c=pkgCompute();
   document.getElementById('pkg-price').textContent=pkgFmt(c.price);
@@ -2801,23 +2685,12 @@ function pkgExportText(kind){
   const c=pkgCompute();
   const clientSel=document.getElementById('pkg-client');
   const cname=clientSel.value?clientSel.options[clientSel.selectedIndex].text:'(клієнт не обраний)';
-  return pkgExportTextFrom(kind,c,cname,pkgSessionSelf,contentPlans[clientSel.value]);
+  return pkgExportTextFrom(kind,c,cname,pkgSessionSelf);
 }
 
-// Рядки контент-плану для експорту; порожній рядок, якщо план не заповнений.
-function planExportBlock(plan,withOwners){
-  const p=normalizePlan(plan), t=planTotals(p);
-  if(!t.total)return '';
-  const lines=PLATFORMS.filter(pf=>p[pf.key].qty>0)
-    .map(pf=>`- ${pf.label}: ${p[pf.key].qty}${withOwners?' ('+(p[pf.key].owner==='ja'?'Кирило':'Аня')+')':''}`).join('\n');
-  return `\n## Контент-план на місяць (без сторіз)\n${lines}\nРазом: ${t.total} публікацій${withOwners?` — Аня ${t.ania}, Кирило ${t.ja}`:''}\n`;
-}
-
-function pkgExportTextFrom(kind,c,cname,sessionSelf,plan){
+function pkgExportTextFrom(kind,c,cname,sessionSelf){
   const date=new Date().toLocaleDateString('uk-UA');
   const sessionWho=sessionSelf?'Кирило':'зовнішній фотограф';
-  const planClient=planExportBlock(plan,false);   // для клієнта — без розподілу виконавців
-  const planInternal=planExportBlock(plan,true);  // для Ані — з виконавцями
   if(kind==='claude'){
     return `# Оферта PLAMA — повний SMM-пакет
 Клієнт: ${cname}
@@ -2829,7 +2702,7 @@ function pkgExportTextFrom(kind,c,cname,sessionSelf,plan){
 - Графіка (поточна підтримка): до ${c.graphicHours} год/міс; понад ліміт — окрема фактура по ${c.graphicRate} zł/год
 - Координація + монтаж кращих reels: ${c.coordHours} год/міс
 - Транспорт/виїзди до клієнта: включено
-${planClient}
+
 ## Внутрішній розрахунок (НЕ для клієнта)
 - Аня: ${Math.round(c.aniaCost)} zł (фікс. ціна/міс)
 - Сесії: ${c.sessionCount} × ${c.sessionCost} zł = ${Math.round(c.sessionTotal)} zł (${sessionWho})
@@ -2857,11 +2730,10 @@ ${planClient}
 - Графіка (поточна підтримка): до ${c.graphicHours} год/міс
   (банери, макети, сторіз-шаблони; понад ліміт — попередньо погодити)
 - Координація і монтаж кращих reels: Кирило, ${c.coordHours} год/міс
-${planInternal}
+
 ## Примітки
 - Ліміти годин м'які — перевищення погоджуємо заздалегідь.
-- Кількість публікацій у плані — норма на місяць; сторіз у цю норму не входять.
-- Облік годин ведемо в трекері PLAMA, виконання плану — у вкладці «Контент».`;
+- Облік годин ведемо в трекері PLAMA.`;
 }
 
 function openPkgExport(kind){
@@ -2887,7 +2759,7 @@ function openPkgExportSaved(pkgId,kind){
   const c=pkgCalcFromInputs(p);
   _exportFile=`oferta-${cname.replace(/[^\p{L}\p{N}]+/gu,'-')}-${today()}-${kind==='claude'?'claude':'smm-brief'}.txt`;
   document.getElementById('export-title').textContent=kind==='claude'?'Експорт для Claude (повна оферта)':'Експорт: техзавдання SMM (без цін)';
-  document.getElementById('export-text').value=pkgExportTextFrom(kind,c,cname,p.sessionSelf!==false,contentPlans[p.clientId]);
+  document.getElementById('export-text').value=pkgExportTextFrom(kind,c,cname,p.sessionSelf!==false);
   document.getElementById('export-modal').classList.add('open');
 }
 
@@ -2993,7 +2865,7 @@ async function savePakiet(){
     const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
     packages.unshift(pkg);
   }
-  renderPackagesList(); renderPkgHistory(); renderDash(); renderContent();
+  renderPackagesList(); renderPkgHistory(); renderDash();
   setSyncStatus('loading','Збереження...');
   try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет збережено ✓');}
   catch(e){setSyncStatus('err','Помилка збереження');}
@@ -3040,8 +2912,7 @@ async function cancelPkgEdit(){
     const idx=packages.findIndex(p=>p.id===id);
     if(idx>=0){
       packages[idx]=restore;
-      renderPkgPlanSummary();
-      renderPackagesList(); renderPkgHistory(); renderDash(); renderContent();
+      renderPackagesList(); renderPkgHistory(); renderDash();
       setSyncStatus('loading','Збереження...');
       try{await saveState();setSyncStatus('ok','Supabase');showToast('Зміни скасовано ✓');}
       catch(e){setSyncStatus('err','Помилка збереження');}
@@ -3072,7 +2943,7 @@ async function deletePakiet(id){
   if(p)pkgArchive(p,'deleted');
   packages=packages.filter(x=>x.id!==id);
   if(pkgEditingId===id)cancelPkgEdit();
-  renderPackagesList(); renderPkgHistory(); renderDash(); renderContent();
+  renderPackagesList(); renderPkgHistory(); renderDash();
   setSyncStatus('loading','Видалення...');
   try{await saveState();setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
@@ -3083,7 +2954,7 @@ async function restorePkgFromHistory(histId){
   if(!h)return;
   const restored={...JSON.parse(JSON.stringify(h.snapshot)),id:uid(),date:today()};
   packages.unshift(restored);
-  renderPackagesList(); renderDash(); renderContent();
+  renderPackagesList(); renderDash();
   setSyncStatus('loading','Відновлення...');
   try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет відновлено ✓');}
   catch(e){setSyncStatus('err','Помилка');}
@@ -3151,17 +3022,6 @@ function pkgDetailHtml(p){
         ${c.priceCustom?`<tr><td style="color:var(--text-3)">Сугерована за націнкою ${c.markup}%</td><td></td><td class="num" style="font-weight:400;color:var(--text-3)">${pkgFmt(c.suggestedPrice)}</td></tr>`:''}
       </tbody>
     </table>
-    ${(()=>{
-      const t=planTotals(contentPlans[p.clientId]);
-      if(!t.total)return '<div style="font-size:12.5px;color:var(--text-3);margin-top:12px">Контент-план не заповнений — додай його у вкладці «Контент».</div>';
-      const pl=getPlan(p.clientId);
-      const parts=PLATFORMS.filter(pf=>pl[pf.key].qty>0)
-        .map(pf=>`<span style="color:var(--text-2)">${pf.short} <b style="color:var(--text)">${pl[pf.key].qty}</b> ${ownerBadge(pl[pf.key].owner)}</span>`).join('');
-      return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
-        <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">Контент-план: ${t.total} публікацій/міс · ти ${t.ja} · Аня ${t.ania}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12.5px">${parts}</div>
-      </div>`;
-    })()}
     <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:13px">
       <span style="color:var(--green)">Лишається тобі: <b>${pkgFmt(c.yourTake)}</b></span>
       <span style="color:var(--text-2)">Віддаєш іншим: <b>${pkgFmt(c.externalOut)}</b></span>
@@ -3209,216 +3069,6 @@ function renderPackagesList(){
       ${isOpen?pkgDetailHtml(p):''}
     </div>`;
   }).join('');
-}
-
-// ── КОНТЕНТ (виконання плану) ───────────────────
-// contentDone: {"clientId::YYYY-MM::platform": скільки вже зроблено}
-// Свідомо лічильники, а не окремі картки постів: місячний контроль «хто скільки має
-// зробити» це дає повністю, а блоб стану не росте з кожною публікацією.
-let contentDone={};
-let contentMonth=today().slice(0,7);
-let contentFilter='all'; // all | ja | ania
-let contentSaveTimer=null;
-
-function cdKey(clientId,ym,pf){return clientId+'::'+ym+'::'+pf;}
-function contentGet(clientId,pf,ym){return contentDone[cdKey(clientId,ym||contentMonth,pf)]||0;}
-function contentSet(clientId,pf,val,ym){
-  const k=cdKey(clientId,ym||contentMonth,pf);
-  if(val<=0)delete contentDone[k]; else contentDone[k]=val;
-}
-function contentBump(clientId,pf,delta,planQty){
-  const cur=contentGet(clientId,pf);
-  const cap=Math.max(planQty||0,cur)+20; // перевиконання дозволене, але не безмежне
-  contentSet(clientId,pf,Math.min(cap,Math.max(0,cur+delta)));
-  renderContent(); renderDash();
-  contentSaveQueue();
-}
-// Клікання +/- не має бити в Supabase на кожен клік.
-function contentSaveQueue(){
-  clearTimeout(contentSaveTimer);
-  setSyncStatus('loading','Збереження...');
-  contentSaveTimer=setTimeout(async()=>{
-    try{await saveState();setSyncStatus('ok','Supabase');}
-    catch(e){setSyncStatus('err','Помилка збереження');}
-  },900);
-}
-function contentSetMonth(v){if(v){contentMonth=v;renderContent();}}
-function contentShiftMonth(delta){
-  const [y,m]=contentMonth.split('-').map(Number);
-  const d=new Date(y,m-1+delta,1);
-  contentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
-  renderContent();
-}
-function contentSetFilter(f){contentFilter=f;renderContent();}
-function contentMonthLabel(ym){
-  const [y,m]=ym.split('-').map(Number);
-  return new Date(y,m-1,1).toLocaleDateString('uk-UA',{month:'long',year:'numeric'});
-}
-function ownerBadge(owner){
-  const o=OWNERS[owner]||OWNERS.ania;
-  return `<span style="font-size:11px;font-weight:600;color:${o.color};background:${o.color}1f;border-radius:100px;padding:2px 8px;white-space:nowrap">${o.label}</span>`;
-}
-function progressBar(done,plan,color){
-  const pct=plan>0?Math.min(100,Math.round(done/plan*100)):0;
-  return `<div style="height:6px;border-radius:100px;background:var(--border);overflow:hidden">
-    <div style="height:100%;width:${pct}%;background:${done>=plan&&plan>0?'var(--green)':color};transition:width 0.2s"></div>
-  </div>`;
-}
-
-// ── Редактор плану (всередині картки клієнта у вкладці «Контент») ──
-let contentEditClient=null;
-
-function contentPlanEditorHtml(clientId){
-  const plan=getPlan(clientId);
-  const t=planTotals(plan);
-  const rows=PLATFORMS.map(pf=>{
-    const r=plan[pf.key];
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="width:8px;height:8px;border-radius:50%;background:${pf.color};flex-shrink:0"></span>
-      <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text)">${pf.label}</span>
-      <input type="number" min="0" max="99" step="1" inputmode="numeric" value="${r.qty}"
-             oninput="contentPlanQty('${clientId}','${pf.key}',this.value)" style="width:62px;text-align:center;flex:0 0 auto">
-      <span style="display:flex;gap:4px;flex-shrink:0">
-        <button type="button" class="btn btn-sm${r.owner==='ja'?' btn-primary':''}" onclick="contentPlanOwner('${clientId}','${pf.key}','ja')">Я</button>
-        <button type="button" class="btn btn-sm${r.owner==='ania'?' btn-primary':''}" onclick="contentPlanOwner('${clientId}','${pf.key}','ania')">Аня</button>
-      </span>
-    </div>`;
-  }).join('');
-  return `<div style="margin-top:4px">
-    <div style="font-size:12px;color:var(--text-3);margin-bottom:4px;line-height:1.5">Скільки публікацій на місяць і хто їх готує. Сторіз не рахуємо.</div>
-    ${rows}
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap">
-      <span id="content-plan-sum-${clientId}" style="font-size:12.5px;color:var(--text-2)">Разом ${t.total} публікацій/міс · ти ${t.ja} · Аня ${t.ania}</span>
-      <button class="btn btn-sm btn-ghost" onclick="contentDeletePlan('${clientId}')">✕ Видалити план</button>
-    </div>
-  </div>`;
-}
-
-function contentEditPlan(clientId){contentEditClient=clientId;renderContent();}
-function contentEditDone(){contentEditClient=null;renderContent();renderDash();}
-
-// Під час набору НЕ перемальовуємо список — інакше поле губить фокус на кожній цифрі.
-function contentPlanQty(clientId,key,v){
-  const plan=getPlan(clientId);
-  plan[key].qty=Math.min(99,Math.max(0,parseInt(v)||0));
-  contentPlans[clientId]=plan;
-  const t=planTotals(plan);
-  const sum=document.getElementById('content-plan-sum-'+clientId);
-  if(sum)sum.textContent=`Разом ${t.total} публікацій/міс · ти ${t.ja} · Аня ${t.ania}`;
-  contentSaveQueue();
-}
-function contentPlanOwner(clientId,key,owner){
-  const plan=getPlan(clientId);
-  plan[key].owner=owner==='ja'?'ja':'ania';
-  contentPlans[clientId]=plan;
-  renderContent();
-  contentSaveQueue();
-}
-function contentAddPlan(){
-  const sel=document.getElementById('content-add-client');
-  const cid=sel&&sel.value;
-  if(!cid){showToast('Обери клієнта зі списку');return;}
-  if(!contentPlans[cid])contentPlans[cid]=emptyPlan();
-  contentEditClient=cid;
-  renderContent();
-  contentSaveQueue();
-}
-function contentDeletePlan(clientId){
-  delete contentPlans[clientId];
-  if(contentEditClient===clientId)contentEditClient=null;
-  renderContent(); renderDash();
-  contentSaveQueue();
-  showToast('План видалено');
-}
-// У селект потрапляють лише клієнти, які ще не мають плану.
-function refreshContentAddSelect(){
-  const sel=document.getElementById('content-add-client');
-  if(!sel)return;
-  const free=clients.filter(c=>!contentPlans[c.id]);
-  const prev=sel.value;
-  sel.innerHTML=free.length
-    ? '<option value="">— обери клієнта —</option>'+free.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')
-    : '<option value="">— усі клієнти вже мають план —</option>';
-  if(free.some(c=>c.id===prev))sel.value=prev;
-}
-
-function renderContent(){
-  const el=document.getElementById('content-list');
-  if(!el)return;
-  const mi=document.getElementById('content-month');
-  if(mi&&mi.value!==contentMonth)mi.value=contentMonth;
-  const lbl=document.getElementById('content-month-label');
-  if(lbl)lbl.textContent=contentMonthLabel(contentMonth);
-  ['all','ja','ania'].forEach(f=>{
-    const b=document.getElementById('content-f-'+f);
-    if(b)b.classList.toggle('btn-primary',contentFilter===f);
-  });
-
-  refreshContentAddSelect();
-  // Клієнти з планом — у порядку списку клієнтів; редагований показуємо навіть з порожнім планом.
-  const withPlan=clients.filter(c=>contentPlans[c.id]);
-  const tot={plan:0,done:0,planJa:0,doneJa:0,planAnia:0,doneAnia:0};
-
-  const cards=withPlan.map(c=>{
-    const plan=getPlan(c.id);
-    const editing=contentEditClient===c.id;
-    let cPlan=0,cDone=0;
-    const rows=[];
-    PLATFORMS.forEach(pf=>{
-      const r=plan[pf.key];
-      if(!r.qty)return;
-      const done=contentGet(c.id,pf.key);
-      // підсумки рахуємо по ВСЬОМУ плану, незалежно від фільтра — інакше
-      // «Аня» показувала б загальний прогрес як прогрес Ані
-      cPlan+=r.qty; cDone+=done;
-      tot.plan+=r.qty; tot.done+=done;
-      if(r.owner==='ja'){tot.planJa+=r.qty;tot.doneJa+=done;} else {tot.planAnia+=r.qty;tot.doneAnia+=done;}
-      if(contentFilter!=='all'&&r.owner!==contentFilter)return;
-      const left=r.qty-done;
-      rows.push(`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;align-items:center;gap:8px">
-          <span style="width:8px;height:8px;border-radius:50%;background:${pf.color};flex-shrink:0"></span>
-          <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text)">${pf.label}</span>
-          ${ownerBadge(r.owner)}
-          <span style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            <button class="btn btn-sm" style="padding:4px 10px" onclick="contentBump('${c.id}','${pf.key}',-1,${r.qty})">−</button>
-            <span style="min-width:52px;text-align:center;font-size:13.5px;font-weight:600;color:${done>=r.qty?'var(--green)':'var(--text)'}">${done}/${r.qty}</span>
-            <button class="btn btn-sm" style="padding:4px 10px" onclick="contentBump('${c.id}','${pf.key}',1,${r.qty})">+</button>
-          </span>
-        </div>
-        <div style="margin-top:8px">${progressBar(done,r.qty,pf.color)}</div>
-        <div style="font-size:11.5px;color:var(--text-3);margin-top:4px">${left>0?'лишилось '+left:(done>r.qty?'перевиконано на '+(done-r.qty):'готово ✓')}</div>
-      </div>`);
-    });
-    if(!editing&&!rows.length)return '';
-    return `<div class="card" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">
-        <div style="font-weight:500;font-size:15px;color:var(--text)">${c.name}</div>
-        <div style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:13px;color:${cDone>=cPlan&&cPlan>0?'var(--green)':'var(--text-2)'};font-weight:600">${cDone}/${cPlan}</span>
-          <button class="btn btn-sm" onclick="${editing?'contentEditDone()':`contentEditPlan('${c.id}')`}">${editing?'Готово':'✎ План'}</button>
-        </div>
-      </div>
-      <div style="margin-bottom:6px">${progressBar(cDone,cPlan,'var(--brand)')}</div>
-      ${editing?contentPlanEditorHtml(c.id):rows.join('')}
-    </div>`;
-  }).filter(Boolean);
-
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
-  set('content-m-plan',tot.plan||'—');
-  set('content-m-done',tot.done||'0');
-  set('content-m-donesub',`ти ${tot.doneJa} · Аня ${tot.doneAnia}`);
-  const left=Math.max(0,tot.plan-tot.done);
-  set('content-m-left',left);
-  set('content-m-leftsub',`ти ${Math.max(0,tot.planJa-tot.doneJa)} · Аня ${Math.max(0,tot.planAnia-tot.doneAnia)}`);
-
-  if(!withPlan.length){
-    el.innerHTML='<div class="empty">Немає плану контенту. Обери клієнта нижче і додай план.</div>';
-  } else if(!cards.length){
-    el.innerHTML='<div class="empty">Для цього фільтра немає публікацій</div>';
-  } else {
-    el.innerHTML=cards.join('');
-  }
 }
 
 // ── DASHBOARD ───────────────────────────────────
@@ -3481,8 +3131,6 @@ function renderDash(){
     }
   }
 
-  renderDashContent();
-
   // fakty z Журналу (bieżący miesiąc) + nieopłacone faktury (całość)
   const actualEl=document.getElementById('dash-actual');
   const ym=today().slice(0,7);
@@ -3503,48 +3151,6 @@ function renderDash(){
       <tr class="total"><td>Разом</td><td class="num">${fmtHrs(tHrs)}</td><td class="num">${tEarn.toFixed(0)} zł</td><td class="num" style="color:${tUnpaid>0?'var(--amber)':'var(--text-3)'}">${tUnpaid.toFixed(0)} zł</td></tr>
     </tbody>
   </table>`;
-}
-
-// Контент на Дашборді — завжди поточний місяць (вкладка «Контент» має власний вибір місяця).
-function renderDashContent(){
-  const el=document.getElementById('dash-content');
-  if(!el)return;
-  const ym=today().slice(0,7);
-  const act=clients.filter(c=>hasPlan(c.id));
-  if(!act.length){
-    el.innerHTML='<div class="empty">Немає плану контенту. Додай його у вкладці «Контент».</div>';
-    return;
-  }
-  let tPlan=0,tDone=0,tJa=0,tAnia=0,tDoneJa=0,tDoneAnia=0;
-  const rows=act.map(c=>{
-    const plan=getPlan(c.id);
-    const cname=c.name;
-    let cPlan=0,cDone=0,cJa=0,cAnia=0;
-    PLATFORMS.forEach(pf=>{
-      const r=plan[pf.key];
-      if(!r.qty)return;
-      const done=contentGet(c.id,pf.key,ym);
-      cPlan+=r.qty; cDone+=done;
-      if(r.owner==='ja'){cJa+=r.qty;tDoneJa+=done;} else {cAnia+=r.qty;tDoneAnia+=done;}
-    });
-    tPlan+=cPlan; tDone+=cDone; tJa+=cJa; tAnia+=cAnia;
-    const pct=cPlan>0?Math.round(cDone/cPlan*100):0;
-    return `<tr style="cursor:pointer" onclick="goToContent()" title="Відкрити Контент"><td>${cname} <span style="color:var(--text-3)">→</span></td><td class="num">${cPlan}</td><td class="num" style="color:${cDone>=cPlan?'var(--green)':'var(--text)'}">${cDone}</td><td class="num" style="font-weight:400;color:var(--text-2)">${cJa}</td><td class="num" style="font-weight:400;color:var(--text-2)">${cAnia}</td><td class="num share">${pct}%</td></tr>`;
-  }).join('');
-  const tPct=tPlan>0?Math.round(tDone/tPlan*100):0;
-  el.innerHTML=`<table class="pkg-table">
-    <thead><tr><th>Клієнт</th><th class="num">План</th><th class="num">Зроблено</th><th class="num">Ти</th><th class="num">Аня</th><th class="num">%</th></tr></thead>
-    <tbody>
-      ${rows}
-      <tr class="total"><td>Разом</td><td class="num">${tPlan}</td><td class="num" style="color:${tDone>=tPlan?'var(--green)':'var(--text)'}">${tDone}</td><td class="num">${tJa}</td><td class="num">${tAnia}</td><td class="num share">${tPct}%</td></tr>
-    </tbody>
-  </table>
-  <div style="font-size:12px;color:var(--text-3);margin-top:8px;line-height:1.5">Зроблено цього місяця: ти ${tDoneJa} з ${tJa} · Аня ${tDoneAnia} з ${tAnia}</div>`;
-}
-
-function goToContent(){
-  const btn=document.querySelector(`.nav-btn[onclick*="'content'"]`);
-  if(btn)switchTab('content',btn);
 }
 </script>
 </body>
