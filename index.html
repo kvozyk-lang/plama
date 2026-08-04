@@ -345,11 +345,15 @@ input[type=range]:focus { box-shadow: none; }
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12l8.73-5.04M12 22.08V12"/></svg>
       Пакет
     </button>
+    <button class="nav-btn" onclick="switchTab('content',this)">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/><path d="M8 14h3M8 17h6"/></svg>
+      Контент
+    </button>
   </div>
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v34</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v35</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -379,6 +383,11 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">На що йдуть витрати (по всіх пакетах разом)</div>
       <div id="dash-cost-breakdown"><div class="empty">Немає підтверджених пакетів</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Контент — поточний місяць</div>
+      <div id="dash-content"><div class="empty">Немає плану контенту</div></div>
     </div>
 
     <div class="card">
@@ -635,10 +644,18 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
+      <div class="card-label">План контенту на місяць</div>
+      <div style="font-size:12px;color:var(--text-3);margin:-4px 0 8px;line-height:1.5">Скільки публікацій на місяць входить у пакет і хто їх готує. Сторіз не рахуємо.</div>
+      <div id="pkg-plan-rows"></div>
+      <div id="pkg-plan-summary" style="font-size:12.5px;color:var(--text-2);margin-top:10px;line-height:1.5"></div>
+    </div>
+
+    <div class="card">
       <div class="card-label">Аня — виконання SMM</div>
       <div class="form-row">
         <div class="field"><label>Ціна за клієнта (zł/міс)</label><input type="number" id="pkg-aniaCost" min="0" step="50" value="1000" inputmode="numeric" placeholder="напр. 1000" oninput="pkgInput()"></div>
       </div>
+      <div id="pkg-ania-perpost" style="font-size:12px;color:var(--text-3);margin-top:6px;line-height:1.5"></div>
     </div>
 
     <div class="card">
@@ -682,16 +699,17 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
-      <div class="card-label">Націнка і порівняння</div>
+      <div class="card-label">Націнка і фактична ціна</div>
       <div class="form-row form-2">
         <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="pkgInput()"></div>
-        <div class="field"><label>Поточна ціна (для порівняння): <b id="pkg-v-currentPrice">3500 zł</b></label><input type="range" id="pkg-currentPrice" min="2000" max="6000" step="100" value="3500" oninput="pkgInput()"></div>
+        <div class="field"><label>Фактична ціна (zł/міс)</label><input type="number" id="pkg-finalPrice" min="0" step="50" inputmode="numeric" placeholder="порожньо = сугерована" oninput="pkgInput()"></div>
       </div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Фактична ціна = скільки клієнт реально платить. Якщо вона задана — саме вона йде в прибуток, маржу і Дашборд. Порожнє поле = рахуємо за націнкою.</div>
       <div id="pkg-markup-note" style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5"></div>
     </div>
 
     <div class="card">
-      <div class="card-label">Сугерована ціна пакету</div>
+      <div class="card-label" id="pkg-price-label">Ціна пакету</div>
       <div><span class="pkg-hero" id="pkg-price">—</span><span class="pkg-hero-sub">нетто / місяць / клієнт</span></div>
       <div id="pkg-delta" style="font-size:13px;font-weight:500;margin:6px 0 18px"></div>
 
@@ -720,6 +738,35 @@ input[type=range]:focus { box-shadow: none; }
         <button class="btn" onclick="openPkgExport('smm')">Експорт: техзавдання SMM</button>
       </div>
     </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="page-content" class="page">
+    <div class="page-title">Контент</div>
+    <div class="page-sub">Скільки публікацій хто має зробити цього місяця — по клієнтах і платформах</div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" onclick="contentShiftMonth(-1)" title="Попередній місяць">‹</button>
+        <input type="month" id="content-month" onchange="contentSetMonth(this.value)" style="width:auto;flex:0 0 auto">
+        <button class="btn btn-sm" onclick="contentShiftMonth(1)" title="Наступний місяць">›</button>
+        <span id="content-month-label" style="font-size:13px;color:var(--text-2);margin-left:4px"></span>
+        <span style="display:flex;gap:6px;margin-left:auto">
+          <button class="btn btn-sm" id="content-f-all" onclick="contentSetFilter('all')">Всі</button>
+          <button class="btn btn-sm" id="content-f-ja" onclick="contentSetFilter('ja')">Я</button>
+          <button class="btn btn-sm" id="content-f-ania" onclick="contentSetFilter('ania')">Аня</button>
+        </span>
+      </div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">План береться з активного пакета клієнта — зміни його у вкладці «Пакет». Тут відмічаєш лише виконання.</div>
+    </div>
+
+    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+      <div class="metric"><div class="metric-label">План / міс</div><div class="metric-val" id="content-m-plan">—</div><div class="metric-sub">публікацій</div></div>
+      <div class="metric take"><div class="metric-label">Зроблено</div><div class="metric-val" id="content-m-done">—</div><div class="metric-sub" id="content-m-donesub">—</div></div>
+      <div class="metric"><div class="metric-label">Лишилось</div><div class="metric-val" id="content-m-left">—</div><div class="metric-sub" id="content-m-leftsub">—</div></div>
+    </div>
+
+    <div id="content-list"><div class="empty">Немає плану контенту</div></div>
   </div>
 
 </div>
@@ -939,10 +986,10 @@ async function sbLoad(){
     {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
   if(!r.ok) throw new Error('Supabase load '+r.status);
   const rows=await r.json();
-  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[],pkgHistory:[]};
+  return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[],pkgHistory:[],contentDone:{}};
 }
 async function saveState(){
-  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages,pkgHistory}});
+  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages,pkgHistory,contentDone}});
   const r=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
     headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
              'Prefer':'resolution=merge-duplicates,return=minimal'},body});
@@ -1092,9 +1139,11 @@ async function loadAll(){
     // entries вже зберігаються у потрібному порядку (порядок = порядок масиву)
     clients=d.clients||[]; entries=d.entries||[];
     estimates=d.estimates||[]; invoices=d.invoices||[]; packages=d.packages||[]; pkgHistory=d.pkgHistory||[];
+    contentDone=d.contentDone||{};
     setSyncStatus('ok','Supabase');
     refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); refreshPkgSelects(); rebuildMsDrops();
-    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderDash();
+    renderPkgPlanRows();
+    renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderContent(); renderDash();
     renderLogStats(entries);
     try{
       const cur=localStorage.getItem('plama_tab')||'track';
@@ -1102,6 +1151,7 @@ async function loadAll(){
       if(cur==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(cur==='invoices'){renderInvoices();refreshInvSelects();}
       if(cur==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
+      if(cur==='content')renderContent();
       if(cur==='dash')renderDash();
     }catch(e){}
   }catch(e){setSyncStatus('err','Помилка підключення');}
@@ -1226,6 +1276,7 @@ function switchTab(t,btn){
   if(t==='estimate'){renderEstimates();refreshEstimateSelects();}
   if(t==='invoices'){renderInvoices();refreshInvSelects();}
   if(t==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
+  if(t==='content')renderContent();
   if(t==='dash')renderDash();
   try{localStorage.setItem('plama_tab',t);}catch(e){}
 }
@@ -1244,6 +1295,7 @@ function restoreTab(){
       if(saved==='estimate'){renderEstimates();refreshEstimateSelects();}
       if(saved==='invoices'){renderInvoices();refreshInvSelects();}
       if(saved==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
+      if(saved==='content')renderContent();
     }
   }catch(e){}
 }
@@ -2257,7 +2309,7 @@ if('serviceWorker' in navigator){
 (function(){
   // Musi zawierać WSZYSTKIE zakładki w kolejności z nav — brak 'dash' sprawiał,
   // że swipe nie działał na Дашборді ani nie dawał się do niego wrócić.
-  const TABS=['dash','track','log','clients','estimate','invoices','pakiet'];
+  const TABS=['dash','track','log','clients','estimate','invoices','pakiet','content'];
   let touchStartX=0, touchStartY=0, touchStartTime=0;
   document.addEventListener('touchstart',e=>{
     touchStartX=e.touches[0].clientX;
@@ -2505,6 +2557,94 @@ const pkgGraphicSelf=true; // grafika zawsze po stronie Kyryla
 
 const PKG_COLORS={ania:'#4f8ef7',sesja:'#f0693e',grafika:'#12b586',koord:'#e3a008',transport:'#a78bfa',zysk:'#22a94f'};
 
+// ── ПЛАН КОНТЕНТУ ───────────────────────────────
+// Норма публікацій на місяць живе всередині пакета (p.plan) — це те, за що клієнт платить,
+// тому вона має лежати поруч з ціною, а не окремим списком. Сторіз свідомо не рахуємо.
+// Формат: {ig_post:{qty,owner}, ...}; owner: 'ja' (Кирило) | 'ania'.
+const PLATFORMS=[
+  {key:'ig_post',label:'Instagram — пост / карусель',short:'IG',color:'#e1306c'},
+  {key:'ig_reel',label:'Instagram — Reels',short:'Reels',color:'#a855f7'},
+  {key:'tiktok', label:'TikTok',short:'TikTok',color:'#22d3ee'},
+  {key:'fb',     label:'Facebook',short:'FB',color:'#4f8ef7'},
+  {key:'google', label:'Google Business — пост',short:'Google',color:'#22c55e'},
+];
+const OWNERS={ja:{label:'Я',color:'#e3a008'},ania:{label:'Аня',color:'#4f8ef7'}};
+
+function emptyPlan(){const o={};PLATFORMS.forEach(p=>o[p.key]={qty:0,owner:'ania'});return o;}
+// Старі пакети не мають plan — normalizePlan завжди повертає повну структуру.
+function normalizePlan(plan){
+  const o=emptyPlan();
+  if(plan)PLATFORMS.forEach(p=>{
+    const src=plan[p.key];
+    if(!src)return;
+    o[p.key]={qty:Math.max(0,parseInt(src.qty)||0),owner:src.owner==='ja'?'ja':'ania'};
+  });
+  return o;
+}
+function planTotals(plan){
+  const p=normalizePlan(plan), t={total:0,ja:0,ania:0};
+  PLATFORMS.forEach(pf=>{const r=p[pf.key];t.total+=r.qty;t[r.owner]+=r.qty;});
+  return t;
+}
+
+let pkgPlan=emptyPlan();
+
+// Рядки будуємо один раз (і при завантаженні пакета в форму) — перебудова на кожен
+// oninput забирала б фокус з поля під час набору.
+function renderPkgPlanRows(){
+  const el=document.getElementById('pkg-plan-rows');
+  if(!el)return;
+  el.innerHTML=PLATFORMS.map(pf=>{
+    const r=pkgPlan[pf.key];
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="width:8px;height:8px;border-radius:50%;background:${pf.color};flex-shrink:0"></span>
+      <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text)">${pf.label}</span>
+      <input type="number" min="0" max="99" step="1" inputmode="numeric" id="pkg-plan-qty-${pf.key}" value="${r.qty}"
+             oninput="pkgPlanQty('${pf.key}',this.value)" style="width:62px;text-align:center;flex:0 0 auto">
+      <span style="display:flex;gap:4px;flex-shrink:0">
+        <button type="button" class="btn btn-sm" id="pkg-plan-own-${pf.key}-ja" onclick="pkgPlanOwner('${pf.key}','ja')">Я</button>
+        <button type="button" class="btn btn-sm" id="pkg-plan-own-${pf.key}-ania" onclick="pkgPlanOwner('${pf.key}','ania')">Аня</button>
+      </span>
+    </div>`;
+  }).join('');
+  syncPkgPlanButtons();
+}
+
+function syncPkgPlanButtons(){
+  PLATFORMS.forEach(pf=>{
+    const o=pkgPlan[pf.key].owner;
+    const a=document.getElementById('pkg-plan-own-'+pf.key+'-ja');
+    const b=document.getElementById('pkg-plan-own-'+pf.key+'-ania');
+    if(a)a.classList.toggle('btn-primary',o==='ja');
+    if(b)b.classList.toggle('btn-primary',o==='ania');
+  });
+}
+
+function pkgPlanQty(key,v){
+  if(!pkgPlan[key])return;
+  pkgPlan[key].qty=Math.min(99,Math.max(0,parseInt(v)||0));
+  pkgInput();
+}
+function pkgPlanOwner(key,owner){
+  if(!pkgPlan[key])return;
+  pkgPlan[key].owner=owner==='ja'?'ja':'ania';
+  syncPkgPlanButtons();
+  pkgInput();
+}
+
+function renderPkgPlanSummary(){
+  const t=planTotals(pkgPlan);
+  const el=document.getElementById('pkg-plan-summary');
+  if(el)el.textContent=t.total
+    ? `Разом ${t.total} публікацій/міс · ти ${t.ja} · Аня ${t.ania}`
+    : 'План порожній — впиши кількість публікацій на місяць.';
+  // Ціна за публікацію — головна перевірка, чи фікс. ціна Ані взагалі спиває з обсягом.
+  const ap=document.getElementById('pkg-ania-perpost');
+  if(ap)ap.textContent=t.ania
+    ? `${t.ania} публікацій Ані/міс → ${fmtZl(pkgVal('pkg-aniaCost')/t.ania)} за публікацію.`
+    : 'Признач Ані публікації в плані вище, щоб побачити ціну за публікацію.';
+}
+
 function refreshPkgSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   const el=document.getElementById('pkg-client');
@@ -2514,6 +2654,15 @@ function refreshPkgSelects(){
 function pkgSetSessionSelf(v){pkgSessionSelf=v;pkgInput();}
 
 function pkgVal(id){const el=document.getElementById(id);return el?parseFloat(el.value)||0:0;}
+// Фактична ціна: null = поле порожнє (беремо сугеровану), число = ціна, яку встановив користувач.
+function pkgFinalPriceVal(){
+  const el=document.getElementById('pkg-finalPrice');
+  if(!el)return null;
+  const raw=String(el.value).trim();
+  if(raw==='')return null;
+  const n=parseFloat(raw);
+  return isNaN(n)?null:n;
+}
 function pkgFmt(n){return fmtZl(n);}
 
 function pkgCompute(){
@@ -2524,20 +2673,24 @@ function pkgCompute(){
   const graphicRate=pkgVal('pkg-graphicRate');
   const overageRate=graphicRate; // ta sama stawka w pakiecie i ponad limit
   const kyryloRate=pkgVal('pkg-kyryloRate'), coordHours=pkgVal('pkg-coordHours');
-  const markup=pkgVal('pkg-markup'), currentPrice=pkgVal('pkg-currentPrice');
+  const markup=pkgVal('pkg-markup');
+  const finalPrice=pkgFinalPriceVal();
   const transportCost=pkgVal('pkg-transport');
 
   const graphicCost=graphicHours*graphicRate;
   const coordCost=coordHours*kyryloRate;
   const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
-  const price=totalCost*(1+markup/100);
+  const suggestedPrice=totalCost*(1+markup/100);
+  // фактична ціна має пріоритет — саме вона йде в прибуток, маржу і Дашборд
+  const priceCustom=finalPrice!==null;
+  const price=priceCustom?finalPrice:suggestedPrice;
   const profit=price-totalCost;
   const marginPct=price>0?(profit/price)*100:0;
   const yourTake=coordCost+(pkgSessionSelf?sessionTotal:0)+(pkgGraphicSelf?graphicCost:0)+profit;
   const externalOut=aniaCost+(pkgSessionSelf?0:sessionTotal)+(pkgGraphicSelf?0:graphicCost)+transportCost;
 
-  return {sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,markup,currentPrice,overageRate,transportCost,
-    aniaCost,graphicCost,coordCost,totalCost,price,profit,marginPct,yourTake,externalOut};
+  return {sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,markup,overageRate,transportCost,
+    aniaCost,graphicCost,coordCost,totalCost,suggestedPrice,finalPrice,priceCustom,price,profit,marginPct,yourTake,externalOut};
 }
 
 function renderPakiet(){
@@ -2549,28 +2702,34 @@ function renderPakiet(){
   document.getElementById('pkg-v-coordHours').textContent=pkgVal('pkg-coordHours');
   document.getElementById('pkg-v-transport').textContent=pkgVal('pkg-transport');
   document.getElementById('pkg-v-markup').textContent=pkgVal('pkg-markup')+'%';
-  document.getElementById('pkg-v-currentPrice').textContent=pkgVal('pkg-currentPrice')+' zł';
   const mk=pkgVal('pkg-markup');
   document.getElementById('pkg-markup-note').textContent=
-    `Ціна = витрати × (1 + націнка). Націнка ${mk}% рахується від витрат, тому маржа від ціни = ${mk}/${100+mk} = ${Math.round(mk/(100+mk)*100)}%.`;
+    `Сугерована ціна = витрати × (1 + націнка). Націнка ${mk}% рахується від витрат, тому маржа від сугерованої ціни = ${mk}/${100+mk} = ${Math.round(mk/(100+mk)*100)}%.`;
 
   document.getElementById('pkg-btn-session-self').classList.toggle('btn-primary',pkgSessionSelf);
   document.getElementById('pkg-btn-session-out').classList.toggle('btn-primary',!pkgSessionSelf);
+  syncPkgPlanButtons(); renderPkgPlanSummary();
 
   const c=pkgCompute();
   document.getElementById('pkg-price').textContent=pkgFmt(c.price);
+  document.getElementById('pkg-price-label').textContent=c.priceCustom?'Фактична ціна пакету':'Сугерована ціна пакету';
   document.getElementById('pkg-profit').textContent=pkgFmt(c.profit);
   document.getElementById('pkg-total').textContent=pkgFmt(c.totalCost);
   document.getElementById('pkg-margin').textContent=Math.round(c.marginPct)+'%';
   document.getElementById('pkg-take').textContent=pkgFmt(c.yourTake);
   document.getElementById('pkg-out').textContent=pkgFmt(c.externalOut);
 
-  const delta=c.price-c.currentPrice;
+  const delta=c.price-c.suggestedPrice;
   const deltaEl=document.getElementById('pkg-delta');
-  deltaEl.textContent=delta>=0
-    ? `+${pkgFmt(delta)} більше за поточну ціну (${pkgFmt(c.currentPrice)})`
-    : `${pkgFmt(delta)} менше за поточну ціну (${pkgFmt(c.currentPrice)})`;
-  deltaEl.style.color=delta>=0?'var(--green)':'var(--red)';
+  if(c.priceCustom){
+    deltaEl.textContent=delta>=0
+      ? `Твоя ціна · +${pkgFmt(delta)} над сугерованою (${pkgFmt(c.suggestedPrice)})`
+      : `Твоя ціна · ${pkgFmt(delta)} під сугерованою (${pkgFmt(c.suggestedPrice)})`;
+    deltaEl.style.color=delta>=0?'var(--green)':'var(--red)';
+  } else {
+    deltaEl.textContent='Сугерована ціна — витрати × (1 + націнка). Впиши фактичну ціну вище, якщо реально інша.';
+    deltaEl.style.color='var(--text-3)';
+  }
 
   const segs=[
     {key:'ania',label:'Аня',val:c.aniaCost},
@@ -2607,7 +2766,7 @@ function renderPakiet(){
           return `<tr><td>${FULL_LABELS[s.key]||s.label}</td><td class="num">${pkgFmt(s.val)}</td><td class="num share">${share}%</td></tr>`;
         }).join('')}
         <tr class="total"><td>Витрати разом</td><td class="num">${pkgFmt(c.totalCost)}</td><td class="num share">100%</td></tr>
-        <tr class="total"><td>Ціна пакету</td><td class="num">${pkgFmt(c.price)}</td><td class="num share"></td></tr>
+        <tr class="total"><td>Ціна пакету ${c.priceCustom?'(фактична)':'(сугерована)'}</td><td class="num">${pkgFmt(c.price)}</td><td class="num share"></td></tr>
       </tbody>
     </table>`;
 
@@ -2645,29 +2804,44 @@ function pkgCalcFromInputs(p){
   const sessionTotal=sessionCost*sessionCount;
   const graphicHours=i.graphicHours||0, graphicRate=i.graphicRate||150;
   const kyryloRate=i.kyryloRate||0, coordHours=i.coordHours||0;
-  const markup=i.markup||0, currentPrice=i.currentPrice||0, transportCost=i.transportCost||0;
+  const markup=i.markup||0, transportCost=i.transportCost||0;
+  // finalPrice: null/undefined = ціна не задавалась вручну → рахуємо за націнкою (як у старих пакетах)
+  const finalPrice=(i.finalPrice===null||i.finalPrice===undefined||i.finalPrice==='')?null:(parseFloat(i.finalPrice)||0);
   const graphicCost=graphicHours*graphicRate;
   const coordCost=coordHours*kyryloRate;
   const totalCost=aniaCost+sessionTotal+graphicCost+coordCost+transportCost;
-  const price=totalCost*(1+markup/100);
+  const suggestedPrice=totalCost*(1+markup/100);
+  const priceCustom=finalPrice!==null;
+  const price=priceCustom?finalPrice:suggestedPrice;
   const profit=price-totalCost;
   const marginPct=price>0?(profit/price)*100:0;
   const yourTake=coordCost+(sessionSelf?sessionTotal:0)+graphicCost+profit;
   const externalOut=aniaCost+(sessionSelf?0:sessionTotal)+transportCost;
   return {sessionCost,sessionCount,sessionTotal,graphicHours,graphicRate,kyryloRate,coordHours,
-    markup,currentPrice,transportCost,aniaCost,graphicCost,coordCost,totalCost,price,profit,marginPct,yourTake,externalOut,sessionSelf};
+    markup,transportCost,aniaCost,graphicCost,coordCost,totalCost,suggestedPrice,finalPrice,priceCustom,price,profit,marginPct,yourTake,externalOut,sessionSelf};
 }
 
 function pkgExportText(kind){
   const c=pkgCompute();
   const clientSel=document.getElementById('pkg-client');
   const cname=clientSel.value?clientSel.options[clientSel.selectedIndex].text:'(клієнт не обраний)';
-  return pkgExportTextFrom(kind,c,cname,pkgSessionSelf);
+  return pkgExportTextFrom(kind,c,cname,pkgSessionSelf,pkgPlan);
 }
 
-function pkgExportTextFrom(kind,c,cname,sessionSelf){
+// Рядки контент-плану для експорту; порожній рядок, якщо план не заповнений.
+function planExportBlock(plan,withOwners){
+  const p=normalizePlan(plan), t=planTotals(p);
+  if(!t.total)return '';
+  const lines=PLATFORMS.filter(pf=>p[pf.key].qty>0)
+    .map(pf=>`- ${pf.label}: ${p[pf.key].qty}${withOwners?' ('+(p[pf.key].owner==='ja'?'Кирило':'Аня')+')':''}`).join('\n');
+  return `\n## Контент-план на місяць (без сторіз)\n${lines}\nРазом: ${t.total} публікацій${withOwners?` — Аня ${t.ania}, Кирило ${t.ja}`:''}\n`;
+}
+
+function pkgExportTextFrom(kind,c,cname,sessionSelf,plan){
   const date=new Date().toLocaleDateString('uk-UA');
   const sessionWho=sessionSelf?'Кирило':'зовнішній фотограф';
+  const planClient=planExportBlock(plan,false);   // для клієнта — без розподілу виконавців
+  const planInternal=planExportBlock(plan,true);  // для Ані — з виконавцями
   if(kind==='claude'){
     return `# Оферта PLAMA — повний SMM-пакет
 Клієнт: ${cname}
@@ -2679,7 +2853,7 @@ function pkgExportTextFrom(kind,c,cname,sessionSelf){
 - Графіка (поточна підтримка): до ${c.graphicHours} год/міс; понад ліміт — окрема фактура по ${c.graphicRate} zł/год
 - Координація + монтаж кращих reels: ${c.coordHours} год/міс
 - Транспорт/виїзди до клієнта: включено
-
+${planClient}
 ## Внутрішній розрахунок (НЕ для клієнта)
 - Аня: ${Math.round(c.aniaCost)} zł (фікс. ціна/міс)
 - Сесії: ${c.sessionCount} × ${c.sessionCost} zł = ${Math.round(c.sessionTotal)} zł (${sessionWho})
@@ -2687,7 +2861,7 @@ function pkgExportTextFrom(kind,c,cname,sessionSelf){
 - Координація: ${c.coordHours} год × ${c.kyryloRate} zł = ${Math.round(c.coordCost)} zł
 - Транспорт: ${Math.round(c.transportCost)} zł
 - Витрати разом: ${Math.round(c.totalCost)} zł
-- Націнка: ${c.markup}% → Ціна: ${Math.round(c.price)} zł нетто/міс (маржа від ціни ${Math.round(c.marginPct)}%)
+- ${c.priceCustom?`Ціна (фактична, узгоджена з клієнтом): ${Math.round(c.price)} zł нетто/міс — сугерована за націнкою ${c.markup}% була ${Math.round(c.suggestedPrice)} zł`:`Націнка: ${c.markup}% → Ціна: ${Math.round(c.price)} zł нетто/міс`} (маржа від ціни ${Math.round(c.marginPct)}%)
 - Чистий прибуток: ${Math.round(c.profit)} zł/міс · Лишається Кирилу: ${Math.round(c.yourTake)} zł · Назовні: ${Math.round(c.externalOut)} zł
 
 ## Завдання для Claude
@@ -2707,10 +2881,11 @@ function pkgExportTextFrom(kind,c,cname,sessionSelf){
 - Графіка (поточна підтримка): до ${c.graphicHours} год/міс
   (банери, макети, сторіз-шаблони; понад ліміт — попередньо погодити)
 - Координація і монтаж кращих reels: Кирило, ${c.coordHours} год/міс
-
+${planInternal}
 ## Примітки
 - Ліміти годин м'які — перевищення погоджуємо заздалегідь.
-- Облік годин ведемо в трекері PLAMA.`;
+- Кількість публікацій у плані — норма на місяць; сторіз у цю норму не входять.
+- Облік годин ведемо в трекері PLAMA, виконання плану — у вкладці «Контент».`;
 }
 
 function openPkgExport(kind){
@@ -2736,7 +2911,7 @@ function openPkgExportSaved(pkgId,kind){
   const c=pkgCalcFromInputs(p);
   _exportFile=`oferta-${cname.replace(/[^\p{L}\p{N}]+/gu,'-')}-${today()}-${kind==='claude'?'claude':'smm-brief'}.txt`;
   document.getElementById('export-title').textContent=kind==='claude'?'Експорт для Claude (повна оферта)':'Експорт: техзавдання SMM (без цін)';
-  document.getElementById('export-text').value=pkgExportTextFrom(kind,c,cname,p.sessionSelf!==false);
+  document.getElementById('export-text').value=pkgExportTextFrom(kind,c,cname,p.sessionSelf!==false,p.plan);
   document.getElementById('export-modal').classList.add('open');
 }
 
@@ -2793,11 +2968,11 @@ function pkgApplyFormTo(idx){
   if(!pkgEditArchived){pkgArchive(packages[idx],'edited');pkgEditArchived=true;}
   const c=pkgCompute();
   const inputs={aniaCost:c.aniaCost,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
-      graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,currentPrice:c.currentPrice,transportCost:c.transportCost};
-  const results={totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
+      graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,finalPrice:c.finalPrice,transportCost:c.transportCost};
+  const results={totalCost:c.totalCost,price:c.price,suggestedPrice:c.suggestedPrice,priceCustom:c.priceCustom,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
   const name=document.getElementById('pkg-name').value.trim()||packages[idx].name;
   // клієнта НЕ чіпаємо — select заблокований під час редагування
-  packages[idx]={...packages[idx],date:today(),name,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+  packages[idx]={...packages[idx],date:today(),name,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,plan:normalizePlan(pkgPlan),inputs,results};
 }
 
 function pkgArchive(pkg,reason){
@@ -2824,8 +2999,8 @@ async function savePakiet(){
   }
   const c=pkgCompute();
   const inputs={aniaCost:c.aniaCost,sessionCost:c.sessionCost,sessionCount:c.sessionCount,graphicHours:c.graphicHours,
-      graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,currentPrice:c.currentPrice,transportCost:c.transportCost};
-  const results={totalCost:c.totalCost,price:c.price,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
+      graphicRate:c.graphicRate,kyryloRate:c.kyryloRate,coordHours:c.coordHours,markup:c.markup,finalPrice:c.finalPrice,transportCost:c.transportCost};
+  const results={totalCost:c.totalCost,price:c.price,suggestedPrice:c.suggestedPrice,priceCustom:c.priceCustom,profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
 
   if(pkgEditingId){
     clearTimeout(pkgAutoSaveTimer); // скидаємо відкладене автозбереження — пишемо зараз
@@ -2839,10 +3014,10 @@ async function savePakiet(){
     pkgEditingId=null; pkgEditBackup=null; pkgEditArchived=false;
     setPkgFormMode(false);
   } else {
-    const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,inputs,results};
+    const pkg={id:uid(),date:today(),name,clientId,sessionSelf:pkgSessionSelf,graphicSelf:pkgGraphicSelf,plan:normalizePlan(pkgPlan),inputs,results};
     packages.unshift(pkg);
   }
-  renderPackagesList(); renderPkgHistory(); renderDash();
+  renderPackagesList(); renderPkgHistory(); renderDash(); renderContent();
   setSyncStatus('loading','Збереження...');
   try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет збережено ✓');}
   catch(e){setSyncStatus('err','Помилка збереження');}
@@ -2868,9 +3043,11 @@ function editPakiet(id){
   document.getElementById('pkg-kyryloRate').value=i.kyryloRate??200;
   document.getElementById('pkg-coordHours').value=i.coordHours??4;
   document.getElementById('pkg-markup').value=i.markup??50;
-  document.getElementById('pkg-currentPrice').value=i.currentPrice??3500;
+  document.getElementById('pkg-finalPrice').value=(i.finalPrice===null||i.finalPrice===undefined||i.finalPrice==='')?'':i.finalPrice;
   document.getElementById('pkg-transport').value=i.transportCost??100;
   pkgSessionSelf=p.sessionSelf!==false;
+  pkgPlan=normalizePlan(p.plan);
+  renderPkgPlanRows();
   setPkgFormMode(true);
   renderPakiet();
   const anchor=document.getElementById('pkg-calc-anchor');
@@ -2889,7 +3066,9 @@ async function cancelPkgEdit(){
     const idx=packages.findIndex(p=>p.id===id);
     if(idx>=0){
       packages[idx]=restore;
-      renderPackagesList(); renderPkgHistory(); renderDash();
+      pkgPlan=normalizePlan(restore.plan);
+      renderPkgPlanRows(); renderPkgPlanSummary();
+      renderPackagesList(); renderPkgHistory(); renderDash(); renderContent();
       setSyncStatus('loading','Збереження...');
       try{await saveState();setSyncStatus('ok','Supabase');showToast('Зміни скасовано ✓');}
       catch(e){setSyncStatus('err','Помилка збереження');}
@@ -2920,7 +3099,7 @@ async function deletePakiet(id){
   if(p)pkgArchive(p,'deleted');
   packages=packages.filter(x=>x.id!==id);
   if(pkgEditingId===id)cancelPkgEdit();
-  renderPackagesList(); renderPkgHistory(); renderDash();
+  renderPackagesList(); renderPkgHistory(); renderDash(); renderContent();
   setSyncStatus('loading','Видалення...');
   try{await saveState();setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Помилка');}
@@ -2931,7 +3110,7 @@ async function restorePkgFromHistory(histId){
   if(!h)return;
   const restored={...JSON.parse(JSON.stringify(h.snapshot)),id:uid(),date:today()};
   packages.unshift(restored);
-  renderPackagesList(); renderDash();
+  renderPackagesList(); renderDash(); renderContent();
   setSyncStatus('loading','Відновлення...');
   try{await saveState();setSyncStatus('ok','Supabase');showToast('Пакет відновлено ✓');}
   catch(e){setSyncStatus('err','Помилка');}
@@ -2995,9 +3174,21 @@ function pkgDetailHtml(p){
       <tbody>
         ${rows.map(([l,d,v])=>`<tr><td>${l}</td><td style="color:var(--text-3);font-size:12px">${d}</td><td class="num">${pkgFmt(v)}</td></tr>`).join('')}
         <tr class="total"><td>Витрати разом</td><td></td><td class="num">${pkgFmt(c.totalCost)}</td></tr>
-        <tr class="total"><td>Ціна для клієнта (націнка ${c.markup}%)</td><td></td><td class="num">${pkgFmt(c.price)}</td></tr>
+        <tr class="total"><td>Ціна для клієнта ${c.priceCustom?'(фактична)':`(націнка ${c.markup}%)`}</td><td></td><td class="num">${pkgFmt(c.price)}</td></tr>
+        ${c.priceCustom?`<tr><td style="color:var(--text-3)">Сугерована за націнкою ${c.markup}%</td><td></td><td class="num" style="font-weight:400;color:var(--text-3)">${pkgFmt(c.suggestedPrice)}</td></tr>`:''}
       </tbody>
     </table>
+    ${(()=>{
+      const t=planTotals(p.plan);
+      if(!t.total)return '<div style="font-size:12.5px;color:var(--text-3);margin-top:12px">Контент-план не заповнений — додай його в редагуванні пакета.</div>';
+      const pl=normalizePlan(p.plan);
+      const parts=PLATFORMS.filter(pf=>pl[pf.key].qty>0)
+        .map(pf=>`<span style="color:var(--text-2)">${pf.short} <b style="color:var(--text)">${pl[pf.key].qty}</b> ${ownerBadge(pl[pf.key].owner)}</span>`).join('');
+      return `<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
+        <div style="font-size:12px;color:var(--text-3);margin-bottom:6px">Контент-план: ${t.total} публікацій/міс · ти ${t.ja} · Аня ${t.ania}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:12.5px">${parts}</div>
+      </div>`;
+    })()}
     <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;font-size:13px">
       <span style="color:var(--green)">Лишається тобі: <b>${pkgFmt(c.yourTake)}</b></span>
       <span style="color:var(--text-2)">Віддаєш іншим: <b>${pkgFmt(c.externalOut)}</b></span>
@@ -3037,7 +3228,7 @@ function renderPackagesList(){
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
-        <span>Ціна</span><span>${pkgFmt(p.results.price)}</span>
+        <span>Ціна ${pkgCalcFromInputs(p).priceCustom?'<span style="font-size:11px;font-weight:500;color:var(--text-3)">фактична</span>':'<span style="font-size:11px;font-weight:500;color:var(--text-3)">сугерована</span>'}</span><span>${pkgFmt(p.results.price)}</span>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-top:4px">
         <span>Прибуток</span><span>${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
@@ -3045,6 +3236,135 @@ function renderPackagesList(){
       ${isOpen?pkgDetailHtml(p):''}
     </div>`;
   }).join('');
+}
+
+// ── КОНТЕНТ (виконання плану) ───────────────────
+// contentDone: {"clientId::YYYY-MM::platform": скільки вже зроблено}
+// Свідомо лічильники, а не окремі картки постів: місячний контроль «хто скільки має
+// зробити» це дає повністю, а блоб стану не росте з кожною публікацією.
+let contentDone={};
+let contentMonth=today().slice(0,7);
+let contentFilter='all'; // all | ja | ania
+let contentSaveTimer=null;
+
+function cdKey(clientId,ym,pf){return clientId+'::'+ym+'::'+pf;}
+function contentGet(clientId,pf,ym){return contentDone[cdKey(clientId,ym||contentMonth,pf)]||0;}
+function contentSet(clientId,pf,val,ym){
+  const k=cdKey(clientId,ym||contentMonth,pf);
+  if(val<=0)delete contentDone[k]; else contentDone[k]=val;
+}
+function contentBump(clientId,pf,delta,planQty){
+  const cur=contentGet(clientId,pf);
+  const cap=Math.max(planQty||0,cur)+20; // перевиконання дозволене, але не безмежне
+  contentSet(clientId,pf,Math.min(cap,Math.max(0,cur+delta)));
+  renderContent(); renderDash();
+  contentSaveQueue();
+}
+// Клікання +/- не має бити в Supabase на кожен клік.
+function contentSaveQueue(){
+  clearTimeout(contentSaveTimer);
+  setSyncStatus('loading','Збереження...');
+  contentSaveTimer=setTimeout(async()=>{
+    try{await saveState();setSyncStatus('ok','Supabase');}
+    catch(e){setSyncStatus('err','Помилка збереження');}
+  },900);
+}
+function contentSetMonth(v){if(v){contentMonth=v;renderContent();}}
+function contentShiftMonth(delta){
+  const [y,m]=contentMonth.split('-').map(Number);
+  const d=new Date(y,m-1+delta,1);
+  contentMonth=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  renderContent();
+}
+function contentSetFilter(f){contentFilter=f;renderContent();}
+function contentMonthLabel(ym){
+  const [y,m]=ym.split('-').map(Number);
+  return new Date(y,m-1,1).toLocaleDateString('uk-UA',{month:'long',year:'numeric'});
+}
+function ownerBadge(owner){
+  const o=OWNERS[owner]||OWNERS.ania;
+  return `<span style="font-size:11px;font-weight:600;color:${o.color};background:${o.color}1f;border-radius:100px;padding:2px 8px;white-space:nowrap">${o.label}</span>`;
+}
+function progressBar(done,plan,color){
+  const pct=plan>0?Math.min(100,Math.round(done/plan*100)):0;
+  return `<div style="height:6px;border-radius:100px;background:var(--border);overflow:hidden">
+    <div style="height:100%;width:${pct}%;background:${done>=plan&&plan>0?'var(--green)':color};transition:width 0.2s"></div>
+  </div>`;
+}
+
+function renderContent(){
+  const el=document.getElementById('content-list');
+  if(!el)return;
+  const mi=document.getElementById('content-month');
+  if(mi&&mi.value!==contentMonth)mi.value=contentMonth;
+  const lbl=document.getElementById('content-month-label');
+  if(lbl)lbl.textContent=contentMonthLabel(contentMonth);
+  ['all','ja','ania'].forEach(f=>{
+    const b=document.getElementById('content-f-'+f);
+    if(b)b.classList.toggle('btn-primary',contentFilter===f);
+  });
+
+  const cm={};clients.forEach(c=>cm[c.id]=c);
+  const act=activePackages().filter(p=>planTotals(p.plan).total>0);
+  const tot={plan:0,done:0,planJa:0,doneJa:0,planAnia:0,doneAnia:0};
+
+  const cards=act.map(p=>{
+    const plan=normalizePlan(p.plan);
+    const cname=cm[p.clientId]?cm[p.clientId].name:'(клієнт видалений)';
+    let cPlan=0,cDone=0;
+    const rows=[];
+    PLATFORMS.forEach(pf=>{
+      const r=plan[pf.key];
+      if(!r.qty)return;
+      const done=contentGet(p.clientId,pf.key);
+      // підсумки рахуємо по ВСЬОМУ плану, незалежно від фільтра — інакше
+      // «Аня» показувала б загальний прогрес як прогрес Ані
+      cPlan+=r.qty; cDone+=done;
+      tot.plan+=r.qty; tot.done+=done;
+      if(r.owner==='ja'){tot.planJa+=r.qty;tot.doneJa+=done;} else {tot.planAnia+=r.qty;tot.doneAnia+=done;}
+      if(contentFilter!=='all'&&r.owner!==contentFilter)return;
+      const left=r.qty-done;
+      rows.push(`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="width:8px;height:8px;border-radius:50%;background:${pf.color};flex-shrink:0"></span>
+          <span style="flex:1;min-width:0;font-size:13.5px;color:var(--text)">${pf.label}</span>
+          ${ownerBadge(r.owner)}
+          <span style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+            <button class="btn btn-sm" style="padding:4px 10px" onclick="contentBump('${p.clientId}','${pf.key}',-1,${r.qty})">−</button>
+            <span style="min-width:52px;text-align:center;font-size:13.5px;font-weight:600;color:${done>=r.qty?'var(--green)':'var(--text)'}">${done}/${r.qty}</span>
+            <button class="btn btn-sm" style="padding:4px 10px" onclick="contentBump('${p.clientId}','${pf.key}',1,${r.qty})">+</button>
+          </span>
+        </div>
+        <div style="margin-top:8px">${progressBar(done,r.qty,pf.color)}</div>
+        <div style="font-size:11.5px;color:var(--text-3);margin-top:4px">${left>0?'лишилось '+left:(done>r.qty?'перевиконано на '+(done-r.qty):'готово ✓')}</div>
+      </div>`);
+    });
+    if(!rows.length)return '';
+    return `<div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:6px">
+        <div style="font-weight:500;font-size:15px;color:var(--text)">${cname}</div>
+        <div style="font-size:13px;color:${cDone>=cPlan?'var(--green)':'var(--text-2)'};font-weight:600">${cDone}/${cPlan}</div>
+      </div>
+      <div style="margin-bottom:6px">${progressBar(cDone,cPlan,'var(--brand)')}</div>
+      ${rows.join('')}
+    </div>`;
+  }).filter(Boolean);
+
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
+  set('content-m-plan',tot.plan||'—');
+  set('content-m-done',tot.done||'0');
+  set('content-m-donesub',`ти ${tot.doneJa} · Аня ${tot.doneAnia}`);
+  const left=Math.max(0,tot.plan-tot.done);
+  set('content-m-left',left);
+  set('content-m-leftsub',`ти ${Math.max(0,tot.planJa-tot.doneJa)} · Аня ${Math.max(0,tot.planAnia-tot.doneAnia)}`);
+
+  if(!act.length){
+    el.innerHTML='<div class="empty">Немає плану контенту. Відкрий вкладку «Пакет», обери клієнта і заповни «План контенту на місяць».</div>';
+  } else if(!cards.length){
+    el.innerHTML='<div class="empty">Для цього фільтра немає публікацій</div>';
+  } else {
+    el.innerHTML=cards.join('');
+  }
 }
 
 // ── DASHBOARD ───────────────────────────────────
@@ -3107,6 +3427,8 @@ function renderDash(){
     }
   }
 
+  renderDashContent();
+
   // fakty z Журналу (bieżący miesiąc) + nieopłacone faktury (całość)
   const actualEl=document.getElementById('dash-actual');
   const ym=today().slice(0,7);
@@ -3127,6 +3449,49 @@ function renderDash(){
       <tr class="total"><td>Разом</td><td class="num">${fmtHrs(tHrs)}</td><td class="num">${tEarn.toFixed(0)} zł</td><td class="num" style="color:${tUnpaid>0?'var(--amber)':'var(--text-3)'}">${tUnpaid.toFixed(0)} zł</td></tr>
     </tbody>
   </table>`;
+}
+
+// Контент на Дашборді — завжди поточний місяць (вкладка «Контент» має власний вибір місяця).
+function renderDashContent(){
+  const el=document.getElementById('dash-content');
+  if(!el)return;
+  const ym=today().slice(0,7);
+  const cm={};clients.forEach(c=>cm[c.id]=c);
+  const act=activePackages().filter(p=>planTotals(p.plan).total>0);
+  if(!act.length){
+    el.innerHTML='<div class="empty">Немає плану контенту. Заповни «План контенту на місяць» у вкладці Пакет.</div>';
+    return;
+  }
+  let tPlan=0,tDone=0,tJa=0,tAnia=0,tDoneJa=0,tDoneAnia=0;
+  const rows=act.map(p=>{
+    const plan=normalizePlan(p.plan);
+    const cname=cm[p.clientId]?cm[p.clientId].name:'?';
+    let cPlan=0,cDone=0,cJa=0,cAnia=0;
+    PLATFORMS.forEach(pf=>{
+      const r=plan[pf.key];
+      if(!r.qty)return;
+      const done=contentGet(p.clientId,pf.key,ym);
+      cPlan+=r.qty; cDone+=done;
+      if(r.owner==='ja'){cJa+=r.qty;tDoneJa+=done;} else {cAnia+=r.qty;tDoneAnia+=done;}
+    });
+    tPlan+=cPlan; tDone+=cDone; tJa+=cJa; tAnia+=cAnia;
+    const pct=cPlan>0?Math.round(cDone/cPlan*100):0;
+    return `<tr style="cursor:pointer" onclick="goToContent()" title="Відкрити Контент"><td>${cname} <span style="color:var(--text-3)">→</span></td><td class="num">${cPlan}</td><td class="num" style="color:${cDone>=cPlan?'var(--green)':'var(--text)'}">${cDone}</td><td class="num" style="font-weight:400;color:var(--text-2)">${cJa}</td><td class="num" style="font-weight:400;color:var(--text-2)">${cAnia}</td><td class="num share">${pct}%</td></tr>`;
+  }).join('');
+  const tPct=tPlan>0?Math.round(tDone/tPlan*100):0;
+  el.innerHTML=`<table class="pkg-table">
+    <thead><tr><th>Клієнт</th><th class="num">План</th><th class="num">Зроблено</th><th class="num">Ти</th><th class="num">Аня</th><th class="num">%</th></tr></thead>
+    <tbody>
+      ${rows}
+      <tr class="total"><td>Разом</td><td class="num">${tPlan}</td><td class="num" style="color:${tDone>=tPlan?'var(--green)':'var(--text)'}">${tDone}</td><td class="num">${tJa}</td><td class="num">${tAnia}</td><td class="num share">${tPct}%</td></tr>
+    </tbody>
+  </table>
+  <div style="font-size:12px;color:var(--text-3);margin-top:8px;line-height:1.5">Зроблено цього місяця: ти ${tDoneJa} з ${tJa} · Аня ${tDoneAnia} з ${tAnia}</div>`;
+}
+
+function goToContent(){
+  const btn=document.querySelector(`.nav-btn[onclick*="'content'"]`);
+  if(btn)switchTab('content',btn);
 }
 </script>
 </body>
