@@ -349,7 +349,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v37</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v38</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -2259,13 +2259,32 @@ if('serviceWorker' in navigator){
   // Musi zawierać WSZYSTKIE zakładki w kolejności z nav — brak 'dash' sprawiał,
   // że swipe nie działał na Дашборді ani nie dawał się do niego wrócić.
   const TABS=['dash','track','log','clients','estimate','invoices','pakiet'];
-  let touchStartX=0, touchStartY=0, touchStartTime=0;
+  let touchStartX=0, touchStartY=0, touchStartTime=0, touchIgnored=false;
+  // Не кожен горизонтальний рух — це «перегорнути вкладку». Прокрутка самої стрічки
+  // вкладок, тягання повзунка чи горизонтальний скрол таблиці мають лишатися собою.
+  function swipeBlocked(el){
+    for(let n=el;n&&n!==document.body;n=n.parentElement){
+      if(!(n instanceof Element))continue;
+      if(n.classList&&n.classList.contains('nav-tabs'))return true;
+      const t=n.tagName;
+      if(t==='INPUT'&&n.type==='range')return true;
+      if(t==='SELECT'||t==='TEXTAREA')return true;
+      // будь-який контейнер, який реально прокручується вбік
+      if(n.scrollWidth-n.clientWidth>4){
+        const ov=getComputedStyle(n).overflowX;
+        if(ov==='auto'||ov==='scroll')return true;
+      }
+    }
+    return false;
+  }
   document.addEventListener('touchstart',e=>{
     touchStartX=e.touches[0].clientX;
     touchStartY=e.touches[0].clientY;
     touchStartTime=Date.now();
+    touchIgnored=swipeBlocked(e.target);
   },{passive:true});
   document.addEventListener('touchend',e=>{
+    if(touchIgnored)return;
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=e.changedTouches[0].clientY-touchStartY;
     const dt=Date.now()-touchStartTime;
