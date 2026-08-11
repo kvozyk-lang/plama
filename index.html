@@ -345,7 +345,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v40</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v41</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -637,8 +637,8 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Сесії (1 сесія = до 4г)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Сесій на місяць: <b id="pkg-v-sessionCount">1</b></label><input type="range" id="pkg-sessionCount" min="0" max="4" step="1" value="1" oninput="pkgInput()"></div>
-        <div class="field"><label>Вартість однієї сесії (zł): <b id="pkg-v-sessionCost">700</b></label><input type="range" id="pkg-sessionCost" min="300" max="1500" step="50" value="700" oninput="pkgInput()"></div>
+        <div class="field"><label>Сесій на місяць</label><input type="number" id="pkg-sessionCount" min="0" step="1" value="1" inputmode="numeric" oninput="pkgInput()"></div>
+        <div class="field"><label>Вартість однієї сесії (zł)</label><input type="number" id="pkg-sessionCost" min="0" step="50" value="700" inputmode="numeric" oninput="pkgInput()"></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Хто робить?</label>
@@ -653,8 +653,8 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Графіка (поточна підтримка)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Годин/міс (м'який ліміт): <b id="pkg-v-graphicHours">6</b></label><input type="range" id="pkg-graphicHours" min="0" max="15" step="1" value="6" oninput="pkgInput()"></div>
-        <div class="field"><label>Ставка (zł/год): <b id="pkg-v-graphicRate">150</b></label><input type="range" id="pkg-graphicRate" min="80" max="300" step="10" value="150" oninput="pkgInput()"></div>
+        <div class="field"><label>Годин/міс (м'який ліміт)</label><input type="number" id="pkg-graphicHours" min="0" step="1" value="6" inputmode="decimal" oninput="pkgInput()"></div>
+        <div class="field"><label>Ставка (zł/год)</label><input type="number" id="pkg-graphicRate" min="0" step="10" value="150" inputmode="numeric" oninput="pkgInput()"></div>
       </div>
       <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Та сама ставка діє для годин понад ліміт — вони рахуються окремою фактурою.</div>
     </div>
@@ -662,22 +662,22 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Твоя координація + монтаж кращих reels</div>
       <div class="form-row form-2">
-        <div class="field"><label>Твоя ставка (zł/год): <b id="pkg-v-kyryloRate">200</b></label><input type="range" id="pkg-kyryloRate" min="100" max="400" step="10" value="200" oninput="pkgInput()"></div>
-        <div class="field"><label>Годин/міс на клієнта: <b id="pkg-v-coordHours">4</b></label><input type="range" id="pkg-coordHours" min="0" max="15" step="1" value="4" oninput="pkgInput()"></div>
+        <div class="field"><label>Твоя ставка (zł/год)</label><input type="number" id="pkg-kyryloRate" min="0" step="10" value="200" inputmode="numeric" oninput="pkgInput()"></div>
+        <div class="field"><label>Годин/міс на клієнта</label><input type="number" id="pkg-coordHours" min="0" step="1" value="4" inputmode="decimal" oninput="pkgInput()"></div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-label">Транспорт (виїзди до клієнта)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Очікувані витрати (zł/міс): <b id="pkg-v-transport">100</b></label><input type="range" id="pkg-transport" min="0" max="600" step="20" value="100" oninput="pkgInput()"></div>
+        <div class="field"><label>Очікувані витрати (zł/міс)</label><input type="number" id="pkg-transport" min="0" step="20" value="100" inputmode="numeric" oninput="pkgInput()"></div>
       </div>
     </div>
 
     <div class="card">
       <div class="card-label">Націнка (для сугерованої ціни)</div>
       <div class="form-row form-2">
-        <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="pkgInput()"></div>
+        <div class="field"><label>Націнка на витрати (%)</label><input type="number" id="pkg-markup" min="0" step="5" value="50" inputmode="numeric" oninput="pkgInput()"></div>
       </div>
       <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Націнка рахує лише сугеровану ціну. Якщо вгорі задана фактична ціна — саме вона йде в прибуток, маржу і підсумок.</div>
       <div id="pkg-markup-note" style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5"></div>
@@ -2603,14 +2603,7 @@ function pkgCompute(){
 }
 
 function renderPakiet(){
-  document.getElementById('pkg-v-sessionCost').textContent=pkgVal('pkg-sessionCost');
-  document.getElementById('pkg-v-sessionCount').textContent=pkgVal('pkg-sessionCount');
-  document.getElementById('pkg-v-graphicHours').textContent=pkgVal('pkg-graphicHours');
-  document.getElementById('pkg-v-graphicRate').textContent=pkgVal('pkg-graphicRate');
-  document.getElementById('pkg-v-kyryloRate').textContent=pkgVal('pkg-kyryloRate');
-  document.getElementById('pkg-v-coordHours').textContent=pkgVal('pkg-coordHours');
-  document.getElementById('pkg-v-transport').textContent=pkgVal('pkg-transport');
-  document.getElementById('pkg-v-markup').textContent=pkgVal('pkg-markup')+'%';
+  // усі параметри вводяться числом у полях — окремих підписів зі значенням більше немає
   const mk=pkgVal('pkg-markup');
   document.getElementById('pkg-markup-note').textContent=
     `Сугерована ціна = витрати × (1 + націнка). Націнка ${mk}% рахується від витрат, тому маржа від сугерованої ціни = ${mk}/${100+mk} = ${Math.round(mk/(100+mk)*100)}%.`;
