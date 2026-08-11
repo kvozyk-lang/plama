@@ -345,7 +345,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v39</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v40</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -618,6 +618,15 @@ input[type=range]:focus { box-shadow: none; }
       <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Збережений сценарій = підтверджений пакет для цього клієнта. Найновіший пакет клієнта рахується як активний і потрапляє в підсумок угорі.</div>
     </div>
 
+    <div class="card" style="border-color:rgba(79,142,247,0.45)">
+      <div class="card-label">Ціна, яку платить клієнт</div>
+      <div class="form-row">
+        <div class="field"><label>Фактична ціна (zł/міс) — узгоджена з клієнтом</label><input type="number" id="pkg-finalPrice" min="0" step="50" inputmode="numeric" placeholder="напр. 6000 · порожньо = рахуємо за націнкою" oninput="pkgInput()"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.5">Впиши суму, про яку домовився з клієнтом — саме вона йде в прибуток, маржу і підсумок угорі. Порожнє поле = ціну рахує калькулятор нижче (витрати + націнка).</div>
+      <button type="button" class="btn btn-sm" style="margin-top:10px" onclick="pkgClearFinalPrice()">Очистити — рахувати за націнкою</button>
+    </div>
+
     <div class="card">
       <div class="card-label">Аня — виконання SMM</div>
       <div class="form-row">
@@ -666,12 +675,11 @@ input[type=range]:focus { box-shadow: none; }
     </div>
 
     <div class="card">
-      <div class="card-label">Націнка і фактична ціна</div>
+      <div class="card-label">Націнка (для сугерованої ціни)</div>
       <div class="form-row form-2">
         <div class="field"><label>Націнка на витрати: <b id="pkg-v-markup">50%</b></label><input type="range" id="pkg-markup" min="0" max="150" step="5" value="50" oninput="pkgInput()"></div>
-        <div class="field"><label>Фактична ціна (zł/міс)</label><input type="number" id="pkg-finalPrice" min="0" step="50" inputmode="numeric" placeholder="порожньо = сугерована" oninput="pkgInput()"></div>
       </div>
-      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Фактична ціна = скільки клієнт реально платить. Якщо вона задана — саме вона йде в прибуток, маржу і підсумок угорі. Порожнє поле = рахуємо за націнкою.</div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5">Націнка рахує лише сугеровану ціну. Якщо вгорі задана фактична ціна — саме вона йде в прибуток, маржу і підсумок.</div>
       <div id="pkg-markup-note" style="font-size:12px;color:var(--text-3);margin-top:2px;line-height:1.5"></div>
     </div>
 
@@ -2526,6 +2534,44 @@ function pkgFinalPriceVal(){
   const n=parseFloat(raw);
   return isNaN(n)?null:n;
 }
+function pkgClearFinalPrice(){
+  const el=document.getElementById('pkg-finalPrice');
+  if(!el)return;
+  el.value='';
+  pkgInput();
+}
+
+// Швидке редагування ціни прямо на картці пакета в списку — без входу в калькулятор.
+// onchange (не oninput), щоб історія не забивалася версією після кожної цифри.
+async function setPkgFinalPrice(id,raw){
+  const idx=packages.findIndex(p=>p.id===id);
+  if(idx<0)return;
+  const s=String(raw).trim();
+  const n=parseFloat(s);
+  const val=(s===''||isNaN(n))?null:n;
+  const p=packages[idx];
+  const prev=(p.inputs&&p.inputs.finalPrice!==undefined&&p.inputs.finalPrice!=='')?p.inputs.finalPrice:null;
+  if(prev===val){renderPackagesList();return;}
+  // під час сесії редагування версія в історію вже пішла — не дублюємо
+  if(pkgEditingId===id&&pkgEditArchived){/* вже заархівовано */}
+  else{pkgArchive(p,'edited');if(pkgEditingId===id)pkgEditArchived=true;}
+  const inputs={...(p.inputs||{}),finalPrice:val};
+  const c=pkgCalcFromInputs({...p,inputs});
+  const results={totalCost:c.totalCost,price:c.price,suggestedPrice:c.suggestedPrice,priceCustom:c.priceCustom,
+    profit:c.profit,marginPct:c.marginPct,yourTake:c.yourTake,externalOut:c.externalOut};
+  packages[idx]={...p,date:today(),inputs,results};
+  // якщо цей самий пакет зараз у формі — тримаємо форму в синхроні
+  if(pkgEditingId===id){
+    const f=document.getElementById('pkg-finalPrice');
+    if(f)f.value=val===null?'':val;
+    renderPakiet();
+  }
+  renderPackagesList(); renderPkgHistory(); renderDash();
+  setSyncStatus('loading','Збереження...');
+  try{await saveState();setSyncStatus('ok','Supabase');showToast(val===null?'Ціна знову рахується за націнкою':'Ціну оновлено ✓');}
+  catch(e){setSyncStatus('err','Помилка збереження');}
+}
+
 function pkgFmt(n){return fmtZl(n);}
 
 function pkgCompute(){
@@ -3064,6 +3110,12 @@ function renderPackagesList(){
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
         <span>Ціна ${pkgCalcFromInputs(p).priceCustom?'<span style="font-size:11px;font-weight:500;color:var(--text-3)">фактична</span>':'<span style="font-size:11px;font-weight:500;color:var(--text-3)">сугерована</span>'}</span><span>${pkgFmt(p.results.price)}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px" onclick="event.stopPropagation()">
+        <label for="pkg-fp-${p.id}" style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.6px">Фактична ціна</label>
+        <input type="number" id="pkg-fp-${p.id}" min="0" step="50" inputmode="numeric" style="width:150px;padding:6px 10px;font-size:13px"
+          value="${(p.inputs&&p.inputs.finalPrice!==null&&p.inputs.finalPrice!==undefined&&p.inputs.finalPrice!=='')?p.inputs.finalPrice:''}"
+          placeholder="за націнкою" onchange="setPkgFinalPrice('${p.id}',this.value)">
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-top:4px">
         <span>Прибуток</span><span>${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
