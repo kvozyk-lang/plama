@@ -189,6 +189,23 @@ input[type=range]:focus { box-shadow: none; }
 
 .empty { text-align: center; color: var(--text-3); padding: 28px 0; font-size: 13px; font-weight: 400; }
 
+/* Калькуляція — рядки позицій: назва | тип | значення | ✕ */
+.est-row { display: grid; gap: 8px; align-items: center; margin-bottom: 8px; }
+.est-row-own { grid-template-columns: 1fr 130px 120px 32px; }
+.est-row-team { grid-template-columns: 1fr 150px 210px 32px; }
+.est-row-extra { grid-template-columns: 1fr 120px 32px; }
+.est-vals { display: flex; gap: 6px; min-width: 0; }
+.est-num { position: relative; flex: 1; display: block; min-width: 0; }
+.est-num input { padding-right: 38px; }
+.est-num span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--text-3); pointer-events: none; }
+@media (max-width: 560px) {
+  .est-row { padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 10px; }
+  .est-row-own, .est-row-team { grid-template-columns: 1fr 1fr 32px; }
+  .est-row-own .est-name, .est-row-team .est-name { grid-column: 1 / -1; }
+  .est-row-team .est-type { grid-column: 1 / -1; }
+  .est-row-team .est-vals { grid-column: 1 / 3; }
+}
+
 /* Tabela pozycji — jak w kalkulatorze pakietu */
 .pkg-hero { font-size: 44px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.05; color: var(--text); }
 .pkg-hero-sub { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 8px; }
@@ -345,7 +362,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v43</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v44</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -472,29 +489,58 @@ input[type=range]:focus { box-shadow: none; }
   <!-- ESTIMATE -->
   <div id="page-estimate" class="page">
     <div class="page-title">Калькуляція</div>
-    <div class="page-sub">Попередній розрахунок вартості проєкту для клієнта</div>
+    <div class="page-sub">Разове замовлення — ціна окремої креативної роботи: сам чи з командою, з виїздом чи без. Місячні пакети рахуються у вкладці «Пакети».</div>
 
     <div class="card">
-      <div class="card-label">Новий кошторис</div>
+      <div class="card-label">Замовлення</div>
       <div class="form-row form-2">
-        <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. NARRO — травень 2026"></div>
+        <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. NARRO — зйомка нового меню"></div>
         <div class="field"><label>Клієнт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-client" onchange="updateSubprojs('est-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('est-client','est-subproj')" title="Новий клієнт">+</button></div></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Підпроєкт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('est-client','est-subproj')" title="Новий підпроєкт">+</button></div></div>
-        <div class="field"><label>Ставка (zł/год)</label><input type="number" id="est-rate" value="50" min="1" step="1" oninput="recalcEstimate()"></div>
-      </div>
-      <div class="form-row">
         <div class="field"><label>Нотатка</label><input type="text" id="est-note" placeholder="необов'язково"></div>
       </div>
+    </div>
 
-      <div class="card-label" style="margin-top:8px">Позиції</div>
+    <div class="card" style="border-color:rgba(79,142,247,0.45)">
+      <div class="card-label">Ціна, яку платить клієнт</div>
+      <div class="form-row">
+        <div class="field"><label>Фактична ціна (zł нетто) — узгоджена з клієнтом</label><input type="number" id="est-finalPrice" min="0" step="50" inputmode="numeric" placeholder="напр. 2500 · порожньо = рахуємо за націнкою" oninput="recalcEstimate()"></div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3);line-height:1.5">Якщо ціну вже назвав клієнту — впиши її, і калькулятор покаже, скільки з неї лишиться тобі. Порожнє поле = ціна рахується з витрат нижче + націнка.</div>
+      <button type="button" class="btn btn-sm" style="margin-top:10px" onclick="estClearFinalPrice()">Очистити — рахувати за націнкою</button>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Твоя робота</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Твоя ставка (zł/год)</label><input type="number" id="est-rate" value="50" min="0" step="10" inputmode="numeric" oninput="recalcEstimate()"></div>
+      </div>
       <div id="est-lines"></div>
-      <button class="btn" style="margin-top:8px" onclick="addEstimateLine()">+ Додати позицію</button>
+      <button class="btn" style="margin-top:4px" onclick="addEstimateLine()">+ Додати позицію</button>
+      <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">Напр. «Зйомка» 4 год, «Монтаж» 6 год або фікс. сума за готову річ. Години множаться на твою ставку.</div>
+    </div>
 
-      <div class="card-label" style="margin-top:20px">Транспорт (виїзди до клієнта)</div>
-      <div class="field" style="margin-bottom:14px"><label>Як рахуємо?</label>
-        <div style="display:flex;gap:6px;margin-top:4px">
+    <div class="card">
+      <div class="card-label">Команда — інші люди</div>
+      <div id="est-team"></div>
+      <button class="btn" style="margin-top:4px" onclick="addEstimateTeam()">+ Додати людину</button>
+      <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">Фотограф, оператор, асистент, стиліст, модель — скільки платиш кожному. Порожньо = робиш сам.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Інші витрати</div>
+      <div id="est-extras"></div>
+      <button class="btn" style="margin-top:4px" onclick="addEstimateExtra()">+ Додати витрату</button>
+      <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">Оренда студії чи обладнання, реквізит, продукти для зйомки, музика/стоки, друк.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">Транспорт</div>
+      <div class="field" style="margin-bottom:14px"><label>Є виїзд?</label>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap">
+          <button type="button" class="btn btn-sm" id="est-btn-transport-none" onclick="estSetTransportMode('none')" style="flex:1">Без виїзду</button>
           <button type="button" class="btn btn-sm" id="est-btn-transport-formula" onclick="estSetTransportMode('formula')" style="flex:1">За формулою</button>
           <button type="button" class="btn btn-sm" id="est-btn-transport-manual" onclick="estSetTransportMode('manual')" style="flex:1">Вписати суму</button>
         </div>
@@ -502,21 +548,22 @@ input[type=range]:focus { box-shadow: none; }
 
       <div id="est-transport-manual-box" style="display:none">
         <div class="form-row form-2">
-          <div class="field"><label>Очікувані витрати (zł)</label><input type="number" id="est-transport" min="0" step="20" value="0" inputmode="numeric" oninput="recalcEstimate()"></div>
+          <div class="field"><label>Витрати на дорогу (zł)</label><input type="number" id="est-transport" min="0" step="20" value="0" inputmode="numeric" oninput="recalcEstimate()"></div>
         </div>
+        <div style="font-size:12px;color:var(--text-3);line-height:1.5">Квитки, паливо, парковка, нічліг — усе, що коштує дорога на це замовлення.</div>
       </div>
 
-      <div id="est-transport-formula-box">
+      <div id="est-transport-formula-box" style="display:none">
+        <div class="form-row form-2">
+          <div class="field"><label>Виїздів у цьому замовленні</label><input type="number" id="est-tr-trips" min="0" step="1" value="1" inputmode="numeric" oninput="recalcEstimate()"></div>
+          <div class="field"><label>Км за виїзд (туди-назад)</label><input type="number" id="est-tr-km" min="0" step="5" value="20" inputmode="decimal" oninput="recalcEstimate()"></div>
+        </div>
         <div class="form-row form-2">
           <div class="field"><label>Авто: фікс. витрати (zł/міс)</label><input type="number" id="est-tr-carFixed" min="0" step="50" value="1700" inputmode="numeric" oninput="recalcEstimate()"></div>
           <div class="field"><label>Частка робочих поїздок (%)</label><input type="number" id="est-tr-bizShare" min="0" max="100" step="5" value="80" inputmode="numeric" oninput="recalcEstimate()"></div>
         </div>
         <div class="form-row form-2">
           <div class="field"><label>Усіх робочих виїздів (міс)</label><input type="number" id="est-tr-tripsTotal" min="1" step="1" value="20" inputmode="numeric" oninput="recalcEstimate()"></div>
-          <div class="field"><label>Виїздів до цього клієнта</label><input type="number" id="est-tr-trips" min="0" step="1" value="2" inputmode="numeric" oninput="recalcEstimate()"></div>
-        </div>
-        <div class="form-row form-2">
-          <div class="field"><label>Км за виїзд (туди-назад)</label><input type="number" id="est-tr-km" min="0" step="5" value="20" inputmode="decimal" oninput="recalcEstimate()"></div>
           <div class="field"><label>Спалювання (л/100 км)</label><input type="number" id="est-tr-fuel" min="0" step="0.5" value="8" inputmode="decimal" oninput="recalcEstimate()"></div>
         </div>
         <div class="form-row form-2">
@@ -527,19 +574,35 @@ input[type=range]:focus { box-shadow: none; }
           Фіксована вартість авто ділиться між виїздами, а не між кілометрами — платиш за саму можливість приїхати вчасно і привезти обладнання. Від пробігу залежить лише паливо.
         </div>
       </div>
+    </div>
 
-      <div style="background:var(--brand-pale);border-radius:var(--r-sm);padding:12px 14px;margin-top:16px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:4px">
-          <span>Годин разом</span><span id="est-total-hrs" style="font-family:var(--mono);font-weight:500">0h</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-2);margin-bottom:4px">
-          <span>Транспорт</span><span id="est-total-transport" style="font-family:var(--mono);font-weight:500">0 zł</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:500;color:var(--brand)">
-          <span>Сума</span><span id="est-total-earn" style="font-family:var(--mono)">0 zł</span>
-        </div>
+    <div class="card">
+      <div class="card-label">Націнка (для сугерованої ціни)</div>
+      <div class="form-row form-2">
+        <div class="field"><label>Націнка на витрати (%)</label><input type="number" id="est-markup" min="0" step="5" value="0" inputmode="numeric" oninput="recalcEstimate()"></div>
       </div>
-      <div style="margin-top:12px;display:flex;gap:8px">
+      <div id="est-markup-note" style="font-size:12px;color:var(--text-3);line-height:1.5"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label" id="est-price-label">Сугерована ціна замовлення</div>
+      <div><span class="pkg-hero" id="est-price">0 zł</span><span class="pkg-hero-sub">нетто</span></div>
+      <div id="est-brutto" style="font-size:13px;color:var(--text-2);margin-top:4px"></div>
+      <div id="est-delta" style="font-size:13px;font-weight:500;margin:6px 0 18px"></div>
+
+      <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+        <div class="metric"><div class="metric-label">Витрати разом</div><div class="metric-val" id="est-m-cost">—</div></div>
+        <div class="metric"><div class="metric-label">Чистий прибуток</div><div class="metric-val" id="est-m-profit">—</div></div>
+        <div class="metric"><div class="metric-label">Маржа від ціни</div><div class="metric-val" id="est-m-margin">—</div></div>
+      </div>
+      <div class="metrics" style="grid-template-columns:1fr 1fr;margin-bottom:6px">
+        <div class="metric take"><div class="metric-label">Лишається тобі</div><div class="metric-val" id="est-m-take">—</div><div class="metric-sub" id="est-m-take-sub">твоя робота + чистий прибуток</div></div>
+        <div class="metric"><div class="metric-label">Віддаєш іншим</div><div class="metric-val" id="est-m-out">—</div><div class="metric-sub">команда, витрати, транспорт</div></div>
+      </div>
+
+      <div id="est-breakdown"></div>
+
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveEstimate()">✓ Зберегти кошторис</button>
         <button class="btn" onclick="clearEstimateForm()">✕ Очистити</button>
       </div>
@@ -1144,9 +1207,15 @@ function rebuildMsDrops(){
 
 function refreshEstimateSelects(){
   const cOpts='<option value="">— без клієнта —</option>'+clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  ['est-client'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=cOpts;});
+  // вибір у формі не губимо при перемиканні вкладок
+  const estClient=document.getElementById('est-client');
   const estSubproj=document.getElementById('est-subproj');
-  if(estSubproj)estSubproj.innerHTML='<option value="">— без підпроєкту —</option>';
+  const keepC=estClient?estClient.value:'', keepS=estSubproj?estSubproj.value:'';
+  if(estClient){estClient.innerHTML=cOpts;estClient.value=keepC;}
+  if(estSubproj){
+    if(estClient&&estClient.value){updateSubprojs('est-subproj',estClient.value);estSubproj.value=keepS;}
+    else estSubproj.innerHTML='<option value="">— без підпроєкту —</option>';
+  }
 }
 
 async function loadAll(){
@@ -1830,58 +1899,137 @@ function renderLogStats(list){
 }
 
 // ── ESTIMATES ──────────────────────────────────────────────
+// Калькуляція РАЗОВОГО замовлення (місячні пакети — у вкладці «Пакети»):
+//   твоя робота   — позиції: години × твоя ставка або фікс. сума
+//   команда       — інші люди: години × їхня ставка або фікс. сума (гроші назовні)
+//   інші витрати  — оренда, реквізит, стоки… (гроші назовні)
+//   транспорт     — без виїзду / формула (та сама trCalc, що в пакетах) / вписана сума
+//   ціна          — фактична (вписана) або сугерована = витрати × (1 + націнка)
+// Старі кошториси (лише lines + transport, без націнки) рахуються тією самою estCalc():
+// нових полів у них немає → нулі, і сума виходить така сама, як була.
 let estimates=[];
 let estLineId=0;
 
-function addEstimateLine(cat='',type='hours',hours=1,fixed=0,note=''){
+function estEsc(s){return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function estNum(v){const n=parseFloat(v);return isNaN(n)?0:n;}
+function estHrs(h){return h%1===0?String(h):h.toFixed(1);}
+// null = ціну не вписано (рахуємо за націнкою)
+function estFinalPrice(v){
+  if(v===null||v===undefined||String(v).trim()==='')return null;
+  const n=parseFloat(v);return isNaN(n)?null:n;
+}
+
+function estNumField(wrap,cls,val,step,unit,ph){
+  return `<label class="est-num ${wrap}"><input type="number" class="${cls}" value="${val}" min="0" step="${step}" inputmode="decimal" placeholder="${ph||''}" oninput="recalcEstimate()"><span>${unit}</span></label>`;
+}
+
+function estRowRemoveBtn(id){
+  return `<button class="btn-icon" onclick="document.getElementById('${id}').remove();recalcEstimate()" title="Прибрати">✕</button>`;
+}
+
+function addEstimateLine(type='hours',val=1,note=''){
   const id='el'+estLineId++;
-  const el=document.getElementById('est-lines');
   const div=document.createElement('div');
-  div.id=id;
-  div.style.cssText='display:grid;grid-template-columns:1fr 110px 90px 32px;gap:8px;align-items:center;margin-bottom:8px';
+  div.id=id; div.className='est-row est-row-own';
   div.innerHTML=`
-    <div class="field" style="margin:0">
-      <input type="text" placeholder="Назва роботи (напр. Монтаж)" value="${note}" oninput="recalcEstimate()" style="width:100%">
+    <input type="text" class="est-name" placeholder="Що робиш (напр. Монтаж)" value="${estEsc(note)}">
+    <select class="est-type" onchange="estToggleType('${id}')">
+      <option value="hours" ${type!=='fixed'?'selected':''}>Години</option>
+      <option value="fixed" ${type==='fixed'?'selected':''}>Фікс. сума</option>
+    </select>
+    <div class="est-vals">
+      ${estNumField('est-v-hours','el-hours',type!=='fixed'?val:'','0.5','год')}
+      ${estNumField('est-v-fixed','el-sum',type==='fixed'?val:'','10','zł')}
     </div>
-    <div class="field" style="margin:0">
-      <select onchange="toggleEstLineType('${id}',this.value);recalcEstimate()" style="width:100%">
-        <option value="hours" ${type==='hours'?'selected':''}>Години</option>
-        <option value="fixed" ${type==='fixed'?'selected':''}>Фікс. сума</option>
-      </select>
+    ${estRowRemoveBtn(id)}`;
+  document.getElementById('est-lines').appendChild(div);
+  estToggleType(id);
+}
+
+function addEstimateTeam(type='hours',hours='',rate='',sum='',note=''){
+  const id='el'+estLineId++;
+  const div=document.createElement('div');
+  div.id=id; div.className='est-row est-row-team';
+  div.innerHTML=`
+    <input type="text" class="est-name" placeholder="Хто (напр. Фотограф)" value="${estEsc(note)}">
+    <select class="est-type" onchange="estToggleType('${id}')">
+      <option value="hours" ${type!=='fixed'?'selected':''}>Години × ставка</option>
+      <option value="fixed" ${type==='fixed'?'selected':''}>Фікс. сума</option>
+    </select>
+    <div class="est-vals">
+      ${estNumField('est-v-hours','el-hours',hours,'0.5','год')}
+      ${estNumField('est-v-hours','el-rate',rate,'10','zł/г')}
+      ${estNumField('est-v-fixed','el-sum',sum,'10','zł')}
     </div>
-    <div class="field" style="margin:0">
-      <input type="number" class="el-val" value="${type==='hours'?hours:fixed}" min="0" step="${type==='hours'?0.5:1}" placeholder="${type==='hours'?'год':'zł'}" oninput="recalcEstimate()" style="width:100%">
-    </div>
-    <button class="btn-icon" onclick="document.getElementById('${id}').remove();recalcEstimate()">✕</button>`;
-  el.appendChild(div);
+    ${estRowRemoveBtn(id)}`;
+  document.getElementById('est-team').appendChild(div);
+  estToggleType(id);
+}
+
+function addEstimateExtra(sum='',note=''){
+  const id='el'+estLineId++;
+  const div=document.createElement('div');
+  div.id=id; div.className='est-row est-row-extra';
+  div.innerHTML=`
+    <input type="text" class="est-name" placeholder="Що (напр. Оренда студії)" value="${estEsc(note)}">
+    <div class="est-vals">${estNumField('','el-sum',sum,'10','zł')}</div>
+    ${estRowRemoveBtn(id)}`;
+  document.getElementById('est-extras').appendChild(div);
   recalcEstimate();
 }
 
-function toggleEstLineType(id, type){
+function estToggleType(id){
   const div=document.getElementById(id);
   if(!div)return;
-  const inp=div.querySelector('.el-val');
-  inp.step=type==='hours'?'0.5':'1';
-  inp.placeholder=type==='hours'?'год':'zł';
+  const fixed=div.querySelector('.est-type').value==='fixed';
+  div.querySelectorAll('.est-v-hours').forEach(e=>e.style.display=fixed?'none':'');
+  div.querySelectorAll('.est-v-fixed').forEach(e=>e.style.display=fixed?'':'none');
+  recalcEstimate();
 }
 
-// ── Транспорт кошторису: та сама формула/ручний режим, що й у пакетах ──
-let estTransportMode='formula';
+function estRowVal(div,cls){const el=div.querySelector('.'+cls);return el?el.value:'';}
+
+function estLinesFromForm(){
+  return [...document.querySelectorAll('#est-lines > .est-row')].map(div=>{
+    const type=div.querySelector('.est-type').value==='fixed'?'fixed':'hours';
+    return {note:estRowVal(div,'est-name').trim(),type,val:estNum(estRowVal(div,type==='fixed'?'el-sum':'el-hours'))};
+  });
+}
+function estTeamFromForm(){
+  return [...document.querySelectorAll('#est-team > .est-row')].map(div=>({
+    note:estRowVal(div,'est-name').trim(),
+    type:div.querySelector('.est-type').value==='fixed'?'fixed':'hours',
+    hours:estNum(estRowVal(div,'el-hours')),rate:estNum(estRowVal(div,'el-rate')),sum:estNum(estRowVal(div,'el-sum'))
+  }));
+}
+function estExtrasFromForm(){
+  return [...document.querySelectorAll('#est-extras > .est-row')].map(div=>({
+    note:estRowVal(div,'est-name').trim(),sum:estNum(estRowVal(div,'el-sum'))
+  }));
+}
+
+// ── Транспорт: без виїзду / формула (як у пакетах) / вписана сума ──
+let estTransportMode='none';
 
 function trFromFormEst(){
   return {carFixed:pkgVal('est-tr-carFixed'),bizShare:pkgVal('est-tr-bizShare'),tripsTotal:pkgVal('est-tr-tripsTotal'),
     trips:pkgVal('est-tr-trips'),km:pkgVal('est-tr-km'),fuel:pkgVal('est-tr-fuel'),fuelPrice:pkgVal('est-tr-fuelPrice')};
 }
 
+function estTrNote(t){
+  if(!t||t.trips<=0)return 'без виїздів';
+  return `${t.trips} ${trTripsWord(t.trips)} × ${trNum(t.perTrip)} zł (авто ${trNum(t.fixedPerTrip)} + паливо ${trNum(t.fuelPerTrip)})`;
+}
+
 function estTransportState(){
   const formula=trCalc(trFromFormEst());
-  const mode=estTransportMode==='formula'?'formula':'manual';
-  return {mode,formula,cost:mode==='formula'?formula.cost:pkgVal('est-transport'),
-    note:mode==='formula'?trNote(formula):''};
+  const mode=['none','formula','manual'].includes(estTransportMode)?estTransportMode:'none';
+  const cost=mode==='formula'?formula.cost:mode==='manual'?pkgVal('est-transport'):0;
+  return {mode,formula,cost,note:mode==='formula'?estTrNote(formula):''};
 }
 
 function estSetTransportMode(m){
-  estTransportMode=(m==='formula')?'formula':'manual';
+  estTransportMode=['none','formula','manual'].includes(m)?m:'none';
   if(estTransportMode==='manual'){
     const el=document.getElementById('est-transport');
     if(el&&(String(el.value).trim()===''||parseFloat(el.value)===0))el.value=trCalc(trFromFormEst()).cost;
@@ -1890,20 +2038,17 @@ function estSetTransportMode(m){
 }
 
 function renderEstTransportCard(){
-  const isF=estTransportMode==='formula';
-  const bf=document.getElementById('est-btn-transport-formula'),bm=document.getElementById('est-btn-transport-manual');
-  if(bf)bf.classList.toggle('btn-primary',isF);
-  if(bm)bm.classList.toggle('btn-primary',!isF);
+  const m=estTransportMode;
+  [['none','est-btn-transport-none'],['formula','est-btn-transport-formula'],['manual','est-btn-transport-manual']]
+    .forEach(([k,id])=>{const b=document.getElementById(id);if(b)b.classList.toggle('btn-primary',m===k);});
   const fbox=document.getElementById('est-transport-formula-box'),mbox=document.getElementById('est-transport-manual-box');
-  if(fbox)fbox.style.display=isF?'':'none';
-  if(mbox)mbox.style.display=isF?'none':'';
+  if(fbox)fbox.style.display=m==='formula'?'':'none';
+  if(mbox)mbox.style.display=m==='manual'?'':'none';
   const out=document.getElementById('est-transport-breakdown');
-  if(!out)return;
-  if(!isF){out.style.display='none';return;}
-  out.style.display='';
+  if(!out||m!=='formula')return;
   const t=trCalc(trFromFormEst());
   out.innerHTML=
-    `<div style="font-size:20px;font-weight:700;color:var(--text)">${fmtZl(t.cost)}</div>
+    `<div style="font-size:20px;font-weight:700;color:var(--text)">${fmtZl(t.cost)} <span style="font-size:12px;font-weight:600;color:var(--text-3)">на це замовлення</span></div>
      <div style="font-size:12px;color:var(--text-2);margin-top:6px;line-height:1.6">
        Авто: ${Math.round(t.carFixed)} zł/міс × ${Math.round(t.bizShare)}% ÷ ${t.tripsTotal} ${trTripsWord(t.tripsTotal)} = <b>${trNum(t.fixedPerTrip)} zł</b> за виїзд<br>
        Паливо: ${trNum(t.km)} км × ${t.fuelPerKm.toFixed(2)} zł/км = <b>${trNum(t.fuelPerTrip)} zł</b> за виїзд<br>
@@ -1911,56 +2056,139 @@ function renderEstTransportCard(){
      </div>`;
 }
 
-function recalcEstimate(){
-  const rate=parseFloat(document.getElementById('est-rate').value)||0;
-  let totalHrs=0, totalEarn=0;
-  document.querySelectorAll('#est-lines > div').forEach(div=>{
-    const sel=div.querySelector('select');
-    const inp=div.querySelector('.el-val');
-    if(!sel||!inp)return;
-    const val=parseFloat(inp.value)||0;
-    if(sel.value==='hours'){totalHrs+=val;totalEarn+=val*rate;}
-    else{totalEarn+=val;}
+// ── Математика: одна функція і для форми, і для збережених кошторисів ──
+function estCalc(e){
+  const rate=estNum(e.rate);
+  const own=(e.lines||[]).map(l=>{
+    const type=l.type==='fixed'?'fixed':'hours', val=estNum(l.val);
+    return {note:l.note||'',type,val,earn:type==='hours'?val*rate:val};
   });
-  renderEstTransportCard();
-  const transportCost=estTransportState().cost;
-  document.getElementById('est-total-transport').textContent=transportCost.toFixed(0)+' zł';
-  totalEarn+=transportCost;
-  document.getElementById('est-total-hrs').textContent=totalHrs%1===0?totalHrs+'h':totalHrs.toFixed(1)+'h';
-  document.getElementById('est-total-earn').textContent=totalEarn.toFixed(0)+' zł';
+  const team=(e.team||[]).map(p=>{
+    const type=p.type==='fixed'?'fixed':'hours', hours=estNum(p.hours), r=estNum(p.rate), sum=estNum(p.sum);
+    return {note:p.note||'',type,hours,rate:r,sum,cost:type==='hours'?hours*r:sum};
+  });
+  const extras=(e.extras||[]).map(x=>({note:x.note||'',sum:estNum(x.sum),cost:estNum(x.sum)}));
+
+  // транспорт: формулу переліковуємо з параметрів; старі кошториси без transport мають лише transportCost
+  const t=e.transport||{};
+  let transportMode, transportCost, transportNote='';
+  if(t.mode==='formula'&&t.formula){const f=trCalc(t.formula);transportMode='formula';transportCost=f.cost;transportNote=estTrNote(f);}
+  else if(t.mode==='none'){transportMode='none';transportCost=0;}
+  else{transportCost=estNum(t.mode==='manual'?t.cost:e.transportCost);transportMode=transportCost>0?'manual':'none';}
+
+  const sum=(arr,k)=>arr.reduce((a,x)=>a+x[k],0);
+  const ownCost=sum(own,'earn'), teamCost=sum(team,'cost'), extrasCost=sum(extras,'cost');
+  const ownHrs=own.filter(l=>l.type==='hours').reduce((a,l)=>a+l.val,0);
+  const totalCost=ownCost+teamCost+extrasCost+transportCost;
+  const markup=estNum(e.markup);
+  const suggestedPrice=totalCost*(1+markup/100);
+  const finalPrice=estFinalPrice(e.finalPrice);
+  const priceCustom=finalPrice!==null;
+  const price=priceCustom?finalPrice:suggestedPrice;
+  const profit=price-totalCost;
+  const marginPct=price>0?profit/price*100:0;
+  const externalOut=teamCost+extrasCost+transportCost;
+  const yourTake=ownCost+profit; // = ціна − те, що віддаєш іншим
+  return {rate,own,team,extras,transportMode,transportCost,transportNote,ownCost,teamCost,extrasCost,ownHrs,
+    totalCost,markup,suggestedPrice,finalPrice,priceCustom,price,profit,marginPct,externalOut,yourTake};
 }
 
-function getEstimateLines(){
-  const rate=parseFloat(document.getElementById('est-rate').value)||0;
-  const lines=[];
-  document.querySelectorAll('#est-lines > div').forEach(div=>{
-    const sel=div.querySelector('select');
-    const inp=div.querySelector('.el-val');
-    const noteEl=div.querySelector('input[type=text]');
-    if(!sel||!inp)return;
-    const val=parseFloat(inp.value)||0;
-    const type=sel.value;
-    const earn=type==='hours'?parseFloat((val*rate).toFixed(2)):val;
-    lines.push({note:noteEl?noteEl.value:'',type,val,earn});
-  });
-  return lines;
+function estStateFromForm(){
+  return {rate:pkgVal('est-rate'),lines:estLinesFromForm(),team:estTeamFromForm(),extras:estExtrasFromForm(),
+    transport:estTransportState(),markup:pkgVal('est-markup'),
+    finalPrice:estFinalPrice(document.getElementById('est-finalPrice').value)};
+}
+
+// рядки таблиці «з чого складається ціна» — спільні для форми і збереженої картки
+function estCostRows(c){
+  const muted=s=>`<span style="color:var(--text-3)">${s}</span>`;
+  const rows=[];
+  c.own.forEach(l=>rows.push({label:`${muted('Ти ·')} ${estEsc(l.note)||'робота'} ${muted(l.type==='hours'?`${estHrs(l.val)} год × ${fmtZl(c.rate)}`:'фікс.')}`,val:l.earn}));
+  c.team.forEach(p=>rows.push({label:`${muted('Команда ·')} ${estEsc(p.note)||'людина'} ${muted(p.type==='hours'?`${estHrs(p.hours)} год × ${fmtZl(p.rate)}`:'фікс.')}`,val:p.cost}));
+  c.extras.forEach(x=>rows.push({label:`${muted('Витрата ·')} ${estEsc(x.note)||'без назви'}`,val:x.cost}));
+  if(c.transportCost>0)rows.push({label:`${muted('Транспорт')}${c.transportNote?' '+muted('· '+c.transportNote):''}`,val:c.transportCost});
+  return rows;
+}
+
+function estClearFinalPrice(){
+  const el=document.getElementById('est-finalPrice');
+  if(el)el.value='';
+  recalcEstimate();
+}
+
+function recalcEstimate(){
+  renderEstTransportCard();
+  const c=estCalc(estStateFromForm());
+
+  document.getElementById('est-price').textContent=fmtZl(c.price);
+  document.getElementById('est-price-label').textContent=c.priceCustom?'Фактична ціна замовлення':'Сугерована ціна замовлення';
+  document.getElementById('est-brutto').textContent=c.price>0?`брутто з ПДВ 23%: ${fmtZl(c.price*1.23)}`:'';
+  document.getElementById('est-m-cost').textContent=fmtZl(c.totalCost);
+  const pEl=document.getElementById('est-m-profit');
+  pEl.textContent=fmtZl(c.profit);
+  pEl.style.color=c.profit<0?'var(--red)':'';
+  document.getElementById('est-m-margin').textContent=Math.round(c.marginPct)+'%';
+  document.getElementById('est-m-take').textContent=fmtZl(c.yourTake);
+  document.getElementById('est-m-out').textContent=fmtZl(c.externalOut);
+  document.getElementById('est-m-take-sub').textContent=`робота ${fmtZl(c.ownCost)} + прибуток ${fmtZl(c.profit)}`;
+
+  const deltaEl=document.getElementById('est-delta');
+  if(c.priceCustom){
+    const d=c.price-c.suggestedPrice;
+    deltaEl.textContent=d>=0
+      ?`Твоя ціна · +${fmtZl(d)} над сугерованою (${fmtZl(c.suggestedPrice)})`
+      :`Твоя ціна · ${fmtZl(d)} під сугерованою (${fmtZl(c.suggestedPrice)})${c.profit<0?' — не покриває витрат':''}`;
+    deltaEl.style.color=d>=0?'var(--green)':'var(--red)';
+  }else{
+    deltaEl.textContent='Сугерована ціна — витрати × (1 + націнка). Впиши фактичну ціну вгорі, якщо домовився інакше.';
+    deltaEl.style.color='var(--text-3)';
+  }
+
+  const mk=c.markup;
+  document.getElementById('est-markup-note').textContent=
+    `Твоя робота вже оплачена ставкою — націнка це прибуток зверху (ризик, правки, організація команди). `+
+    (mk>0?`${mk}% від витрат = маржа ${Math.round(mk/(100+mk)*100)}% від сугерованої ціни.`:'0% = клієнт платить рівно за витрати.');
+
+  const rows=estCostRows(c);
+  document.getElementById('est-breakdown').innerHTML=rows.length?
+    `<div class="card-label" style="margin:20px 0 0">З чого складається ціна</div>
+    <table class="pkg-table">
+      <thead><tr><th>Позиція</th><th class="num">Вартість</th><th class="num">Частка</th></tr></thead>
+      <tbody>
+        ${rows.map(r=>`<tr><td>${r.label}</td><td class="num">${fmtZl(r.val)}</td><td class="num share">${c.totalCost>0?Math.round(r.val/c.totalCost*100):0}%</td></tr>`).join('')}
+        <tr class="total"><td>Витрати разом</td><td class="num">${fmtZl(c.totalCost)}</td><td class="num share">100%</td></tr>
+        ${!c.priceCustom&&mk>0?`<tr><td style="color:var(--text-2)">Націнка ${mk}%</td><td class="num">+ ${fmtZl(c.suggestedPrice-c.totalCost)}</td><td class="num share"></td></tr>`:''}
+        <tr class="total"><td>Ціна ${c.priceCustom?'(фактична)':'(сугерована)'}</td><td class="num">${fmtZl(c.price)}</td><td class="num share"></td></tr>
+      </tbody>
+    </table>`:'';
 }
 
 async function saveEstimate(){
   const name=document.getElementById('est-name').value.trim();
-  if(!name){document.getElementById('est-name').focus();return;}
-  const rate=parseFloat(document.getElementById('est-rate').value)||0;
-  const lines=getEstimateLines();
-  if(!lines.length){showToast('Додай хоча б одну позицію');return;}
-  const totalHrs=lines.filter(l=>l.type==='hours').reduce((a,l)=>a+l.val,0);
-  const transport=estTransportState();
-  const totalEarn=lines.reduce((a,l)=>a+l.earn,0)+transport.cost;
-  const clientId=document.getElementById('est-client').value;
-  const subprojId=document.getElementById('est-subproj')?.value||'';
-  const note=document.getElementById('est-note').value;
+  if(!name){document.getElementById('est-name').focus();showToast('Впиши назву кошторису');return;}
+  const s=estStateFromForm();
+  // порожні рядки (без назви і без суми) не зберігаємо
+  s.lines=s.lines.filter(l=>l.note||l.val);
+  s.team=s.team.filter(p=>p.note||p.hours||p.sum);
+  s.extras=s.extras.filter(x=>x.note||x.sum);
+  if(!s.lines.length&&!s.team.length&&!s.extras.length&&!(s.transport.cost>0)){
+    showToast('Додай хоча б одну позицію — свою роботу, людину або витрату');return;
+  }
+  const c=estCalc(s);
+  const r2=n=>Math.round(n*100)/100;
   const est={
-    id:uid(), date:today(), name, clientId, subprojId, rate, note,
-    lines, totalHrs, totalEarn, transport, transportCost:transport.cost
+    id:uid(), date:today(), name,
+    clientId:document.getElementById('est-client').value,
+    subprojId:document.getElementById('est-subproj')?.value||'',
+    note:document.getElementById('est-note').value,
+    rate:s.rate, markup:s.markup, finalPrice:s.finalPrice,
+    lines:c.own.map(l=>({note:l.note,type:l.type,val:l.val,earn:r2(l.earn)})),
+    team:c.team.map(p=>({note:p.note,type:p.type,hours:p.hours,rate:p.rate,sum:p.sum,cost:r2(p.cost)})),
+    extras:c.extras.map(x=>({note:x.note,sum:x.sum})),
+    transport:s.transport, transportCost:c.transportCost,
+    totalHrs:c.ownHrs, totalCost:r2(c.totalCost), price:r2(c.price), profit:r2(c.profit),
+    yourTake:r2(c.yourTake), externalOut:r2(c.externalOut),
+    totalEarn:r2(c.price) // стара назва поля = ціна для клієнта
   };
   estimates.unshift(est);
   renderEstimates();
@@ -1972,21 +2200,22 @@ async function saveEstimate(){
   }catch(e){setSyncStatus('err','Помилка збереження');}
 }
 
+function estSetTransportFields(f){
+  const d={...TR_DEFAULTS,trips:1,...Object.fromEntries(Object.entries(f||{}).filter(([,v])=>v!==undefined&&v!==null))};
+  ['carFixed','bizShare','tripsTotal','trips','km','fuel','fuelPrice'].forEach(k=>{
+    document.getElementById('est-tr-'+k).value=d[k];
+  });
+}
+
 function clearEstimateForm(){
   document.getElementById('est-name').value='';
   document.getElementById('est-note').value='';
   document.getElementById('est-rate').value='50';
-  document.getElementById('est-lines').innerHTML='';
-  document.getElementById('est-total-hrs').textContent='0h';
-  document.getElementById('est-total-earn').textContent='0 zł';
-  estTransportMode='formula';
-  document.getElementById('est-tr-carFixed').value=TR_DEFAULTS.carFixed;
-  document.getElementById('est-tr-bizShare').value=TR_DEFAULTS.bizShare;
-  document.getElementById('est-tr-tripsTotal').value=TR_DEFAULTS.tripsTotal;
-  document.getElementById('est-tr-trips').value=TR_DEFAULTS.trips;
-  document.getElementById('est-tr-km').value=TR_DEFAULTS.km;
-  document.getElementById('est-tr-fuel').value=TR_DEFAULTS.fuel;
-  document.getElementById('est-tr-fuelPrice').value=TR_DEFAULTS.fuelPrice;
+  document.getElementById('est-finalPrice').value='';
+  document.getElementById('est-markup').value='0';
+  ['est-lines','est-team','est-extras'].forEach(id=>document.getElementById(id).innerHTML='');
+  estTransportMode='none';
+  estSetTransportFields(null);
   document.getElementById('est-transport').value=0;
   recalcEstimate();
 }
@@ -1999,8 +2228,10 @@ async function deleteEstimate(id){
   catch(e){setSyncStatus('err','Помилка');}
 }
 
-function confirmDeleteEstimate(id,name){
-  document.getElementById('confirm-text').textContent=`Кошторис "${name}" буде видалено.`;
+function confirmDeleteEstimate(id){
+  const est=estimates.find(e=>e.id===id);
+  if(!est)return;
+  document.getElementById('confirm-text').textContent=`Кошторис "${est.name}" буде видалено.`;
   document.getElementById('confirm-modal').classList.add('open');
   document.getElementById('confirm-delete-btn').onclick=()=>{
     document.getElementById('confirm-modal').classList.remove('open');
@@ -2008,27 +2239,30 @@ function confirmDeleteEstimate(id,name){
   };
 }
 
-function loadEstimateToForm(est){
+function loadEstimateToForm(id){
+  const est=estimates.find(e=>e.id===id);
+  if(!est)return;
+  const c=estCalc(est);
   document.getElementById('est-name').value=est.name+' (копія)';
-  document.getElementById('est-rate').value=est.rate||50;
   document.getElementById('est-note').value=est.note||'';
   document.getElementById('est-client').value=est.clientId||'';
-  document.getElementById('est-lines').innerHTML='';
-  (est.lines||[]).forEach(l=>addEstimateLine(l.cat||'',l.type,l.val,l.earn,l.note||''));
-  const t=est.transport;
-  estTransportMode=(t&&t.mode==='manual')?'manual':'formula';
-  const f=(t&&t.formula)||{};
-  document.getElementById('est-tr-carFixed').value=f.carFixed??TR_DEFAULTS.carFixed;
-  document.getElementById('est-tr-bizShare').value=f.bizShare??TR_DEFAULTS.bizShare;
-  document.getElementById('est-tr-tripsTotal').value=f.tripsTotal??TR_DEFAULTS.tripsTotal;
-  document.getElementById('est-tr-trips').value=f.trips??TR_DEFAULTS.trips;
-  document.getElementById('est-tr-km').value=f.km??TR_DEFAULTS.km;
-  document.getElementById('est-tr-fuel').value=f.fuel??TR_DEFAULTS.fuel;
-  document.getElementById('est-tr-fuelPrice').value=f.fuelPrice??TR_DEFAULTS.fuelPrice;
-  document.getElementById('est-transport').value=(t&&t.mode==='manual')?t.cost:0;
-  // scroll to top of estimate page
+  updateSubprojs('est-subproj',est.clientId||'');
+  const sp=document.getElementById('est-subproj');
+  if(sp)sp.value=est.subprojId||'';
+  document.getElementById('est-rate').value=est.rate??50;
+  document.getElementById('est-finalPrice').value=c.priceCustom?c.finalPrice:'';
+  document.getElementById('est-markup').value=c.markup;
+  ['est-lines','est-team','est-extras'].forEach(k=>document.getElementById(k).innerHTML='');
+  c.own.forEach(l=>addEstimateLine(l.type,l.val,l.note));
+  c.team.forEach(p=>addEstimateTeam(p.type,p.hours||'',p.rate||'',p.sum||'',p.note));
+  c.extras.forEach(x=>addEstimateExtra(x.sum||'',x.note));
+  estTransportMode=c.transportMode;
+  estSetTransportFields(est.transport&&est.transport.formula);
+  document.getElementById('est-transport').value=c.transportMode==='manual'?c.transportCost:0;
   document.querySelector('.content').scrollTop=0;
+  window.scrollTo(0,0);
   recalcEstimate();
+  showToast('Кошторис скопійовано у форму');
 }
 
 function renderEstimates(){
@@ -2036,35 +2270,42 @@ function renderEstimates(){
   if(!estimates.length){el.innerHTML='<div class="empty">Поки немає збережених кошторисів</div>';return;}
   const projMap={};clients.forEach(c=>projMap[c.id]=c);
   el.innerHTML=estimates.map(est=>{
+    const c=estCalc(est);
     const client=est.clientId&&projMap[est.clientId]?projMap[est.clientId].name:'';
-    const lines=(est.lines||[]).map(l=>`
-      <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text-2)">${l.note||'—'} ${l.type==='hours'?`(${l.val}h × ${est.rate} zł)`:'(фікс.)'}</span>
-        <span style="font-family:var(--mono);font-weight:500">${l.earn} zł</span>
+    const rows=estCostRows(c).map(r=>`
+      <div style="display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
+        <span style="color:var(--text-2)">${r.label}</span>
+        <span style="font-family:var(--mono);font-weight:500;white-space:nowrap">${fmtZl(r.val)}</span>
       </div>`).join('');
-    const transportLine=(est.transportCost>0)?`
+    const markupRow=(!c.priceCustom&&c.markup>0)?`
       <div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">
-        <span style="color:var(--text-2)">Транспорт${est.transport&&est.transport.note?' · '+est.transport.note:''}</span>
-        <span style="font-family:var(--mono);font-weight:500">${Math.round(est.transportCost)} zł</span>
+        <span style="color:var(--text-2)">Націнка ${c.markup}%</span>
+        <span style="font-family:var(--mono);font-weight:500">+ ${fmtZl(c.suggestedPrice-c.totalCost)}</span>
       </div>`:'';
+    const split=(c.externalOut>0||c.priceCustom||c.markup>0)
+      ?`<div style="font-size:12px;color:var(--text-2);margin-top:6px;line-height:1.6">
+          Лишається тобі <b style="color:var(--green)">${fmtZl(c.yourTake)}</b> · віддаєш іншим <b>${fmtZl(c.externalOut)}</b>${c.priceCustom?` · сугерована була ${fmtZl(c.suggestedPrice)}`:''}
+        </div>`:'';
     return`<div class="card" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px">
         <div>
-          <div style="font-weight:500;font-size:15px;color:var(--brand)">${est.name}</div>
+          <div style="font-weight:500;font-size:15px;color:var(--brand)">${estEsc(est.name)}</div>
           <div style="font-size:12px;color:var(--text-2);margin-top:2px">
-            ${String(est.date).slice(0,10)}${client?' · '+client:''}${est.note?' · '+est.note:''}
+            ${String(est.date).slice(0,10)}${client?' · '+estEsc(client):''}${est.note?' · '+estEsc(est.note):''}
           </div>
         </div>
-        <div style="display:flex;gap:4px">
-          <button class="btn btn-sm" onclick="loadEstimateToForm(${JSON.stringify(est).replace(/"/g,'&quot;')})" title="Копіювати у форму"></button>
-          <button class="btn-icon" onclick="confirmDeleteEstimate('${est.id}','${est.name.replace(/'/g,"\\'")}')">✕</button>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-sm" onclick="loadEstimateToForm('${est.id}')" title="Копіювати у форму">Копія</button>
+          <button class="btn-icon" onclick="confirmDeleteEstimate('${est.id}')" title="Видалити">✕</button>
         </div>
       </div>
-      <div style="margin-bottom:10px">${lines}${transportLine}</div>
-      <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand);padding-top:6px">
-        <span>${est.totalHrs%1===0?est.totalHrs:est.totalHrs.toFixed(1)}h &nbsp; Разом</span>
-        <span style="font-family:var(--mono);font-size:16px">${est.totalEarn.toFixed(0)} zł</span>
+      <div style="margin-bottom:10px">${rows}${markupRow}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:14px;font-weight:500;color:var(--brand);padding-top:6px">
+        <span>${c.ownHrs>0?estHrs(c.ownHrs)+'h &nbsp; ':''}${c.priceCustom?'Ціна (фактична)':'Разом'}</span>
+        <span style="font-family:var(--mono);font-size:16px">${fmtZl(c.price)}</span>
       </div>
+      <div style="text-align:right;font-size:11.5px;color:var(--text-3)">брутто з ПДВ 23%: ${fmtZl(c.price*1.23)}</div>
+      ${split}
     </div>`;
   }).join('');
 }
