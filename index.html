@@ -19,6 +19,7 @@
   --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Helvetica, Arial, sans-serif;
   --serif: var(--sans); --mono: var(--sans);
   --r: 16px; --r-sm: 10px;
+  --ctl-h: 40px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: var(--sans); font-weight: 400; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; font-variant-numeric: tabular-nums; }
@@ -56,16 +57,31 @@ body { font-family: var(--sans); font-weight: 400; background: var(--bg); color:
 .page-title { font-family: var(--sans); font-size: 24px; font-weight: 700; letter-spacing: -0.3px; margin-bottom: 4px; color: var(--text); }
 .page-sub { font-size: 13px; font-weight: 400; color: var(--text-2); margin-bottom: 22px; }
 
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 20px 22px; margin-bottom: 14px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; margin-bottom: 14px; }
 .card-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-3); margin-bottom: 14px; }
+/* Заголовок секції поза карткою — та сама типографіка, що й .card-label */
+.section-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-3); margin: 28px 0 12px; }
+/* Шапка картки (заголовок + дія чи стрілка) — однаковий патерн усюди */
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+.card-head .card-label { margin: 0; }
+.collapse-head { cursor: pointer; margin-bottom: 0; }
+.collapse-chevron { font-size: 12px; color: var(--text-3); transition: transform 0.2s; flex-shrink: 0; }
 
+/* Плитки-метрики — одна система на всі вкладки.
+   Розмір числа рахується від ширини самої плитки (container query),
+   тому довга сума ніколи не обрізається і не ламається на два рядки. */
 .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
-.metric { background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--r); padding: 14px 16px; }
+.metrics-2 { grid-template-columns: 1fr 1fr; }
+.metrics-3 { grid-template-columns: repeat(3,1fr); }
+.metrics-auto { grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); }
+.metrics-tight { margin-bottom: 10px; }
+.metric {
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--r);
+  padding: 14px 16px; min-width: 0; container-type: inline-size;
+}
+.metrics-auto .metric { padding: 12px; }
 .metric-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; font-weight: 400; }
-.metric-val { font-family: var(--sans); font-size: 22px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); white-space: nowrap; }
-/* Kafelki dopasowują liczbę kolumn do szerokości — 5 sztuk na telefonie
-   ściskało się do dwóch linii ("54173" / "zł"). */
-.metrics-auto { grid-template-columns: repeat(auto-fit, minmax(108px, 1fr)); }
+.metric-val { font-family: var(--sans); font-size: clamp(15px, 14cqw, 22px); font-weight: 700; letter-spacing: -0.5px; color: var(--text); white-space: nowrap; }
 
 .form-row { display: grid; gap: 12px; margin-bottom: 14px; }
 .form-2 { grid-template-columns: 1fr 1fr; }
@@ -73,7 +89,7 @@ body { font-family: var(--sans); font-weight: 400; background: var(--bg); color:
 .form-4 { grid-template-columns: 1fr 1fr 1fr 86px; }
 .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
 input, select {
-  width: 100%; padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--r-sm);
+  width: 100%; min-height: var(--ctl-h); padding: 9px 12px; border: 1px solid var(--border-strong); border-radius: var(--r-sm);
   background: var(--surface-2); color: var(--text); font-family: var(--sans); font-size: 14px; font-weight: 400;
   transition: border-color 0.15s, box-shadow 0.15s; -webkit-appearance: none; appearance: none;
   color-scheme: dark;
@@ -86,7 +102,7 @@ input:focus, select:focus { outline: none; border-color: var(--brand); box-shado
 
 /* Суваги — як у калькуляторі: тонкий трек + великий синій повзунок */
 input[type=range] {
-  padding: 0; border: none; background: transparent; height: 30px; cursor: pointer;
+  padding: 0; border: none; background: transparent; height: 30px; min-height: 0; cursor: pointer;
 }
 input[type=range]::-webkit-slider-runnable-track { height: 5px; border-radius: 3px; background: var(--border-strong); }
 input[type=range]::-webkit-slider-thumb {
@@ -108,22 +124,22 @@ input[type=range]:focus { box-shadow: none; }
 .timer-display.running { color: var(--green); }
 .timer-controls { display: flex; gap: 8px; justify-content: center; margin-top: 18px; flex-wrap: wrap; }
 
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 18px; border-radius: var(--r-sm); font-family: var(--sans); font-size: 13px; font-weight: 400; cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); transition: all 0.15s; white-space: nowrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: var(--ctl-h); padding: 9px 16px; border-radius: var(--r-sm); font-family: var(--sans); font-size: 13px; font-weight: 400; cursor: pointer; border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text); transition: all 0.15s; white-space: nowrap; }
 .btn:hover { background: var(--brand-pale); border-color: var(--brand); }
 .btn:active { transform: scale(0.98); }
 .btn-primary { background: var(--brand); color: #fff; border-color: var(--brand); }
 .btn-primary:hover { background: var(--brand-light); opacity: 1; }
 .btn-ghost { color: var(--red); border-color: rgba(248,113,113,0.4); }
 .btn-ghost:hover { background: rgba(248,113,113,0.1); border-color: var(--red); }
-.btn-icon { padding: 5px 8px; background: none; border: none; cursor: pointer; color: var(--text-3); border-radius: var(--r-sm); font-size: 14px; line-height: 1; transition: all 0.15s; }
+.btn-icon { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; background: none; border: none; cursor: pointer; color: var(--text-3); border-radius: var(--r-sm); font-size: 14px; line-height: 1; transition: all 0.15s; }
 .btn-icon:hover { background: var(--brand-pale); color: var(--brand); }
-.btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-sm { min-height: 32px; padding: 5px 12px; font-size: 12px; }
 
 /* Client tree */
 .client-block { margin-bottom: 10px; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
 .client-header {
   display: flex; align-items: center; gap: 10px;
-  padding: 12px 16px; background: var(--surface); cursor: pointer;
+  padding: 14px 18px; background: var(--surface); cursor: pointer;
   border-bottom: 1px solid transparent; transition: background 0.15s;
 }
 .client-header:hover { background: var(--brand-pale); }
@@ -133,7 +149,7 @@ input[type=range]:focus { box-shadow: none; }
 .client-name { font-weight: 500; flex: 1; color: var(--text); }
 .client-meta { font-size: 12px; color: var(--text-2); font-family: var(--mono); }
 .client-actions { display: flex; gap: 4px; }
-.subprojects { display: none; padding: 0 16px 12px; background: var(--surface); }
+.subprojects { display: none; padding: 0 18px 14px; background: var(--surface); }
 .client-header.open + .subprojects { display: block; }
 .subproj-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -151,9 +167,9 @@ input[type=range]:focus { box-shadow: none; }
 .log-name { font-weight: 500; font-size: 14px; }
 .log-meta { font-size: 12px; color: var(--text-2); margin-top: 3px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .log-hrs { font-family: var(--sans); font-size: 15px; font-weight: 600; white-space: nowrap; }
-.badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 500; border: 1px solid transparent; }
+.badge { display: inline-block; padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 600; border: 1px solid transparent; }
 
-.filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end; }
 .filter-row select { width: auto; min-width: 140px; flex: none; }
 
 /* Edit modal */
@@ -207,7 +223,7 @@ input[type=range]:focus { box-shadow: none; }
 }
 
 /* Tabela pozycji — jak w kalkulatorze pakietu */
-.pkg-hero { font-size: 44px; font-weight: 800; letter-spacing: -1.5px; line-height: 1.05; color: var(--text); }
+.pkg-hero { font-size: 44px; font-weight: 700; letter-spacing: -1px; line-height: 1.05; color: var(--text); }
 .pkg-hero-sub { font-size: 13px; font-weight: 400; color: var(--text-3); margin-left: 8px; }
 .pkg-table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
 .pkg-table th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.9px; color: var(--text-3); padding: 8px 0; border-bottom: 1px solid var(--border); }
@@ -217,17 +233,20 @@ input[type=range]:focus { box-shadow: none; }
 .pkg-table td.share { color: var(--text-2); font-weight: 400; width: 64px; }
 .pkg-table tr.total td { font-weight: 700; }
 .pkg-table tr:last-child td { border-bottom: none; }
-.metric.take { border-color: rgba(74,222,128,0.45); }
+.metric.take, .card-active { border-color: rgba(74,222,128,0.45); }
+.badge-green { color: var(--green); background: rgba(74,222,128,0.12); }
+.badge-amber { color: var(--amber); background: rgba(251,191,36,0.14); }
+.badge-red { color: var(--red); background: rgba(248,113,113,0.15); }
 .metric-sub { font-size: 11px; color: var(--text-3); margin-top: 4px; line-height: 1.4; }
 
 /* Multi-select dropdown */
 .ms-wrap { position: relative; }
 .ms-btn {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 8px; padding: 10px 14px; border-radius: var(--r-sm);
-  border: 1.5px solid var(--border); background: var(--surface);
+  gap: 8px; min-height: var(--ctl-h); padding: 9px 12px; border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong); background: var(--surface-2);
   font-size: 14px; color: var(--text); cursor: pointer;
-  font-family: var(--body); white-space: nowrap; min-width: 130px;
+  font-family: var(--sans); white-space: nowrap; min-width: 130px;
   transition: border-color 0.15s;
 }
 .ms-btn:hover { border-color: var(--brand); }
@@ -236,7 +255,7 @@ input[type=range]:focus { box-shadow: none; }
 .ms-btn.open svg { transform: rotate(180deg); }
 .ms-dropdown {
   display: none; position: absolute; top: calc(100% + 4px); left: 0;
-  background: var(--surface); border: 1.5px solid var(--border);
+  background: var(--surface); border: 1px solid var(--border-strong);
   border-radius: var(--r-sm); box-shadow: 0 8px 24px rgba(0,0,0,0.5);
   z-index: 50; min-width: 180px; max-height: 220px; overflow-y: auto;
 }
@@ -252,18 +271,18 @@ input[type=range]:focus { box-shadow: none; }
 .ms-option.select-all { border-bottom: 1px solid var(--border); font-weight: 500; color: var(--text-2); font-size: 13px; }
 
 /* Invoice styles */
-.inv-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 16px 18px; margin-bottom: 12px; }
+.inv-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 18px 20px; margin-bottom: 12px; }
 .inv-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
 .inv-title { font-weight: 600; font-size: 15px; color: var(--text); }
 .inv-client { font-size: 12px; color: var(--text-2); margin-top: 2px; }
-.inv-status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 100px; flex-shrink: 0; }
+.inv-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 100px; flex-shrink: 0; }
 .inv-status.paid { background: rgba(74,222,128,0.15); color: var(--green); }
 .inv-status.overdue { background: rgba(248,113,113,0.15); color: var(--red); }
 .inv-status.pending { background: rgba(251,191,36,0.14); color: var(--amber); }
-.inv-amounts { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 12px; }
-.inv-amt { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; }
-.inv-amt-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-.inv-amt-val { font-family: var(--sans); font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+.inv-amounts { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.inv-amt { background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--r); padding: 12px; min-width: 0; container-type: inline-size; }
+.inv-amt-label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 6px; font-weight: 400; }
+.inv-amt-val { font-family: var(--sans); font-size: clamp(15px, 14cqw, 22px); font-weight: 700; letter-spacing: -0.5px; color: var(--text); white-space: nowrap; }
 .inv-amt-val.red { color: var(--red); }
 .inv-amt-val.green { color: var(--green); }
 .inv-dates { display: flex; gap: 16px; font-size: 12px; color: var(--text-2); margin-bottom: 12px; flex-wrap: wrap; }
@@ -300,16 +319,14 @@ input[type=range]:focus { box-shadow: none; }
   .form-2, .form-3, .form-4 { grid-template-columns: 1fr; }
   .timer-display { font-size: 40px; }
   .metrics { gap: 8px; }
-  .metric { padding: 12px 12px; }
-  .metric-val { font-size: 18px; }
+  .metric { padding: 12px; }
   .metrics-auto { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
-  .metrics-auto .metric { padding: 10px 10px; }
-  .metrics-auto .metric-val { font-size: 16px; letter-spacing: -0.3px; }
-  .metrics-auto .metric-label { font-size: 10px; letter-spacing: 0.4px; }
-  /* Invoice metrics - 3+2 on mobile */
-  #inv-metrics { grid-template-columns: repeat(3,1fr) !important; }
-  /* Invoice amounts - 2x2 on mobile */
-  .inv-amounts { grid-template-columns: 1fr 1fr !important; }
+  .metrics-auto .metric { padding: 10px; }
+  .metric-label { font-size: 10px; letter-spacing: 0.4px; }
+  /* На телефоні 5 плиток «Обліку» стають 3 + 2 */
+  #inv-metrics { grid-template-columns: repeat(3,1fr); }
+  /* Суми у фактурі — 2x2 на телефоні */
+  .inv-amounts { grid-template-columns: 1fr 1fr; }
   .inv-actions { flex-wrap: wrap; }
   .inv-actions .btn { flex: 1; text-align: center; justify-content: center; min-width: 100px; }
   /* Filter row wrap */
@@ -362,7 +379,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Підключення...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v44</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Версія застосунку">v45</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -378,8 +395,8 @@ input[type=range]:focus { box-shadow: none; }
     <div class="card">
       <div class="card-label">Проєкт</div>
       <div class="form-row form-2">
-        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="t-client" onchange="updateSubprojs('t-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('t-client','t-subproj')" title="Новий клієнт">+</button></div></div>
-        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="t-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('t-client','t-subproj')" title="Новий підпроєкт">+</button></div></div>
+        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="t-client" onchange="updateSubprojs('t-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddClient('t-client','t-subproj')" title="Новий клієнт">+</button></div></div>
+        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="t-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddSubproj('t-client','t-subproj')" title="Новий підпроєкт">+</button></div></div>
       </div>
       <div class="form-row form-2">
         <div class="field"><label>Категорія</label>
@@ -446,9 +463,9 @@ input[type=range]:focus { box-shadow: none; }
       </select>
     </div>
     <!-- Записи — головний контент, одразу під фільтрами -->
-    <div class="card" style="padding:20px 22px;margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-label" style="margin:0">Записи</div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head">
+        <div class="card-label">Записи</div>
         <button class="btn btn-primary btn-sm" onclick="openAddModal(logCtxClient(),logCtxSubproj())">+ Запис</button>
       </div>
       <div id="log-list-inner"><div id="log-list"><div class="empty">Завантаження...</div></div></div>
@@ -456,16 +473,16 @@ input[type=range]:focus { box-shadow: none; }
 
     <!-- Статистика — другорядне, згорнуто за замовчуванням -->
     <div class="card" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('log-cats','log-cats-chevron')">
-        <div class="card-label" style="margin:0">По категоріях</div>
-        <span id="log-cats-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s">▼</span>
+      <div class="card-head collapse-head" onclick="toggleStats('log-cats','log-cats-chevron')">
+        <div class="card-label">По категоріях</div>
+        <span class="collapse-chevron" id="log-cats-chevron">▼</span>
       </div>
       <div id="log-cats" style="margin-top:12px"><div class="empty">Завантаження...</div></div>
     </div>
     <div class="card" style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('log-clients','log-clients-chevron')">
-        <div class="card-label" style="margin:0">По клієнтах і підпроєктах</div>
-        <span id="log-clients-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s">▼</span>
+      <div class="card-head collapse-head" onclick="toggleStats('log-clients','log-clients-chevron')">
+        <div class="card-label">По клієнтах і підпроєктах</div>
+        <span class="collapse-chevron" id="log-clients-chevron">▼</span>
       </div>
       <div id="log-clients" style="margin-top:12px"><div class="empty">Завантаження...</div></div>
     </div>
@@ -495,10 +512,10 @@ input[type=range]:focus { box-shadow: none; }
       <div class="card-label">Замовлення</div>
       <div class="form-row form-2">
         <div class="field"><label>Назва кошторису</label><input type="text" id="est-name" placeholder="напр. NARRO — зйомка нового меню"></div>
-        <div class="field"><label>Клієнт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-client" onchange="updateSubprojs('est-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('est-client','est-subproj')" title="Новий клієнт">+</button></div></div>
+        <div class="field"><label>Клієнт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-client" onchange="updateSubprojs('est-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddClient('est-client','est-subproj')" title="Новий клієнт">+</button></div></div>
       </div>
       <div class="form-row form-2">
-        <div class="field"><label>Підпроєкт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('est-client','est-subproj')" title="Новий підпроєкт">+</button></div></div>
+        <div class="field"><label>Підпроєкт (необов'язково)</label><div style="display:flex;gap:6px"><select id="est-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddSubproj('est-client','est-subproj')" title="Новий підпроєкт">+</button></div></div>
         <div class="field"><label>Нотатка</label><input type="text" id="est-note" placeholder="необов'язково"></div>
       </div>
     </div>
@@ -590,12 +607,12 @@ input[type=range]:focus { box-shadow: none; }
       <div id="est-brutto" style="font-size:13px;color:var(--text-2);margin-top:4px"></div>
       <div id="est-delta" style="font-size:13px;font-weight:500;margin:6px 0 18px"></div>
 
-      <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div class="metrics metrics-3 metrics-tight">
         <div class="metric"><div class="metric-label">Витрати разом</div><div class="metric-val" id="est-m-cost">—</div></div>
         <div class="metric"><div class="metric-label">Чистий прибуток</div><div class="metric-val" id="est-m-profit">—</div></div>
         <div class="metric"><div class="metric-label">Маржа від ціни</div><div class="metric-val" id="est-m-margin">—</div></div>
       </div>
-      <div class="metrics" style="grid-template-columns:1fr 1fr;margin-bottom:6px">
+      <div class="metrics metrics-2 metrics-tight">
         <div class="metric take"><div class="metric-label">Лишається тобі</div><div class="metric-val" id="est-m-take">—</div><div class="metric-sub" id="est-m-take-sub">твоя робота + чистий прибуток</div></div>
         <div class="metric"><div class="metric-label">Віддаєш іншим</div><div class="metric-val" id="est-m-out">—</div><div class="metric-sub">команда, витрати, транспорт</div></div>
       </div>
@@ -608,7 +625,7 @@ input[type=range]:focus { box-shadow: none; }
       </div>
     </div>
 
-    <div class="card-label" style="margin:8px 0 12px">Збережені кошториси</div>
+    <div class="section-label">Збережені кошториси</div>
     <div id="est-list"><div class="empty">Завантаження...</div></div>
   </div>
 
@@ -629,10 +646,10 @@ input[type=range]:focus { box-shadow: none; }
       <div class="card-label">Нова фактура</div>
       <div class="form-row form-2">
         <div class="field"><label>Номер фактури</label><input type="text" id="inv-name" placeholder="напр. A1/5/2026"></div>
-        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="inv-client" onchange="updateSubprojs('inv-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('inv-client','inv-subproj')">+</button></div></div>
+        <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="inv-client" onchange="updateSubprojs('inv-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddClient('inv-client','inv-subproj')">+</button></div></div>
       </div>
       <div class="form-row form-2">
-        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="inv-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('inv-client','inv-subproj')">+</button></div></div>
+        <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="inv-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddSubproj('inv-client','inv-subproj')">+</button></div></div>
         <div class="field"><label>Нетто (zł)</label><input type="number" id="inv-amount" min="0" step="1" placeholder="0" oninput="updateInvVatPreview()"></div>
       </div>
       <div id="inv-vat-preview" style="display:none;background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;font-size:13px;margin-bottom:14px">
@@ -663,7 +680,7 @@ input[type=range]:focus { box-shadow: none; }
     <div class="filter-row">
       <div class="field" style="margin:0"><label>Від</label><input type="date" id="if-date-from" onchange="renderInvoices()"></div>
       <div class="field" style="margin:0"><label>До</label><input type="date" id="if-date-to" onchange="renderInvoices()"></div>
-      <button class="btn btn-sm" onclick="clearInvDates()" style="align-self:flex-end">✕ Скинути дати</button>
+      <button class="btn btn-sm" onclick="clearInvDates()">✕ Скинути дати</button>
     </div>
 
     <div id="inv-list"><div class="empty">Завантаження...</div></div>
@@ -674,37 +691,37 @@ input[type=range]:focus { box-shadow: none; }
     <div class="page-title">Пакети</div>
     <div class="page-sub">Активні пакети клієнтів — скільки приносять за місяць</div>
 
-    <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
+    <div class="metrics metrics-3 metrics-tight">
       <div class="metric"><div class="metric-label">Дохід</div><div class="metric-val" id="pkg-sum-income">—</div></div>
       <div class="metric"><div class="metric-label">Витрати</div><div class="metric-val" id="pkg-sum-costs">—</div></div>
       <div class="metric"><div class="metric-label">Прибуток</div><div class="metric-val" id="pkg-sum-profit">—</div></div>
     </div>
-    <div class="metrics" style="grid-template-columns:1fr 1fr">
+    <div class="metrics metrics-2">
       <div class="metric take"><div class="metric-label">Лишається тобі</div><div class="metric-val" id="pkg-sum-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
       <div class="metric"><div class="metric-label">Віддаєш іншим</div><div class="metric-val" id="pkg-sum-out">—</div><div class="metric-sub">Аня, підрядники, транспорт</div></div>
     </div>
     <div id="pkg-sum-note" style="font-size:12.5px;color:var(--text-3);margin:-4px 0 16px;line-height:1.5"></div>
 
     <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-cost-breakdown','pkg-cost-chevron')">
-        <div class="card-label" style="margin:0">На що йдуть витрати</div>
-        <span id="pkg-cost-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
+      <div class="card-head collapse-head" onclick="toggleStats('pkg-cost-breakdown','pkg-cost-chevron')">
+        <div class="card-label">На що йдуть витрати</div>
+        <span class="collapse-chevron" id="pkg-cost-chevron" style="transform:rotate(-90deg)">▼</span>
       </div>
       <div id="pkg-cost-breakdown" style="margin-top:12px;display:none"><div class="empty">Немає активних пакетів</div></div>
     </div>
 
-    <div class="card-label" style="margin:28px 0 12px">Активні пакети</div>
+    <div class="section-label">Активні пакети</div>
     <div id="pkg-list"><div class="empty">Немає підтверджених пакетів</div></div>
 
     <div class="card" style="margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="toggleStats('pkg-history-list','pkg-history-chevron')">
-        <div class="card-label" style="margin:0">Історія змін</div>
-        <span id="pkg-history-chevron" style="font-size:12px;color:var(--text-3);transition:transform 0.2s;transform:rotate(-90deg)">▼</span>
+      <div class="card-head collapse-head" onclick="toggleStats('pkg-history-list','pkg-history-chevron')">
+        <div class="card-label">Історія змін</div>
+        <span class="collapse-chevron" id="pkg-history-chevron" style="transform:rotate(-90deg)">▼</span>
       </div>
       <div id="pkg-history-list" style="margin-top:12px;display:none"><div class="empty">Історія порожня</div></div>
     </div>
 
-    <div class="card-label" id="pkg-calc-anchor" style="margin:28px 0 12px">Калькулятор нового пакету</div>
+    <div class="section-label" id="pkg-calc-anchor">Калькулятор нового пакету</div>
 
     <div id="pkg-edit-banner" style="display:none;align-items:center;justify-content:space-between;gap:10px;background:rgba(79,142,247,0.12);border:1px solid rgba(79,142,247,0.4);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:14px;font-size:13px;color:var(--text)">
       <span>Редагування збереженого пакета — зміни зберігаються автоматично. «Скасувати» поверне версію до початку редагування.</span>
@@ -822,12 +839,12 @@ input[type=range]:focus { box-shadow: none; }
       <div><span class="pkg-hero" id="pkg-price">—</span><span class="pkg-hero-sub">нетто / місяць / клієнт</span></div>
       <div id="pkg-delta" style="font-size:13px;font-weight:500;margin:6px 0 18px"></div>
 
-      <div class="metrics" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">
+      <div class="metrics metrics-3 metrics-tight">
         <div class="metric"><div class="metric-label">Сума витрат / міс</div><div class="metric-val" id="pkg-total">—</div></div>
         <div class="metric"><div class="metric-label">Чистий прибуток</div><div class="metric-val" id="pkg-profit">—</div></div>
         <div class="metric"><div class="metric-label">Маржа від ціни</div><div class="metric-val" id="pkg-margin">—</div></div>
       </div>
-      <div class="metrics" style="grid-template-columns:1fr 1fr;margin-bottom:18px">
+      <div class="metrics metrics-2">
         <div class="metric take"><div class="metric-label">Лишається тобі / міс</div><div class="metric-val" id="pkg-take">—</div><div class="metric-sub">твоя робота + чистий прибуток</div></div>
         <div class="metric"><div class="metric-label">Віддаєш іншим / міс</div><div class="metric-val" id="pkg-out">—</div><div class="metric-sub" id="pkg-out-sub">Аня + витрати</div></div>
       </div>
@@ -956,8 +973,8 @@ input[type=range]:focus { box-shadow: none; }
     <div id="e-info" style="background:var(--brand-pale);border-radius:var(--r-sm);padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--brand);line-height:1.6"></div>
     <input type="hidden" id="e-id">
     <div class="form-row form-2">
-      <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="e-client" onchange="updateSubprojs('e-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddClient('e-client','e-subproj')" title="Новий клієнт">+</button></div></div>
-      <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="e-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:7px 10px;flex-shrink:0" onclick="quickAddSubproj('e-client','e-subproj')" title="Новий підпроєкт">+</button></div></div>
+      <div class="field"><label>Клієнт</label><div style="display:flex;gap:6px"><select id="e-client" onchange="updateSubprojs('e-subproj',this.value)" style="flex:1"><option value="">— без клієнта —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddClient('e-client','e-subproj')" title="Новий клієнт">+</button></div></div>
+      <div class="field"><label>Підпроєкт</label><div style="display:flex;gap:6px"><select id="e-subproj" style="flex:1"><option value="">— без підпроєкту —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddSubproj('e-client','e-subproj')" title="Новий підпроєкт">+</button></div></div>
     </div>
     <div class="form-row form-2">
       <div class="field"><label>Категорія</label>
@@ -2558,13 +2575,13 @@ function renderInvoices(){
         </div>
         ${statusHtml}
       </div>
-      <div class="inv-amounts" style="grid-template-columns:repeat(4,1fr)">
+      <div class="inv-amounts">
         <div class="inv-amt"><div class="inv-amt-label">Нетто</div><div class="inv-amt-val">${netto.toFixed(2)} zł</div></div>
         <div class="inv-amt"><div class="inv-amt-label">ПДВ 23%</div><div class="inv-amt-val" style="color:var(--text-2)">${vat.toFixed(2)} zł</div></div>
         <div class="inv-amt"><div class="inv-amt-label">Брутто</div><div class="inv-amt-val" style="font-weight:700">${brutto.toFixed(2)} zł</div></div>
         <div class="inv-amt"><div class="inv-amt-label">Оплачено</div><div class="inv-amt-val ${paid>0?'green':''}" ${paid>0?'':'style="color:var(--text-3)"'}>${paid.toFixed(2)} zł</div></div>
       </div>
-      ${remaining>0?`<div style="font-size:13px;font-weight:600;color:${isOverdue?'var(--red)':'var(--amber)'};background:${isOverdue?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.08)'};border-radius:8px;padding:9px 12px;margin:2px 0 10px">Залишок до оплати: ${remaining.toFixed(2)} zł</div>`:''}
+      ${remaining>0?`<div style="font-size:13px;font-weight:600;color:${isOverdue?'var(--red)':'var(--amber)'};background:${isOverdue?'rgba(248,113,113,0.1)':'rgba(251,191,36,0.08)'};border-radius:var(--r-sm);padding:9px 12px;margin:2px 0 10px">Залишок до оплати: ${remaining.toFixed(2)} zł</div>`:''}
       <div class="inv-dates">
         <span>Виставлено: <strong>${inv.issueDate}</strong></span>
         ${inv.dueDate?`<span>Термін: <strong style="color:${isOverdue?'var(--red)':''}">${inv.dueDate}</strong></span>`:''}
@@ -3591,12 +3608,12 @@ function renderPackagesList(){
     const client=p.clientId&&projMap[p.clientId]?projMap[p.clientId].name:'';
     const isActive=activeIds.has(p.id);
     const isOpen=pkgExpandedId===p.id;
-    return `<div class="card" id="pkg-card-${p.id}" style="margin-bottom:12px;cursor:pointer${isActive?';border-color:rgba(74,222,128,0.45)':''}" onclick="togglePkgDetail('${p.id}')" title="${isOpen?'Згорнути':'Натисни, щоб переглянути деталі'}">
+    return `<div class="card${isActive?' card-active':''}" id="pkg-card-${p.id}" style="margin-bottom:12px;cursor:pointer" onclick="togglePkgDetail('${p.id}')" title="${isOpen?'Згорнути':'Натисни, щоб переглянути деталі'}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
         <div style="display:flex;align-items:flex-start;gap:8px">
-          <span style="font-size:11px;color:var(--text-3);transition:transform 0.2s;transform:rotate(${isOpen?'90deg':'0deg'});margin-top:4px">▶</span>
+          <span class="collapse-chevron" style="transform:rotate(${isOpen?'90deg':'0deg'});margin-top:4px">▶</span>
           <div>
-            <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name} ${isActive?'<span style="font-size:11px;font-weight:600;color:var(--green);background:rgba(74,222,128,0.12);border-radius:100px;padding:2px 8px;vertical-align:middle">активний</span>':''}</div>
+            <div style="font-weight:500;font-size:15px;color:var(--text)">${p.name} ${isActive?'<span class="badge badge-green" style="vertical-align:middle">активний</span>':''}</div>
             <div style="font-size:12px;color:var(--text-2);margin-top:2px">${String(p.date).slice(0,10)}${client?' · '+client:''}</div>
           </div>
         </div>
