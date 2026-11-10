@@ -379,7 +379,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Łączenie...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Wersja aplikacji">v46</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Wersja aplikacji">v47</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -455,6 +455,7 @@ input[type=range]:focus { box-shadow: none; }
       <div class="ms-wrap" id="ms-log-wrap"><button class="ms-btn" id="ms-log-btn" onclick="toggleMs('log')"><span id="ms-log-label">Wszyscy klienci</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button><div class="ms-dropdown" id="ms-log-drop"></div></div>
       <select id="f-subproj" onchange="renderLog()"><option value="">Wszystkie podprojekty</option></select>
       <select id="f-cat" onchange="renderLog()"><option value="">Wszystkie kategorie</option></select>
+      <select id="f-month" onchange="renderLog()"><option value="">Wszystkie miesiące</option></select>
       <select id="f-sort" onchange="renderLog()" style="width:auto;min-width:130px">
         <option value="date">↓ Wg daty</option>
         <option value="cat">Wg kategorii</option>
@@ -694,6 +695,19 @@ input[type=range]:focus { box-shadow: none; }
       <div class="metric"><div class="metric-label">Oddajesz innym</div><div class="metric-val" id="pkg-sum-out">—</div><div class="metric-sub">Ania, podwykonawcy, transport</div></div>
     </div>
     <div id="pkg-sum-note" style="font-size:12.5px;color:var(--text-3);margin:-4px 0 16px;line-height:1.5"></div>
+
+    <div class="card">
+      <div class="card-head">
+        <div class="card-label">Plan a fakt — Twoje godziny</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <button type="button" class="btn btn-sm" onclick="pvfShift(-1)" title="Poprzedni miesiąc">‹</button>
+          <span id="pvf-month" style="font-size:13px;font-weight:600;min-width:118px;text-align:center"></span>
+          <button type="button" class="btn btn-sm" onclick="pvfShift(1)" title="Następny miesiąc">›</button>
+        </div>
+      </div>
+      <div id="pvf-body"><div class="empty">Ładowanie...</div></div>
+      <div style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5">Plan pochodzi z aktywnego pakietu klienta, fakt — z wpisów w Dzienniku z wybranego miesiąca. Grafika = „Projektowanie graficzne”; sesje = „Zdjęcia” + „Obróbka zdjęć” (1 sesja = 4 h); koordynacja + montaż = pozostałe kategorie; dojazdy liczone osobno, bez planu.</div>
+    </div>
 
     <div class="card">
       <div class="card-head collapse-head" onclick="toggleStats('pkg-cost-breakdown','pkg-cost-chevron')">
@@ -1233,7 +1247,6 @@ async function loadAll(){
     setSyncStatus('ok','Supabase');
     refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); refreshPkgSelects(); rebuildMsDrops();
     renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderDash();
-    renderLogStats(entries);
     try{
       const cur=localStorage.getItem('plama_tab')||'track';
       if(cur==='clients')renderClients();
@@ -1788,10 +1801,12 @@ function renderLog(){
   const cfArr=getMsClients('log');
   const sf=document.getElementById('f-subproj').value;
   const catf=document.getElementById('f-cat').value;
+  const mf=logMonthFilter();
   let list=entries;
   if(cfArr)list=list.filter(e=>cfArr.includes(e.clientId));
   if(sf)list=list.filter(e=>e.subprojId===sf);
   if(catf)list=list.filter(e=>e.cat===catf);
+  if(mf)list=list.filter(e=>String(e.date).slice(0,7)===mf);
   const sort=document.getElementById('f-sort').value;
   if(sort==='cat') list=[...list].sort((a,b)=>catLabel(a.cat).localeCompare(catLabel(b.cat),'pl'));
   else if(sort==='earn') list=[...list].sort((a,b)=>(parseFloat(b.earn)||0)-(parseFloat(a.earn)||0));
@@ -1804,7 +1819,7 @@ function renderLog(){
   document.getElementById('lm-hrs').textContent=totalHrs.toFixed(1);
   document.getElementById('lm-earn').textContent=totalEarn.toFixed(0)+' zł';
   const el=document.getElementById('log-list');
-  if(!list.length){el.innerHTML='<div class="empty">Brak wpisów</div>';return;}
+  if(!list.length){el.innerHTML='<div class="empty">Brak wpisów</div>';renderLogStats(list);return;}
   el.innerHTML=list.map(e=>{
     const client=getClientById(e.clientId);
     const subproj=getSubprojById(e.clientId,e.subprojId);
@@ -1850,9 +1865,30 @@ function renderLog(){
   renderLogStats(list);
 }
 
+// Miesiąc „2026-11” → „listopad 2026”
+function monthLabel(ym){
+  const [y,m]=String(ym).split('-').map(Number);
+  return new Date(y,m-1,1).toLocaleDateString('pl-PL',{month:'long',year:'numeric'});
+}
+
+// Lista miesięcy w filtrze Dziennika budowana z wpisów; wybór zostaje przy odświeżeniu listy.
+function logMonthFilter(){
+  const sel=document.getElementById('f-month');
+  if(!sel)return '';
+  const months=[...new Set(entries.map(e=>String(e.date).slice(0,7)).filter(m=>/^\d{4}-\d{2}$/.test(m)))].sort().reverse();
+  const key=months.join(',');
+  if(sel.dataset.months!==key){
+    const keep=sel.value;
+    sel.innerHTML='<option value="">Wszystkie miesiące</option>'+months.map(m=>`<option value="${m}">${monthLabel(m)}</option>`).join('');
+    sel.value=months.includes(keep)?keep:'';
+    sel.dataset.months=key;
+  }
+  return sel.value;
+}
+
 function renderLogStats(list){
   try{
-    const filteredList=(list&&list.length)?list:entries;
+    const filteredList=Array.isArray(list)?list:entries;
     const catEl=document.getElementById('log-cats');
     const clientEl=document.getElementById('log-clients');
     if(!catEl||!filteredList.length){
@@ -3575,7 +3611,101 @@ function pkgDetailHtml(p){
   </div>`;
 }
 
+// ── PLAN A FAKT: godziny z pakietu kontra godziny z Dziennika w wybranym miesiącu ──
+// Tylko odczyt — niczego nie zapisuje. Kategorie wpisów (klucze w danych) → koszyki pakietu.
+const PVF_BUCKETS=[
+  {key:'grafika',label:'Grafika',cats:['Графічний дизайн'],plan:(i,p)=>i.graphicHours||0},
+  {key:'sesja',label:'Sesje foto/wideo',cats:['Зйомка','Обробка фото'],plan:(i,p)=>p.sessionSelf!==false?(i.sessionCount??1)*4:0},
+  {key:'koord',label:'Koordynacja + montaż',cats:null,plan:(i,p)=>i.coordHours||0}, // cats:null = wszystko, co nie trafiło gdzie indziej
+  {key:'transport',label:'Dojazdy',cats:['Транспорт'],plan:null},
+];
+let pvfMonth=today().slice(0,7);
+
+function pvfShift(d){
+  const [y,m]=pvfMonth.split('-').map(Number);
+  const dt=new Date(y,m-1+d,1);
+  pvfMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  renderPlanVsFact();
+}
+
+function pvfBucketOf(cat){
+  const b=PVF_BUCKETS.find(b=>b.cats&&b.cats.includes(cat));
+  return b?b.key:'koord';
+}
+
+function pvfBar(actual,plan,color){
+  const pct=plan>0?Math.min(100,actual/plan*100):(actual>0?100:0);
+  return `<div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+}
+
+function renderPlanVsFact(){
+  const body=document.getElementById('pvf-body'),lbl=document.getElementById('pvf-month');
+  if(!body)return;
+  if(lbl)lbl.textContent=monthLabel(pvfMonth);
+  const monthEntries=entries.filter(e=>String(e.date).slice(0,7)===pvfMonth);
+  const act=activePackages();
+  const withPkg=new Set(act.map(p=>p.clientId));
+  const h=x=>fmtHrs(Math.round(x*100)/100);
+
+  const cards=act.map(p=>{
+    const i=p.inputs||{};
+    const cname=(clients.find(c=>c.id===p.clientId)||{}).name||'(klient usunięty)';
+    const ce=monthEntries.filter(e=>e.clientId===p.clientId);
+    const actual={};PVF_BUCKETS.forEach(b=>actual[b.key]=0);
+    ce.forEach(e=>{actual[pvfBucketOf(e.cat)]+=e.hours||0;});
+    let planSum=0,actSum=0;
+    const rows=PVF_BUCKETS.map(b=>{
+      const a=actual[b.key];
+      if(!b.plan){ // dojazdy: bez planu, pokazujemy tylko gdy są
+        if(a<=0)return '';
+        actSum+=a;
+        return `<div class="bar-row"><div class="bar-top"><span style="color:var(--text-2)">${b.label}</span><span class="bar-val">${h(a)} · poza planem</span></div></div>`;
+      }
+      const pl=b.plan(i,p);
+      planSum+=pl;actSum+=a;
+      const over=a>pl+0.001;
+      const color=over?'var(--red)':(pl>0&&a>=pl*0.8?'var(--amber)':'var(--brand)');
+      const note=over?` <span style="color:var(--red)">+${h(a-pl)} ponad plan</span>`:'';
+      return `<div class="bar-row">
+        <div class="bar-top"><span>${b.label}</span><span class="bar-val">${h(a)} z ${h(pl)}${note}</span></div>
+        ${pvfBar(a,pl,color)}
+      </div>`;
+    }).join('');
+    const take=(p.results&&p.results.yourTake)||0;
+    const planRate=planSum>0?take/planSum:0;
+    const realRate=actSum>0?take/actSum:0;
+    const totalOver=actSum>planSum+0.001;
+    // wpisy ze stałą kwotą nie mają godzin — pokazujemy je osobno, żeby „0 h” nie wyglądało na brak pracy
+    const fixedE=ce.filter(e=>e.fixed);
+    const fixedSum=fixedE.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+    const fixedTxt=fixedE.length?`<br>Wpisy ze stałą kwotą: ${fixedE.length} · ${fmtZl(fixedSum)} — bez godzin, więc nie liczą się do planu`:'';
+    const rateTxt=(actSum>0
+      ?`realnie <b style="color:${realRate<planRate-0.5?'var(--red)':'var(--green)'}">${fmtZl(realRate)}/h</b> (plan ${fmtZl(planRate)}/h)`
+      :`plan ${fmtZl(planRate)}/h · ${ce.length?'nie zapisano godzin w tym miesiącu':'brak wpisów w tym miesiącu'}`)+fixedTxt;
+    return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:8px">
+        <span style="font-weight:600;color:var(--text)">${estEsc(cname)}</span>
+        <span style="font-family:var(--mono);font-size:13px;color:${totalOver?'var(--red)':'var(--text-2)'}">${h(actSum)} z ${h(planSum)}</span>
+      </div>
+      ${rows}
+      <div style="font-size:12px;color:var(--text-2);margin-top:6px;line-height:1.5">Zostaje dla Ciebie ${fmtZl(take)}/mies. → ${rateTxt}</div>
+    </div>`;
+  }).join('');
+
+  // klienci bez pakietu, ale z pracą w tym miesiącu
+  const others=clients.filter(c=>!withPkg.has(c.id)).map(c=>{
+    const ce=monthEntries.filter(e=>e.clientId===c.id);
+    if(!ce.length)return '';
+    const hrs=ce.reduce((a,e)=>a+(e.hours||0),0),earn=ce.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+    return `<div class="rep-sub"><span style="color:var(--text-2)">${estEsc(c.name)}</span><span style="font-family:var(--mono)">${h(hrs)} · ${fmtZl(earn)}</span></div>`;
+  }).filter(Boolean).join('');
+  const othersHtml=others?`<div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 4px">Bez pakietu w tym miesiącu</div>${others}`:'';
+
+  body.innerHTML=(cards||'<div class="empty">Brak aktywnych pakietów</div>')+othersHtml;
+}
+
 function renderPackagesList(){
+  renderPlanVsFact();
   const el=document.getElementById('pkg-list');
   if(!el)return;
   if(!packages.length){el.innerHTML='<div class="empty">Brak potwierdzonych pakietów</div>';return;}
