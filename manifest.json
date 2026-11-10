@@ -1,7 +1,8 @@
 {
-  "name": "PLAMA · Трекер годин",
-  "short_name": "Трекер",
-  "description": "Трекер робочих годин для PLAMA studio",
+  "name": "PLAMA · Tracker godzin",
+  "short_name": "Tracker",
+  "description": "Tracker godzin pracy dla PLAMA studio",
+  "lang": "pl",
   "start_url": "/plama/",
   "display": "standalone",
   "background_color": "#232262",
