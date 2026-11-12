@@ -135,6 +135,23 @@ input[type=range]:focus { box-shadow: none; }
 .btn-icon:hover { background: var(--brand-pale); color: var(--brand); }
 .btn-sm { min-height: 32px; padding: 5px 12px; font-size: 12px; }
 
+/* Klienci: miesięczna lista prac */
+.cl-monthbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.cl-card { margin-bottom: 12px; border: 1px solid var(--border); border-radius: var(--r); background: var(--surface); padding: 14px 16px; }
+.cl-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.cl-name { font-weight: 600; color: var(--text); font-size: 15px; }
+.cl-sum { font-family: var(--mono); font-weight: 600; color: var(--brand); white-space: nowrap; }
+.cl-line { font-size: 12.5px; color: var(--text-2); margin-top: 4px; cursor: pointer; }
+.cl-item { display: flex; align-items: baseline; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 13.5px; }
+.cl-item:first-child { border-top: 1px solid var(--border); }
+.cl-item-date { font-family: var(--mono); font-size: 12px; color: var(--text-3); flex-shrink: 0; width: 40px; }
+.cl-item-main { flex: 1; min-width: 0; }
+.cl-item-sub { font-size: 11.5px; color: var(--text-3); }
+.cl-item-val { font-family: var(--mono); white-space: nowrap; }
+.cl-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; align-items: center; }
+.cl-settings { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 12.5px; color: var(--text-2); }
+.cl-settings.open { display: block; }
+
 /* Client tree */
 .client-block { margin-bottom: 10px; border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
 .client-header {
@@ -379,7 +396,7 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Łączenie...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Wersja aplikacji">v48</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Wersja aplikacji">v49</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
@@ -501,16 +518,17 @@ input[type=range]:focus { box-shadow: none; }
   <!-- CLIENTS -->
   <div id="page-clients" class="page">
     <div class="page-title">Klienci</div>
-    <div class="page-sub">Klienci, podprojekty i stawki</div>
-    <div class="card">
-      <div class="card-label">Nowy klient</div>
-      <div class="form-row form-2">
-        <div class="field"><label>Nazwa klienta</label><input type="text" id="c-name" placeholder="np. NARRO"></div>
-        <div class="field"><label>Stawka (zł/h)</label><input type="number" id="c-rate" value="50" min="1" step="1"></div>
+    <div class="page-sub">Prace dodatkowe w wybranym miesiącu</div>
+    <div class="cl-monthbar">
+      <button type="button" class="btn btn-sm" onclick="clShift(-1)" title="Poprzedni miesiąc">‹</button>
+      <div style="text-align:center;flex:1">
+        <div id="cl-month" style="font-weight:600"></div>
+        <div id="cl-month-sum" style="font-size:12px;color:var(--text-2);font-family:var(--mono)"></div>
       </div>
-      <button class="btn btn-primary" onclick="addClient()">+ Dodaj klienta</button>
+      <button type="button" class="btn btn-sm" onclick="clShift(1)" title="Następny miesiąc">›</button>
     </div>
     <div id="client-list"><div class="empty">Ładowanie...</div></div>
+    <button class="btn" style="margin-top:6px" onclick="quickAddClient('','')">+ Nowy klient</button>
 
     <div class="card" style="margin-top:16px">
       <div class="card-label">Kopia zapasowa</div>
@@ -988,7 +1006,7 @@ input[type=range]:focus { box-shadow: none; }
     <input type="hidden" id="e-id">
     <div class="form-row form-2">
       <div class="field"><label>Klient</label><div style="display:flex;gap:6px"><select id="e-client" onchange="updateSubprojs('e-subproj',this.value)" style="flex:1"><option value="">— bez klienta —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddClient('e-client','e-subproj')" title="Nowy klient">+</button></div></div>
-      <div class="field"><label>Podprojekt</label><div style="display:flex;gap:6px"><select id="e-subproj" style="flex:1"><option value="">— bez podprojektu —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddSubproj('e-client','e-subproj')" title="Nowy podprojekt">+</button></div></div>
+      <div class="field" id="e-subproj-field"><label>Podprojekt</label><div style="display:flex;gap:6px"><select id="e-subproj" style="flex:1"><option value="">— bez podprojektu —</option></select><button class="btn" style="padding:0 12px;flex-shrink:0" onclick="quickAddSubproj('e-client','e-subproj')" title="Nowy podprojekt">+</button></div></div>
     </div>
     <div class="form-row form-2">
       <div class="field"><label>Kategoria</label>
@@ -1456,10 +1474,15 @@ async function confirmQuickAdd(){
   const kind=_qa.kind;
   if(kind==='rename-client'){
     const c=clients.find(cl=>cl.id===_qa.renameId);
-    if(c){c.name=name;renderClients();refreshAllSelects();}
+    if(c){
+      c.name=name;
+      const r=parseFloat(document.getElementById('qa-rate').value);
+      if(r>0)c.rate=r; // zmiana stawki nie przelicza starych wpisów — mają własną kwotę i stawkę
+      renderClients();refreshAllSelects();
+    }
     closeQaModal();
     setSyncStatus('loading','Zapisywanie...');
-    try{await saveState();setSyncStatus('ok','Supabase');showToast('Nazwa zmieniona ✓');}
+    try{await saveState();setSyncStatus('ok','Supabase');showToast('Zapisano ✓');}
     catch(e){setSyncStatus('err','Błąd');}
     return;
   }
@@ -1741,24 +1764,13 @@ async function manualAdd(){
 }
 
 async function deleteEntry(id){
-  entries=entries.filter(e=>e.id!==id); renderLog();
+  entries=entries.filter(e=>e.id!==id); renderLog(); renderClients();
   setSyncStatus('loading','Usuwanie...');
   try{await gasPost({action:'deleteEntry',id:String(id)});setSyncStatus('ok','Supabase');}
   catch(e){setSyncStatus('err','Błąd');}
 }
 
 // Clients
-async function addClient(){
-  const name=document.getElementById('c-name').value.trim(); if(!name)return;
-  const rate=parseFloat(document.getElementById('c-rate').value)||50;
-  const client={id:uid(),name,rate,subprojects:[]};
-  clients.push(client); renderClients(); refreshAllSelects();
-  document.getElementById('c-name').value='';
-  setSyncStatus('loading','Zapisywanie...');
-  try{await gasPost({action:'saveClients',clients:JSON.stringify(clients)});setSyncStatus('ok','Supabase');showToast('Klient zapisany ✓');}
-  catch(e){setSyncStatus('err','Błąd');}
-}
-
 async function deleteClient(id){
   clients=clients.filter(c=>c.id!==id); renderClients(); refreshAllSelects();
   setSyncStatus('loading','Aktualizacja...');
@@ -1879,82 +1891,164 @@ async function saveRenameSubproj(clientId, subprojId){
 function startRenameClient(clientId, currentName){
   // через qa-модалку — prompt() не працює в iOS PWA
   _qa={kind:'rename-client',clientSel:'',subprojSel:'',renameId:clientId};
-  document.getElementById('qa-title').textContent='Zmień nazwę klienta';
-  document.getElementById('qa-name').value=currentName||'';
+  const rc=clients.find(c=>c.id===clientId);
+  document.getElementById('qa-title').textContent='Edytuj klienta';
+  document.getElementById('qa-name').value=(rc&&rc.name)||currentName||'';
   document.getElementById('qa-name').placeholder='';
-  document.getElementById('qa-rate-row').style.display='none';
+  document.getElementById('qa-rate-row').style.display='';
+  document.getElementById('qa-rate').value=(rc&&rc.rate)||160;
   document.getElementById('qa-modal').classList.add('open');
   setTimeout(()=>document.getElementById('qa-name').focus(),80);
 }
 
+// ── KLIENCI: prace dodatkowe klienta w wybranym miesiącu ──
+// Miesiąc bierze się z daty wpisu. Stare wpisy bez daty — z nazwy podprojektu („05.26”, „02.06.2026”).
+let clMonth=today().slice(0,7);
+const clOpenSettings=new Set();
+
+function clShift(d){
+  const [y,m]=clMonth.split('-').map(Number);
+  const dt=new Date(y,m-1+d,1);
+  clMonth=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0');
+  renderClients();
+}
+
+// Lokalna data wpisu „RRRR-MM-DD” (stare wpisy mają datę w UTC z godziną) albo ''.
+function entryDay(e){
+  const d=String(e.date||'');
+  if(/^\d{4}-\d{2}-\d{2}$/.test(d))return d;
+  if(d){
+    const t=new Date(d);
+    if(!isNaN(t))return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  }
+  return '';
+}
+function entryMonth(e){
+  const day=entryDay(e);
+  if(day)return day.slice(0,7);
+  const sp=getSubprojById(e.clientId,e.subprojId);
+  const m=sp&&String(sp.name).match(/(\d{2})\.(\d{4}|\d{2})\s*$/);
+  if(m&&+m[1]>=1&&+m[1]<=12)return (m[2].length===2?'20'+m[2]:m[2])+'-'+m[1];
+  return '';
+}
+
+function clMonthEntries(clientId){
+  return entries.filter(e=>e.clientId===clientId&&entryMonth(e)===clMonth)
+    .map((e,i)=>[e,i]).sort((a,b)=>entryDay(a[0]).localeCompare(entryDay(b[0]))||b[1]-a[1]).map(x=>x[0]);
+}
+
+function clToggleSettings(id){
+  if(clOpenSettings.has(id))clOpenSettings.delete(id);else clOpenSettings.add(id);
+  const el=document.getElementById('cl-set-'+id);
+  if(el)el.classList.toggle('open',clOpenSettings.has(id));
+}
+
+// „+ Dodaj pracę”: ten sam modal wpisu, od razu stała kwota, klient i miesiąc wybrane.
+function openExtraModal(clientId){
+  openAddModal(clientId,'');
+  document.getElementById('edit-modal-title-text').textContent='＋ Praca dodatkowa';
+  document.getElementById('e-subproj-field').style.display='none';
+  document.getElementById('e-cat').value='Графічний дизайн';
+  document.getElementById('e-date').value=clMonth===today().slice(0,7)?today():clMonth+'-01';
+  document.getElementById('e-type').value='fixed';
+  document.getElementById('e-fixed').value='';
+  toggleEditPayType();
+  setTimeout(()=>document.getElementById('e-note').focus(),80);
+}
+
+function clSummaryText(clientId){
+  const c=getClientById(clientId); if(!c)return '';
+  const list=clMonthEntries(clientId);
+  const sum=list.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+  const rows=list.map(e=>{
+    const day=entryDay(e);
+    const d=day?day.slice(8,10)+'.'+day.slice(5,7)+' · ':'';
+    const what=(e.note||'').trim()?`${catLabel(e.cat)}: ${e.note.trim()}`:catLabel(e.cat);
+    return `${d}${what} — ${fmtZl(parseFloat(e.earn)||0)}`;
+  });
+  const ap=activePackages().find(p=>p.clientId===clientId);
+  const lbl=ap&&String(ap.date||'').slice(0,7)<=clMonth?'prace dodatkowe':'prace';
+  return `${c.name} — ${lbl}, ${monthLabel(clMonth)}\n\n${rows.join('\n')}\n\nRazem: ${fmtZl(sum)}`;
+}
+
+function clCopySummary(clientId){
+  const c=getClientById(clientId); if(!c)return;
+  _exportFile=`prace-dodatkowe-${c.name.replace(/[^\p{L}\p{N}]+/gu,'-')}-${clMonth}.txt`;
+  document.getElementById('export-title').textContent='Podsumowanie prac dodatkowych';
+  document.getElementById('export-text').value=clSummaryText(clientId);
+  document.getElementById('export-modal').classList.add('open');
+}
+
 function renderClients(){
   const el=document.getElementById('client-list');
-  if(!clients.length){el.innerHTML='<div class="empty" style="padding:28px 0">Nie ma jeszcze klientów</div>';return;}
+  const lbl=document.getElementById('cl-month'),sumEl=document.getElementById('cl-month-sum');
+  if(lbl)lbl.textContent=monthLabel(clMonth);
+  if(!clients.length){
+    if(sumEl)sumEl.textContent='';
+    el.innerHTML='<div class="empty" style="padding:28px 0">Nie ma jeszcze klientów</div>';return;
+  }
+  const todayStr=today();
+  let monthTotal=0;
   el.innerHTML=clients.map(c=>{
-    const clientEntries=entries.filter(e=>e.clientId===c.id);
-    const totalHrs=clientEntries.reduce((a,e)=>a+e.hours,0);
-    const totalEarn=clientEntries.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
-    const inputId='sp-input-'+c.id;
-    const subs=(c.subprojects||[]).map(s=>{
-      const sEntries=entries.filter(e=>e.subprojId===s.id);
-      const sHrs=sEntries.reduce((a,e)=>a+e.hours,0);
-      const sEarn=sEntries.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
-      return`<div class="subproj-row" style="cursor:pointer" onclick="goToSubproj('${c.id}','${s.id}')">
-        <div style="flex:1">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span id="sp-display-${s.id}" class="subproj-name" title="Kliknij, aby przejść do dziennika">${s.name} →</span>
-            <input id="sp-name-${s.id}" type="text" value="${s.name}" style="display:none;font-size:13px;padding:2px 6px;width:140px" onclick="event.stopPropagation()">
-            <button class="btn-icon" style="font-size:12px" onclick="event.stopPropagation();startRenameSubproj('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✎</button>
-          </div>
-          <div class="subproj-meta">${fmtHrs(sHrs)} · ${sEarn.toFixed(0)} zł</div>
-        </div>
-        <button class="btn-icon" title="Dodaj wpis do tego podprojektu" onclick="event.stopPropagation();openAddModal('${c.id}','${s.id}')">＋</button>
-        <button class="btn-icon" onclick="event.stopPropagation();confirmDeleteSubproject('${c.id}','${s.id}','${s.name.replace(/'/g,"\\'")}')">✕</button>
+    const list=clMonthEntries(c.id);
+    const sum=list.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+    monthTotal+=sum;
+    const safeName=c.name.replace(/'/g,"\\'");
+    const items=list.map(e=>{
+      const day=entryDay(e);
+      const note=(e.note||'').trim();
+      const hrs=e.hours>=0.05?` · ${fmtHrs(e.hours)}`:'';
+      return `<div class="cl-item" onclick="openEditModal('${e.id}')" title="Edytuj">
+        <span class="cl-item-date">${day?day.slice(8,10)+'.'+day.slice(5,7):'—'}</span>
+        <span class="cl-item-main">${estEsc(note||catLabel(e.cat))}${note||hrs?`<div class="cl-item-sub">${note?catLabel(e.cat):''}${note?hrs:hrs.slice(3)}</div>`:''}</span>
+        <span class="cl-item-val">${fmtZl(parseFloat(e.earn)||0)}</span>
       </div>`;
     }).join('');
-    const todayStr=today();
+
+    const actPkgRaw=activePackages().find(p=>p.clientId===c.id);
+    // „dodatkowe” dopiero od miesiąca, w którym pakiet obowiązuje
+    const pkgOn=actPkgRaw&&String(actPkgRaw.date||'').slice(0,7)<=clMonth;
+    const extraLbl=pkgOn?'Prace dodatkowe':'Prace';
+    const pkgLine=pkgOn
+      ?`<div class="cl-line" onclick="goToPakiet('${c.id}')" title="Otwórz w Pakietach">Pakiet ${pkgFmt(pkgCalcFromInputs(actPkgRaw).price)}/mies. →</div>`
+      :'';
     const cInvoices=invoices.filter(inv=>inv.clientId===c.id);
-    let invHtml='';
+    let invLine='';
     if(cInvoices.length){
-      // Один рядок-підсумок; деталі — в «Обліку» (одне місце правди)
       const totalRemaining=cInvoices.reduce((a,inv)=>a+Math.max(0,invRemaining(inv)),0);
       const overdueCnt=cInvoices.filter(inv=>!invIsPaid(inv)&&inv.dueDate&&inv.dueDate<todayStr).length;
       const statusTxt=totalRemaining>0
-        ?`pozostało <strong>${totalRemaining.toFixed(0)} zł</strong>${overdueCnt?` · <span style="color:var(--red)">${overdueCnt} po terminie</span>`:''}`
-        :'<span style="color:var(--green)">✓ wszystko opłacone</span>';
-      invHtml=`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToInvoices('${c.id}')" title="Otwórz w Rozliczeniach">
-        <span>Faktur: ${cInvoices.length} · ${statusTxt}</span>
-        <span style="color:var(--text-3);white-space:nowrap">→ Rozliczenia</span>
-      </div>`;
+        ?`do zapłaty ${totalRemaining.toFixed(0)} zł${overdueCnt?` · <span style="color:var(--red)">${overdueCnt} po terminie</span>`:''}`
+        :'<span style="color:var(--green)">wszystko opłacone</span>';
+      invLine=`<div class="cl-line" onclick="goToInvoices('${c.id}')" title="Otwórz w Rozliczeniach">Faktury: ${statusTxt} →</div>`;
     }
-    const actPkgRaw=activePackages().find(p=>p.clientId===c.id);
-    const actPkg=actPkgRaw?{results:pkgCalcFromInputs(actPkgRaw)}:null;
-    const pkgHtml=actPkg?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToPakiet('${c.id}')" title="Otwórz w Pakietach">
-        <span>Pakiet: <strong>${pkgFmt(actPkg.results.price)}/mies.</strong> · zysk <span style="color:${actPkg.results.profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(actPkg.results.profit)}</span> (${Math.round(actPkg.results.marginPct)}%)</span>
-        <span style="color:var(--text-3);white-space:nowrap">→ Pakiet</span>
-      </div>`:'';
-    return`<div class="client-block">
-      <div class="client-header" id="ch-${c.id}" onclick="toggleClient('${c.id}')">
-        <span class="client-chevron">▶</span>
-        <span class="client-name">${c.name}</span>
-        <span class="client-meta">${c.rate} zł/h · ${fmtHrs(totalHrs)} · ${totalEarn.toFixed(0)} zł</span>
-        <div class="client-actions" onclick="event.stopPropagation()">
-          <button class="btn-icon" title="Dodaj wpis" onclick="openAddModal('${c.id}','')">＋</button>
-          <button class="btn-icon" onclick="startRenameClient('${c.id}','${c.name.replace(/'/g,"\\'")}')">✎</button>
-          <button class="btn-icon" onclick="confirmDeleteClient('${c.id}','${c.name.replace(/'/g,"\\'")}')">✕</button>
-        </div>
+    const allEntries=entries.filter(e=>e.clientId===c.id);
+    const allEarn=allEntries.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
+    const undated=allEntries.filter(e=>!entryMonth(e)).length;
+
+    return `<div class="cl-card">
+      <div class="cl-head">
+        <span class="cl-name">${estEsc(c.name)} <button class="btn-icon" style="font-size:13px;vertical-align:baseline" title="Ustawienia klienta" onclick="clToggleSettings('${c.id}')">⚙</button></span>
+        <span class="cl-sum" title="${extraLbl} w tym miesiącu">${fmtZl(sum)}</span>
       </div>
-      <div class="subprojects">
-        ${subs||'<div style="font-size:13px;color:var(--text-3);padding:8px 0">Nie ma jeszcze podprojektów</div>'}
-        ${pkgHtml}
-        ${invHtml}
-        <div class="add-subproj">
-          <input type="text" id="${inputId}" placeholder="Nazwa podprojektu (np. Maj 2026)" onkeydown="if(event.key==='Enter')addSubproject('${c.id}','${inputId}')">
-          <button class="btn btn-sm btn-primary" onclick="addSubproject('${c.id}','${inputId}')">+ Dodaj</button>
+      ${pkgLine}
+      <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px">${extraLbl}</div>
+      ${items||'<div style="font-size:13px;color:var(--text-3);padding:4px 0 2px">Brak prac w tym miesiącu</div>'}
+      <div class="cl-actions">
+        <button class="btn btn-sm btn-primary" onclick="openExtraModal('${c.id}')">+ Dodaj pracę</button>
+        ${list.length?`<button class="btn btn-sm" onclick="clCopySummary('${c.id}')">Kopiuj podsumowanie</button>`:''}
+      </div>
+      <div class="cl-settings${clOpenSettings.has(c.id)?' open':''}" id="cl-set-${c.id}">
+        <div>Stawka ${c.rate} zł/h · łącznie ${allEntries.length} wpisów, ${fmtZl(allEarn)}${undated?` · bez daty: ${undated}`:''}</div>
+        ${invLine}
+        <div class="cl-actions">
+          <button class="btn btn-sm" onclick="startRenameClient('${c.id}','${safeName}')">Nazwa i stawka</button>
+          <button class="btn btn-sm" onclick="confirmDeleteClient('${c.id}','${safeName}')">Usuń klienta</button>
         </div>
       </div>
     </div>`;
   }).join('');
+  if(sumEl)sumEl.textContent='razem '+fmtZl(monthTotal);
 }
 
 function renderLog(){
@@ -2924,6 +3018,7 @@ function logCtxSubproj(){return document.getElementById('f-subproj')?.value||'';
 // Створення нового запису — та сама модалка, режим «додати», з передзаповненням контексту.
 function openAddModal(clientId='', subprojId=''){
   document.getElementById('e-id').value='';
+  document.getElementById('e-subproj-field').style.display='';
   document.getElementById('edit-modal-title-text').textContent='＋ Nowy wpis';
   document.getElementById('e-info').style.display='none';
   const cOpts='<option value="">— bez klienta —</option>'+clients.map(c=>`<option value="${c.id}"${c.id===clientId?' selected':''}>${c.name}</option>`).join('');
@@ -2946,6 +3041,7 @@ function openAddModal(clientId='', subprojId=''){
 function openEditModal(id){
   const e=entries.find(x=>x.id===id); if(!e)return;
   document.getElementById('edit-modal-title-text').textContent='Edytuj wpis';
+  document.getElementById('e-subproj-field').style.display=e.subprojId?'':'none';
   document.getElementById('e-info').style.display='';
   document.getElementById('e-id').value=e.id;
   document.getElementById('e-date').value=e.date;
@@ -3008,7 +3104,7 @@ async function saveEdit(){
     if(!isFixed&&hours<=0)return;
     const entry={id:uid(),date,clientId,subprojId,cat,hours,note,earn,rate,fixed:isFixed};
     entries.unshift(entry);
-    closeEditModal(); renderLog();
+    closeEditModal(); renderLog(); renderClients();
     setSyncStatus('loading','Zapisywanie...');
     try{await saveState();setSyncStatus('ok','Supabase');showUndoToast(entry.id,'Wpis dodany');}
     catch(e){setSyncStatus('err','Nie udało się zapisać');}
@@ -3017,7 +3113,7 @@ async function saveEdit(){
 
   const idx=entries.findIndex(x=>x.id===id); if(idx===-1)return;
   entries[idx]={...entries[idx],clientId,subprojId,cat,date,note,hours,earn,rate,fixed:isFixed};
-  closeEditModal(); renderLog();
+  closeEditModal(); renderLog(); renderClients();
   setSyncStatus('loading','Zapisywanie...');
   try{
     await saveState();
