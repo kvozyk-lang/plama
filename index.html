@@ -379,12 +379,21 @@ input[type=range]:focus { box-shadow: none; }
   <div class="sync-area">
     <span class="sync-dot loading" id="sync-dot"></span>
     <span id="sync-text">Łączenie...</span>
-    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Wersja aplikacji">v47</span>
+    <span id="app-ver" style="font-size:10px;opacity:0.55" title="Wersja aplikacji">v48</span>
     <button class="btn-reload" onclick="loadAll()">↺</button>
   </div>
 </div>
 
 <div class="content">
+
+  <!-- Niezapisane zmiany (kopia robocza z tego urządzenia) -->
+  <div id="draft-banner" style="display:none;background:rgba(251,191,36,0.10);border:1px solid rgba(251,191,36,0.45);border-radius:var(--r-sm);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.5">
+    <div id="draft-text"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-sm btn-primary" onclick="restoreDraft()">Przywróć i zapisz</button>
+      <button class="btn btn-sm" onclick="discardDraft()">Odrzuć</button>
+    </div>
+  </div>
 
   <!-- TRACK -->
   <div id="page-track" class="page active">
@@ -502,6 +511,12 @@ input[type=range]:focus { box-shadow: none; }
       <button class="btn btn-primary" onclick="addClient()">+ Dodaj klienta</button>
     </div>
     <div id="client-list"><div class="empty">Ładowanie...</div></div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">Kopia zapasowa</div>
+      <button class="btn" onclick="downloadBackup()">Pobierz kopię danych (.json)</button>
+      <div id="backup-note" style="font-size:12px;color:var(--text-3);margin-top:10px;line-height:1.5"></div>
+    </div>
   </div>
 
   <!-- ESTIMATE -->
@@ -951,9 +966,9 @@ input[type=range]:focus { box-shadow: none; }
 <!-- Confirm delete modal -->
 <div class="modal-backdrop" id="confirm-modal">
   <div class="modal" style="max-height:auto">
-    <div class="modal-title">Usunąć wpis?</div>
+    <div class="modal-title" id="confirm-title">Usunąć wpis?</div>
     <div id="confirm-text" style="font-size:14px;color:var(--text-2);margin-bottom:6px"></div>
-    <div style="font-size:13px;color:var(--text-3);margin-bottom:0">Tej operacji nie można cofnąć.</div>
+    <div id="confirm-note" style="font-size:13px;color:var(--text-3);margin-bottom:0">Tej operacji nie można cofnąć.</div>
     <div class="modal-actions">
       <button class="btn" onclick="document.getElementById('confirm-modal').classList.remove('open')">Anuluj</button>
       <button class="btn btn-ghost" id="confirm-delete-btn">Tak, usuń</button>
@@ -1080,19 +1095,158 @@ function showToast(msg){const t=document.getElementById('toast');t.textContent=m
 // ── Supabase backend (весь стан у JSON-блобі, таблиця tracker_state) ──
 const SB_URL='https://eodgutlkeippcfnmfxeb.supabase.co';
 const SB_KEY='sb_publishable_SZUcxmECMcUawikXk0nxlw_A2rboMqD';
+// Stan wczytany z bazy: numer wersji (rev) i znacznik ostatniego zapisu (saveId).
+// rev rośnie o 1 przy każdym zapisie — dzięki temu zapis ze starych danych nie nadpisze nowszych.
+let stateRev=null, stateSaveId=null, stateRowExists=true;
+const DRAFT_KEY='plama_unsaved', BACKUP_PREFIX='plama_backup_', BACKUP_DAYS=7;
+
 async function sbLoad(){
   const r=await fetch(`${SB_URL}/rest/v1/tracker_state?id=eq.main&select=data`,
     {headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY}});
   if(!r.ok) throw new Error('Supabase load '+r.status);
   const rows=await r.json();
+  stateRowExists=!!rows[0];
   return (rows[0]&&rows[0].data)||{clients:[],entries:[],estimates:[],invoices:[],packages:[],pkgHistory:[]};
 }
-async function saveState(){
-  const body=JSON.stringify({id:'main',data:{clients,entries,estimates,invoices,packages,pkgHistory}});
-  const r=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
-    headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',
-             'Prefer':'resolution=merge-duplicates,return=minimal'},body});
-  if(!r.ok) throw new Error('Supabase save '+r.status);
+
+function stateBlob(){return {clients,entries,estimates,invoices,packages,pkgHistory};}
+
+// Zapisy idą jeden po drugim (kolejka) — dwa równoległe zapisy biłyby się o ten sam rev.
+let _saveChain=Promise.resolve();
+function saveState(){
+  const run=_saveChain.then(doSave);
+  _saveChain=run.catch(()=>{});
+  return run;
+}
+
+async function doSave(){
+  const nextRev=(stateRev||0)+1, saveId=uid();
+  const data={...stateBlob(),rev:nextRev,saveId};
+  // kopia robocza na tym urządzeniu: jeśli zapis nie dojdzie, zmiana nie przepada
+  try{localStorage.setItem(DRAFT_KEY,JSON.stringify({savedAt:new Date().toISOString(),baseRev:stateRev,data}));}catch(e){}
+  const headers={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'};
+  if(!stateRowExists){
+    const r=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
+      headers:{...headers,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:'main',data})});
+    if(!r.ok) throw new Error('Supabase save '+r.status);
+    stateRowExists=true;
+  }else{
+    // zapis warunkowy: tylko jeśli w bazie nadal jest wersja, którą wczytaliśmy
+    const cond=stateRev==null?'data->>rev=is.null':'data->>rev=eq.'+stateRev;
+    const r=await fetch(`${SB_URL}/rest/v1/tracker_state?id=eq.main&${cond}&select=id`,{method:'PATCH',
+      headers:{...headers,'Prefer':'return=representation'},body:JSON.stringify({data})});
+    if(!r.ok) throw new Error('Supabase save '+r.status);
+    const rows=await r.json();
+    if(!rows.length){
+      // 0 zmienionych wierszy: albo prawdziwy konflikt, albo baza nie przyjęła zapisu warunkowego.
+      // Rozstrzyga wersja, która jest teraz w bazie.
+      const pr=await fetch(`${SB_URL}/rest/v1/tracker_state?id=eq.main&select=rev:data->rev`,{headers});
+      if(!pr.ok) throw new Error('Supabase save '+pr.status);
+      const cur=(await pr.json())[0];
+      if(cur&&(cur.rev??null)===(stateRev??null)){
+        // wersja się zgadza, więc to nie konflikt — zapisujemy dotychczasową metodą
+        const r2=await fetch(`${SB_URL}/rest/v1/tracker_state?on_conflict=id`,{method:'POST',
+          headers:{...headers,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:'main',data})});
+        if(!r2.ok) throw new Error('Supabase save '+r2.status);
+      }else{
+        // inne urządzenie zapisało w międzyczasie — nie nadpisujemy, wczytujemy aktualne dane;
+        // nasza zmiana zostaje w kopii roboczej i pojawi się baner „niezapisane zmiany”
+        const err=new Error('conflict');err.conflict=true;
+        showToast('Dane zmieniły się na innym urządzeniu — wczytuję aktualne');
+        setTimeout(loadAll,0);
+        throw err;
+      }
+    }
+  }
+  stateRev=nextRev; stateSaveId=saveId;
+  try{localStorage.removeItem(DRAFT_KEY);}catch(e){}
+}
+
+// ── Kopia robocza (niezapisane zmiany) ──
+function readDraft(){
+  try{const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'null');return d&&d.data?d:null;}catch(e){return null;}
+}
+function checkDraft(){
+  const banner=document.getElementById('draft-banner');
+  if(!banner)return;
+  const d=readDraft();
+  // kopia, która jednak doszła do bazy (np. aplikacja zamknięta w trakcie zapisu) — niepotrzebna
+  if(d&&d.data.saveId&&d.data.saveId===stateSaveId){try{localStorage.removeItem(DRAFT_KEY);}catch(e){}}
+  const live=readDraft();
+  if(!live){banner.style.display='none';return;}
+  const dt=new Date(live.savedAt);
+  const when=isNaN(dt)?'':dt.toLocaleDateString('pl-PL')+' '+dt.toLocaleTimeString('pl-PL',{hour:'2-digit',minute:'2-digit'});
+  const stale=(live.baseRev??null)!==(stateRev??null);
+  document.getElementById('draft-text').innerHTML=`<b>Są niezapisane zmiany</b> z ${when} — zapis nie dotarł wtedy do bazy.`+
+    (stale?' <span style="color:var(--amber)">Uwaga: od tego czasu dane zmieniły się na innym urządzeniu — przywrócenie nadpisze tamte zmiany.</span>':'');
+  banner.style.display='block';
+}
+async function restoreDraft(){
+  const d=readDraft();if(!d)return checkDraft();
+  const x=d.data;
+  clients=x.clients||[];entries=x.entries||[];estimates=x.estimates||[];invoices=x.invoices||[];packages=x.packages||[];pkgHistory=x.pkgHistory||[];
+  renderAll();
+  setSyncStatus('loading','Zapisywanie...');
+  try{await saveState();setSyncStatus('ok','Supabase');showToast('Zmiany przywrócone i zapisane ✓');}
+  catch(e){setSyncStatus('err','Błąd zapisu');}
+  checkDraft();
+}
+function discardDraft(){
+  try{localStorage.removeItem(DRAFT_KEY);}catch(e){}
+  checkDraft();
+}
+
+// ── Kopie zapasowe ──
+// Automatycznie: pierwszy stan wczytany danego dnia, ostatnie 7 dni, tylko na tym urządzeniu.
+function backupKeys(){
+  try{return Object.keys(localStorage).filter(k=>k.startsWith(BACKUP_PREFIX)).sort();}catch(e){return [];}
+}
+function localBackup(d){
+  try{
+    const k=BACKUP_PREFIX+today();
+    if(!localStorage.getItem(k))localStorage.setItem(k,JSON.stringify(d));
+    const keys=backupKeys();
+    while(keys.length>BACKUP_DAYS)localStorage.removeItem(keys.shift());
+  }catch(e){}
+  const n=document.getElementById('backup-note');
+  if(n){
+    const days=backupKeys().map(k=>k.slice(BACKUP_PREFIX.length));
+    n.textContent='Plik zawiera wszystko: klientów, wpisy, kosztorysy, faktury i pakiety. '+
+      (days.length?`Na tym urządzeniu są też automatyczne kopie z ${days.length} ${days.length===1?'dnia':'dni'} (najstarsza: ${days[0]}).`:'');
+  }
+}
+function downloadBackup(){
+  const blob=new Blob([JSON.stringify({...stateBlob(),rev:stateRev,exportedAt:new Date().toISOString()},null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=`plama-kopia-${today()}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
+// ── Potwierdzenia usuwania — jedno okno dla wszystkich ──
+function askConfirm(text,onYes,title,note){
+  document.getElementById('confirm-title').textContent=title||'Usunąć?';
+  document.getElementById('confirm-text').textContent=text;
+  document.getElementById('confirm-note').textContent=note===undefined?'Tej operacji nie można cofnąć.':note;
+  document.getElementById('confirm-modal').classList.add('open');
+  document.getElementById('confirm-delete-btn').onclick=()=>{
+    document.getElementById('confirm-modal').classList.remove('open');
+    onYes();
+  };
+}
+
+// ── Faktury: jedna definicja „ile zostało” i „opłacona” dla całej aplikacji ──
+const invBrutto=i=>i.amount||money2((i.netto||0)*1.23);
+const invRemaining=i=>money2(invBrutto(i)-(i.paidTotal||0));
+const invIsPaid=i=>invRemaining(i)<=PAID_EPS;
+
+// Stawka wpisu: zapisana przy wpisie; dla starych wpisów bez stawki — wyliczona z kwoty i godzin,
+// żeby zmiana stawki klienta nie przeliczała po cichu dawnej pracy.
+function entryRate(e,client){
+  if(e.rate)return e.rate;
+  const earn=parseFloat(e.earn)||0;
+  if(e.hours>0&&earn>0)return money2(earn/e.hours);
+  return client?client.rate:0;
 }
 // Усі мутації вже оновлюють стан у памʼяті → просто зберігаємо весь блоб.
 async function gasPost(b){return saveState();}
@@ -1237,10 +1391,19 @@ function refreshEstimateSelects(){
   }
 }
 
+function renderAll(){
+  refreshAllSelects(); refreshEstimateSelects(); refreshInvSelects(); refreshPkgSelects(); rebuildMsDrops();
+  renderLog(); renderClients(); renderEstimates(); renderInvoices(); renderPackagesList(); renderPkgHistory(); renderDash();
+  try{if((localStorage.getItem('plama_tab')||'track')==='pakiet')renderPakiet();}catch(e){}
+}
+
 async function loadAll(){
   setSyncStatus('loading','Synchronizacja...');
   try{
+    await _saveChain; // nie wczytujemy w trakcie zapisu — stary odczyt cofnąłby świeżą zmianę
     const d=await sbLoad();
+    stateRev=d.rev??null; stateSaveId=d.saveId||null;
+    localBackup(d);
     // entries вже зберігаються у потрібному порядку (порядок = порядок масиву)
     clients=d.clients||[]; entries=d.entries||[];
     estimates=d.estimates||[]; invoices=d.invoices||[]; packages=d.packages||[]; pkgHistory=d.pkgHistory||[];
@@ -1254,6 +1417,7 @@ async function loadAll(){
       if(cur==='invoices'){renderInvoices();refreshInvSelects();}
       if(cur==='pakiet'){renderPackagesList();renderPkgHistory();refreshPkgSelects();renderPakiet();}
     }catch(e){}
+    checkDraft();
   }catch(e){setSyncStatus('err','Błąd połączenia');}
 }
 
@@ -1448,7 +1612,7 @@ function restoreTab(){
 function timerStart_fn(){
   if(timerRunning)return;
   timerRunning=true; timerStart=Date.now();
-  try{sessionStorage.setItem('plama_timer_start',String(timerStart));sessionStorage.setItem('plama_timer_accum',String(timerAccum));}catch(e){}
+  try{localStorage.setItem('plama_timer_start',String(timerStart));localStorage.setItem('plama_timer_accum',String(timerAccum));}catch(e){}
   document.getElementById('btn-start').style.display='none';
   document.getElementById('btn-resume').style.display='none';
   document.getElementById('btn-pause').style.display='';
@@ -1462,7 +1626,7 @@ function timerStart_fn(){
 function timerPause(){
   if(!timerRunning)return;
   clearInterval(timerInt); timerAccum=getElapsed(); timerStart=null; timerRunning=false;
-  try{sessionStorage.removeItem('plama_timer_start');sessionStorage.setItem('plama_timer_accum',String(timerAccum));}catch(e){}
+  try{localStorage.removeItem('plama_timer_start');localStorage.setItem('plama_timer_accum',String(timerAccum));}catch(e){}
   document.getElementById('btn-pause').style.display='none';
   document.getElementById('btn-resume').style.display='';
   document.getElementById('timer-display').classList.remove('running');
@@ -1478,7 +1642,7 @@ function timerResume(){
 async function timerStop(){
   if(timerRunning){clearInterval(timerInt);timerRunning=false;}
   const elapsed=getElapsed(); timerStart=null; timerAccum=0;
-  try{sessionStorage.removeItem('plama_timer_start');sessionStorage.removeItem('plama_timer_accum');}catch(e){}
+  try{localStorage.removeItem('plama_timer_start');localStorage.removeItem('plama_timer_accum');}catch(e){}
   const hrs=parseFloat((elapsed/3600).toFixed(2));
   if(hrs<0.01){timerCancel();return;}
   const clientId=document.getElementById('t-client').value;
@@ -1487,7 +1651,7 @@ async function timerStop(){
   const note=document.getElementById('t-note').value;
   const c=getClientById(clientId);
   const earn=c?parseFloat((hrs*c.rate).toFixed(2)):0;
-  const entry={id:uid(),date:today(),clientId,subprojId,cat,hours:hrs,note,earn,fixed:false};
+  const entry={id:uid(),date:today(),clientId,subprojId,cat,hours:hrs,note,earn,rate:c?c.rate:0,fixed:false};
   entries.unshift(entry); renderLog();
   document.getElementById('timer-display').textContent='00:00:00';
   document.getElementById('timer-display').classList.remove('running');
@@ -1505,7 +1669,7 @@ async function timerStop(){
 
 function timerCancel(){
   clearInterval(timerInt); timerRunning=false; timerStart=null; timerAccum=0;
-  try{sessionStorage.removeItem('plama_timer_start');sessionStorage.removeItem('plama_timer_accum');}catch(e){}
+  try{localStorage.removeItem('plama_timer_start');localStorage.removeItem('plama_timer_accum');}catch(e){}
   document.getElementById('timer-display').textContent='00:00:00';
   document.getElementById('timer-display').classList.remove('running');
   document.getElementById('timer-display').style.opacity='1';
@@ -1519,8 +1683,8 @@ function timerCancel(){
 // Restore timer state after page refresh
 (function(){
   try{
-    const savedStart=sessionStorage.getItem('plama_timer_start');
-    const savedAccum=sessionStorage.getItem('plama_timer_accum');
+    const savedStart=localStorage.getItem('plama_timer_start');
+    const savedAccum=localStorage.getItem('plama_timer_accum');
     if(savedAccum) timerAccum=parseInt(savedAccum)||0;
     if(savedStart){
       timerStart=parseInt(savedStart); timerRunning=true;
@@ -1568,7 +1732,7 @@ async function manualAdd(){
     earn=c?parseFloat((hrs*c.rate).toFixed(2)):0;
   }
 
-  const entry={id:uid(),date,clientId,subprojId,cat,hours:hrs,note,earn,fixed:isFixed};
+  const entry={id:uid(),date,clientId,subprojId,cat,hours:hrs,note,earn,rate:(!isFixed&&c)?c.rate:0,fixed:isFixed};
   entries.unshift(entry); renderLog();
   document.getElementById('t-note').value=''; document.getElementById('m-hours').value='1'; document.getElementById('m-fixed').value='0';
   setSyncStatus('loading','Zapisywanie...');
@@ -1671,23 +1835,18 @@ function goToInvoices(clientId){
 }
 
 function confirmDeleteClient(id, name){
-  const count=entries.filter(e=>e.clientId===id).length;
-  document.getElementById('confirm-text').textContent=`Klient "${name}" i wszystkie jego dane (${count} wpisów) zostaną usunięte.`;
-  document.getElementById('confirm-modal').classList.add('open');
-  document.getElementById('confirm-delete-btn').onclick=()=>{
-    document.getElementById('confirm-modal').classList.remove('open');
-    deleteClient(id);
-  };
+  const nE=entries.filter(e=>e.clientId===id).length;
+  const nI=invoices.filter(i=>i.clientId===id).length;
+  const nP=packages.filter(p=>p.clientId===id).length;
+  const left=[nE?`wpisy (${nE})`:'',nI?`faktury (${nI})`:'',nP?`pakiety (${nP})`:''].filter(Boolean).join(', ');
+  askConfirm(`Klient „${name}” zostanie usunięty.`+(left?` Zostają w aplikacji, ale bez przypisanego klienta: ${left}.`:''),
+    ()=>deleteClient(id),'Usunąć klienta?');
 }
 
 function confirmDeleteSubproject(clientId, subprojId, name){
   const count=entries.filter(e=>e.subprojId===subprojId).length;
-  document.getElementById('confirm-text').textContent=`Podprojekt "${name}" (${count} wpisów) zostanie usunięty.`;
-  document.getElementById('confirm-modal').classList.add('open');
-  document.getElementById('confirm-delete-btn').onclick=()=>{
-    document.getElementById('confirm-modal').classList.remove('open');
-    deleteSubproject(clientId,subprojId);
-  };
+  askConfirm(`Podprojekt „${name}” zostanie usunięty.`+(count?` Jego wpisy (${count}) zostają przy kliencie, bez podprojektu.`:''),
+    ()=>deleteSubproject(clientId,subprojId),'Usunąć podprojekt?');
 }
 
 function startRenameSubproj(clientId, subprojId, currentName){
@@ -1758,8 +1917,8 @@ function renderClients(){
     let invHtml='';
     if(cInvoices.length){
       // Один рядок-підсумок; деталі — в «Обліку» (одне місце правди)
-      const totalRemaining=cInvoices.reduce((a,inv)=>a+Math.max(0,(inv.amount||0)-(inv.paidTotal||0)),0);
-      const overdueCnt=cInvoices.filter(inv=>((inv.amount||0)-(inv.paidTotal||0))>0&&inv.dueDate&&inv.dueDate<todayStr).length;
+      const totalRemaining=cInvoices.reduce((a,inv)=>a+Math.max(0,invRemaining(inv)),0);
+      const overdueCnt=cInvoices.filter(inv=>!invIsPaid(inv)&&inv.dueDate&&inv.dueDate<todayStr).length;
       const statusTxt=totalRemaining>0
         ?`pozostało <strong>${totalRemaining.toFixed(0)} zł</strong>${overdueCnt?` · <span style="color:var(--red)">${overdueCnt} po terminie</span>`:''}`
         :'<span style="color:var(--green)">✓ wszystko opłacone</span>';
@@ -1768,7 +1927,8 @@ function renderClients(){
         <span style="color:var(--text-3);white-space:nowrap">→ Rozliczenia</span>
       </div>`;
     }
-    const actPkg=activePackages().find(p=>p.clientId===c.id);
+    const actPkgRaw=activePackages().find(p=>p.clientId===c.id);
+    const actPkg=actPkgRaw?{results:pkgCalcFromInputs(actPkgRaw)}:null;
     const pkgHtml=actPkg?`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;cursor:pointer" onclick="goToPakiet('${c.id}')" title="Otwórz w Pakietach">
         <span>Pakiet: <strong>${pkgFmt(actPkg.results.price)}/mies.</strong> · zysk <span style="color:${actPkg.results.profit>=0?'var(--green)':'var(--red)'}">${pkgFmt(actPkg.results.profit)}</span> (${Math.round(actPkg.results.marginPct)}%)</span>
         <span style="color:var(--text-3);white-space:nowrap">→ Pakiet</span>
@@ -1811,7 +1971,8 @@ function renderLog(){
   if(sort==='cat') list=[...list].sort((a,b)=>catLabel(a.cat).localeCompare(catLabel(b.cat),'pl'));
   else if(sort==='earn') list=[...list].sort((a,b)=>(parseFloat(b.earn)||0)-(parseFloat(a.earn)||0));
   else if(sort==='hours') list=[...list].sort((a,b)=>b.hours-a.hours);
-  // default: date (already sorted by insertion order)
+  // domyślnie: od najnowszej daty; w obrębie jednego dnia zostaje kolejność dodania
+  else list=list.map((e,i)=>[e,i]).sort((a,b)=>String(b[0].date).slice(0,10).localeCompare(String(a[0].date).slice(0,10))||a[1]-b[1]).map(x=>x[0]);
   const totalHrs=list.reduce((a,e)=>a+e.hours,0);
   const totalEarn=list.reduce((a,e)=>a+(parseFloat(e.earn)||0),0);
   const days=[...new Set(list.map(e=>String(e.date).slice(0,10)))].length;
@@ -1825,7 +1986,7 @@ function renderLog(){
     const subproj=getSubprojById(e.clientId,e.subprojId);
     const loc=[client?client.name:'',subproj?subproj.name:''].filter(Boolean).join(' › ');
     const dateClean=String(e.date).slice(0,10);
-    const rate=e.rate||(client?client.rate:0);
+    const rate=entryRate(e,client);
     const earn=parseFloat(e.earn)||0;
     const c=CATS[e.cat]||CATS['Інше'];
     const rightCol=e.fixed
@@ -2272,12 +2433,7 @@ async function deleteEstimate(id){
 function confirmDeleteEstimate(id){
   const est=estimates.find(e=>e.id===id);
   if(!est)return;
-  document.getElementById('confirm-text').textContent=`Kosztorys "${est.name}" zostanie usunięty.`;
-  document.getElementById('confirm-modal').classList.add('open');
-  document.getElementById('confirm-delete-btn').onclick=()=>{
-    document.getElementById('confirm-modal').classList.remove('open');
-    deleteEstimate(id);
-  };
+  askConfirm(`Kosztorys „${est.name}” zostanie usunięty.`,()=>deleteEstimate(id),'Usunąć kosztorys?');
 }
 
 function loadEstimateToForm(id){
@@ -2488,6 +2644,8 @@ async function confirmPayment(){
   const date=document.getElementById('pay-date').value||today();
   const note=document.getElementById('pay-note').value;
   const inv=invoices.find(i=>i.id===invId);if(!inv)return;
+  const rem=invRemaining(inv);
+  if(amount>rem+PAID_EPS){showToast(`Kwota większa niż pozostało do zapłaty (${rem} zł)`);document.getElementById('pay-amount').focus();return;}
   if(!inv.payments)inv.payments=[];
   inv.payments.push({id:uid(),amount:money2(amount),date,note});
   inv.paidTotal=money2(inv.payments.reduce((a,p)=>a+p.amount,0));
@@ -2501,6 +2659,11 @@ async function confirmPayment(){
 
 function deletePayment(invId,payId){
   const inv=invoices.find(i=>i.id===invId);if(!inv)return;
+  const pay=(inv.payments||[]).find(p=>p.id===payId);if(!pay)return;
+  askConfirm(`Płatność ${pay.amount} zł z ${pay.date||'—'} (faktura ${inv.name}) zostanie usunięta.`,()=>doDeletePayment(invId,payId),'Usunąć płatność?');
+}
+function doDeletePayment(invId,payId){
+  const inv=invoices.find(i=>i.id===invId);if(!inv)return;
   inv.payments=(inv.payments||[]).filter(p=>p.id!==payId);
   inv.paidTotal=money2(inv.payments.reduce((a,p)=>a+p.amount,0));
   renderInvoices();
@@ -2510,14 +2673,11 @@ function deletePayment(invId,payId){
 }
 
 function deleteInvoice(id){
-  document.getElementById('confirm-text').textContent='Faktura zostanie usunięta razem ze wszystkimi płatnościami.';
-  document.getElementById('confirm-modal').classList.add('open');
-  document.getElementById('confirm-delete-btn').onclick=()=>{
-    document.getElementById('confirm-modal').classList.remove('open');
+  askConfirm('Faktura zostanie usunięta razem ze wszystkimi płatnościami.',()=>{
     invoices=invoices.filter(i=>i.id!==id);renderInvoices();
     setSyncStatus('loading','Usuwanie...');
     gasPost({action:'deleteInvoice',id}).then(()=>setSyncStatus('ok','Supabase')).catch(()=>setSyncStatus('err','Błąd'));
-  };
+  },'Usunąć fakturę?');
 }
 
 function renderInvoices(){
@@ -2536,7 +2696,7 @@ function renderInvoices(){
   if(dateTo)list=list.filter(i=>i.issueDate<=dateTo);
   if(stf){
     list=list.filter(i=>{
-      const paid=(i.paidTotal||0)>=(i.netto?i.netto*1.23:i.amount);
+      const paid=invIsPaid(i);
       const overdue=i.dueDate&&i.dueDate<todayStr&&!paid;
       if(stf==='paid')return paid;
       if(stf==='overdue')return overdue;
@@ -2794,7 +2954,7 @@ function openEditModal(id){
   document.getElementById('e-fixed').value=e.earn||0;
   document.getElementById('e-type').value=e.fixed?'fixed':'hours';
   const clientObj=getClientById(e.clientId);
-  const rate=e.rate||(clientObj?clientObj.rate:50);
+  const rate=entryRate(e,clientObj)||50;
   document.getElementById('e-rate').value=rate;
   document.getElementById('e-earn-out').value=e.earn||0;
   const subproj=getSubprojById(e.clientId,e.subprojId);
@@ -2866,12 +3026,7 @@ async function saveEdit(){
 }
 
 function confirmDelete(id, name){
-  document.getElementById('confirm-text').textContent=`"${name}"`;
-  document.getElementById('confirm-modal').classList.add('open');
-  document.getElementById('confirm-delete-btn').onclick=()=>{
-    document.getElementById('confirm-modal').classList.remove('open');
-    deleteEntry(id);
-  };
+  askConfirm(`„${name}”`,()=>deleteEntry(id),'Usunąć wpis?');
 }
 
 let undoTimer=null;
@@ -3513,7 +3668,13 @@ function setPkgFormMode(editing){
   }
 }
 
-async function deletePakiet(id){
+function deletePakiet(id){
+  const p=packages.find(x=>x.id===id);
+  if(!p)return;
+  askConfirm(`Pakiet „${p.name}” zostanie usunięty.`,()=>doDeletePakiet(id),'Usunąć pakiet?',
+    'Kopia trafi do „Historii zmian” — stamtąd można go przywrócić.');
+}
+async function doDeletePakiet(id){
   const p=packages.find(x=>x.id===id);
   if(p)pkgArchive(p,'deleted');
   packages=packages.filter(x=>x.id!==id);
@@ -3671,7 +3832,7 @@ function renderPlanVsFact(){
         ${pvfBar(a,pl,color)}
       </div>`;
     }).join('');
-    const take=(p.results&&p.results.yourTake)||0;
+    const take=pkgCalcFromInputs(p).yourTake||0;
     const planRate=planSum>0?take/planSum:0;
     const realRate=actSum>0?take/actSum:0;
     const totalOver=actSum>planSum+0.001;
@@ -3730,7 +3891,7 @@ function renderPackagesList(){
         </div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;color:var(--brand)">
-        <span>Cena ${pkgCalcFromInputs(p).priceCustom?'<span style="font-size:11px;font-weight:500;color:var(--text-3)">faktyczna</span>':'<span style="font-size:11px;font-weight:500;color:var(--text-3)">sugerowana</span>'}</span><span>${pkgFmt(p.results.price)}</span>
+        <span>Cena ${pkgCalcFromInputs(p).priceCustom?'<span style="font-size:11px;font-weight:500;color:var(--text-3)">faktyczna</span>':'<span style="font-size:11px;font-weight:500;color:var(--text-3)">sugerowana</span>'}</span><span>${pkgFmt(pkgCalcFromInputs(p).price)}</span>
       </div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px" onclick="event.stopPropagation()">
         <label for="pkg-fp-${p.id}" style="font-size:11px;font-weight:600;color:var(--text-2);text-transform:uppercase;letter-spacing:0.6px">Cena faktyczna</label>
@@ -3739,7 +3900,7 @@ function renderPackagesList(){
           placeholder="wg narzutu" onchange="setPkgFinalPrice('${p.id}',this.value)">
       </div>
       <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--text-2);margin-top:4px">
-        <span>Zysk</span><span>${pkgFmt(p.results.profit)} (${Math.round(p.results.marginPct)}%)</span>
+        <span>Zysk</span><span>${pkgFmt(pkgCalcFromInputs(p).profit)} (${Math.round(pkgCalcFromInputs(p).marginPct)}%)</span>
       </div>
       ${isOpen?pkgDetailHtml(p):''}
     </div>`;
@@ -3752,7 +3913,9 @@ function renderDash(){
   const inc=document.getElementById('pkg-sum-income');
   if(!inc)return;
   const act=activePackages();
-  const sum=k=>act.reduce((a,p)=>a+(p.results&&p.results[k]||0),0);
+  // liczone na bieżąco z danych pakietu (te same wzory co w szczegółach), nie z zapisanych wyników
+  const calcs=act.map(pkgCalcFromInputs);
+  const sum=k=>calcs.reduce((a,c)=>a+(c[k]||0),0);
   const income=sum('price'),costs=sum('totalCost'),profit=sum('profit'),take=sum('yourTake'),out=sum('externalOut');
   inc.textContent=pkgFmt(income);
   document.getElementById('pkg-sum-costs').textContent=pkgFmt(costs);
@@ -3766,7 +3929,7 @@ function renderDash(){
   // чого не видно ні в списку пакетів, ні в Журналі з першого погляду.
   const noteEl=document.getElementById('pkg-sum-note');
   if(noteEl){
-    const unpaid=invoices.reduce((a,i)=>a+Math.max(0,(i.amount||0)-(i.paidTotal||0)),0);
+    const unpaid=invoices.reduce((a,i)=>a+Math.max(0,invRemaining(i)),0);
     const marginPct=income>0?Math.round(profit/income*100):0;
     const parts=[];
     if(act.length){
@@ -3786,13 +3949,9 @@ function renderDash(){
   }
   // розбивка витрат по категоріях — сумуємо inputs кожного активного пакета
   const catTotals={ania:0,sesja:0,grafika:0,koord:0,transport:0};
-  act.forEach(p=>{
-    const i=p.inputs||{};
-    catTotals.ania+=i.aniaCost??((i.aniaRate||0)*(i.aniaHours||0));
-    catTotals.sesja+=(i.sessionCost||0)*(i.sessionCount??1);
-    catTotals.grafika+=(i.graphicHours||0)*(i.graphicRate||0);
-    catTotals.koord+=(i.coordHours||0)*(i.kyryloRate||0);
-    catTotals.transport+=(i.transportCost||0);
+  calcs.forEach(c=>{
+    catTotals.ania+=c.aniaCost; catTotals.sesja+=c.sessionTotal; catTotals.grafika+=c.graphicCost;
+    catTotals.koord+=c.coordCost; catTotals.transport+=c.transportCost;
   });
   const CAT_LABELS={ania:'Ania — realizacja SMM',sesja:'Sesje foto/wideo',grafika:'Grafika',koord:'Twoja koordynacja + montaż',transport:'Transport'};
   const catCosts=Object.entries(catTotals);
